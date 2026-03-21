@@ -184,8 +184,19 @@ Mock interview and resume AI routes require a logged-in user and enforce **credi
 ## 8. Build and quality
 
 - **`npm run build`**: Project is set up to pass typecheck and lint for the App Router and API routes.
-- Routes that read **cookies/headers** for sessions are **dynamic** (normal for Next.js).
+- API routes that call **`getServerSession`** declare **`export const dynamic = 'force-dynamic'`** so Vercel/Next do not try to statically analyze them at build time.
 
 ---
 
-*Last updated: March 22, 2025*
+## 9. Deployment (Vercel + Supabase)
+
+- **Hosting**: [Vercel](https://vercel.com) (free tier is sufficient to start). Import the GitHub repo **[Rushi788816/interviewai](https://github.com/Rushi788816/interviewai)** in the Vercel dashboard (or run **`vercel`** / **`vercel link`** from the CLI) so **pushes to `main`** trigger automatic production deploys.
+- **Production URL**: Shown in Vercel → Project → **Domains** (default shape: `https://<project-name>.vercel.app`). Replace this placeholder after your first successful deploy.
+- **Database**: Supabase PostgreSQL; set **`DATABASE_URL`** in Vercel to your pooled or direct connection string (never commit it). Prisma: **`postinstall`** runs **`prisma generate`** on each Vercel install.
+- **Required environment variables** (Vercel → Project → Settings → Environment Variables): **`GROQ_API_KEY`**, **`DATABASE_URL`**, **`NEXTAUTH_SECRET`**, **`NEXTAUTH_URL`** (must match the live site exactly: `https://…` with **no trailing slash**), **`GOOGLE_CLIENT_ID`**, **`GOOGLE_CLIENT_SECRET`**.
+- **OAuth / Supabase dashboard**: Add the production site URL to Google OAuth authorized origins/redirects and to Supabase **allowed origins** / connection settings as needed.
+- **Build config**: `next.config.js` sets **`serverComponentsExternalPackages: ['pdf-parse']`** and server-side webpack **externals** for **`html2canvas`** and **`jspdf`** (resume PDF path).
+
+---
+
+*Last updated: March 22, 2026*
