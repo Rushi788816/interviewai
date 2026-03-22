@@ -49,7 +49,7 @@ export const authOptions: NextAuthOptions = {
   callbacks: {
     async jwt({ token, user }) {
       if (user) {
-        token.id = (user as any).id
+        token.id = user.id
         token.credits = (user as any).credits ?? 30
         token.plan = (user as any).plan ?? "free"
       }
@@ -58,8 +58,8 @@ export const authOptions: NextAuthOptions = {
     async session({ session, token }) {
       if (token && session.user) {
         (session.user as any).id = token.id as string
-        (session.user as any).credits = token.credits
-        (session.user as any).plan = token.plan as string
+        ;(session.user as any).credits = token.credits as number
+        ;(session.user as any).plan = token.plan as string
       }
       return session
     },
