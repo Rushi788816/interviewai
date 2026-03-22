@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import type { Prisma } from '@prisma/client'
+import { InputJsonValue } from '@prisma/client/runtime/library'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 
@@ -35,9 +36,9 @@ export async function POST(request: Request) {
         role,
         companyType,
         difficulty,
-        questions: questions as Prisma.InputJsonValue,
-        answers: (answers ?? []) as Prisma.InputJsonValue,
-        scores: (scores ?? []) as Prisma.InputJsonValue,
+        questions: (questions ?? []) as InputJsonValue,
+        answers: (answers ?? []) as InputJsonValue,
+        scores: (scores ?? []) as InputJsonValue,
         overallScore: overallScore ?? 0,
         completed: true,
       },

@@ -31,7 +31,8 @@ model User {
   interviewSessions InterviewSession[]
   payments      Payment[]
   mockSessions  MockSession[]
-  sessions      Session[]\n}\n\n
+  sessions      Session[]
+}
 
 model InterviewSession {
   id             String   @id @default(cuid())
@@ -77,3 +78,4 @@ model MockSession {
   completed    Boolean  @default(false)
   createdAt    DateTime @default(now())
 }
+

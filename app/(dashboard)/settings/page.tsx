@@ -71,7 +71,17 @@ export default function SettingsPage() {
     }
   }
 
-  if (status === 'loading') {\n    return (\n      <div style={{ minHeight: '100vh', backgroundColor: '#0A0F1E', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>\n        <div style={{ width: '32px', height: '32px', border: '2px solid #2563EB', borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin 1s linear infinite' }}></div>\n      </div>\n    )\n  }\n\n  if (!session?.user) {\n    return null\n  }
+  if (status === 'loading') {
+    return (
+      <div style={{ minHeight: '100vh', backgroundColor: '#0A0F1E', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <div style={{ width: '32px', height: '32px', border: '2px solid #2563EB', borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin 1s linear infinite' }}></div>
+      </div>
+    )
+  }
+
+  if (!session?.user) {
+    return null
+  }
 
   const initial = (session.user.name || session.user.email || '?')[0].toUpperCase()
 
@@ -147,14 +157,14 @@ export default function SettingsPage() {
             <input
               style={{
                 width: '100%',
-                padding: '12px 16px 12px 16px 0 12px 16px',
+                padding: '12px 16px',
                 backgroundColor: '#0A0F1E',
                 border: '1px solid rgba(255,255,255,0.1)',
                 borderRadius: '10px',
                 color: 'white',
                 paddingRight: '48px',
               }}
-              value={session.user.email}
+              value={session.user.email || ''}
               disabled
               placeholder="your@email.com"
             />
@@ -234,7 +244,7 @@ export default function SettingsPage() {
         </div>
 
         {/* Plans */}
-        <div style={{ display: 'grid', gap: '24px', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr)' }}>
+        <div style={{ display: 'grid', gap: '24px', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))' }}>
           {[
             {
               id: 'starter',

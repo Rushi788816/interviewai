@@ -21,7 +21,7 @@ export default function ContactPage() {
     'Partnership'
   ]
 
-  const handleSubmit = (e) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     setSubmitted(true)
     // Reset form after 3 seconds
@@ -31,7 +31,7 @@ export default function ContactPage() {
     }, 3000)
   }
 
-  const handleChange = (e) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     setFormData({
       ...formData,
       [e.target.name]: e.target.value
