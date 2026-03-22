@@ -10,7 +10,6 @@ import {
   Clock,
   Coins,
   CalendarDays,
-  Zap,
   Target,
   FileText,
   ChevronRight,
@@ -85,12 +84,12 @@ export default function DashboardPage() {
     }
   }
 
-  const IconCard = ({ icon: Icon, children, color }: { icon: any; children: React.ReactNode; color: string }) => (
+  const IconCard = ({ icon: Icon, color }: { icon: any; color: string }) => (
     <div style={{
       width: "48px",
       height: "48px",
       borderRadius: "12px",
-      background: `rgba(${color === "#2563EB" ? "37,99,235" : color === "#06B6D4" ? "6,182,212" : color === "#F59E0B" ? "245,158,11" : "139,92,246"},0.15)`,
+      background: `rgba(${parseInt(color.slice(1,3),16)},${parseInt(color.slice(3,5),16)},${parseInt(color.slice(5,7),16)},0.15)`,
       display: "flex",
       alignItems: "center",
       justifyContent: "center",
@@ -109,168 +108,218 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="max-w-6xl space-y-10 p-4 md:p-8">
-      <div className="flex items-center gap-4">
+    <div style={{ maxWidth: '1400px', margin: '0 auto', padding: '32px 24px' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '32px' }}>
         {greetingIcon()}
-        <h1 className="text-2xl font-bold text-white md:text-3xl">{greeting(session?.user?.name)} <TrendingUp size={20} className="inline" /></h1>
+        <h1 style={{ fontSize: '1.875rem', fontWeight: 'bold', color: 'white' }}>
+          {greeting(session?.user?.name)} <TrendingUp size={20} style={{ display: 'inline', marginLeft: '8px' }} />
+        </h1>
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div style={{ display: 'grid', gap: '16px', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr)' }}>
         {loading ? (
-          <>
-            <Skeleton height="96px" />
-            <Skeleton height="96px" />
-            <Skeleton height="96px" />
-            <Skeleton height="96px" />
-          </>
+          Array.from({ length: 4 }).map((_, i) => (
+            <div key={i} style={{ height: '96px', backgroundColor: '#1E2A3A', borderRadius: '16px', border: '1px solid rgba(255,255,255,0.1)' }}></div>
+          ))
         ) : (
           <>
-            <div className="rounded-2xl border border-white/10 bg-[#111827] p-5">
+            <div style={{ borderRadius: '16px', border: '1px solid rgba(255,255,255,0.1)', backgroundColor: '#111827', padding: '20px' }}>
               <IconCard icon={Mic} color="#2563EB" />
-              <p className="text-sm text-[#94A3B8]">Total Sessions</p>
-              <p className="text-2xl font-bold text-white">{stats?.totalSessions ?? 0}</p>
+              <p style={{ fontSize: '0.875rem', color: '#94A3B8', marginBottom: '8px' }}>Total Sessions</p>
+              <p style={{ fontSize: '1.5rem', fontWeight: 'bold', color: 'white' }}>{stats?.totalSessions ?? 0}</p>
             </div>
-            <div className="rounded-2xl border border-white/10 bg-[#111827] p-5">
+            <div style={{ borderRadius: '16px', border: '1px solid rgba(255,255,255,0.1)', backgroundColor: '#111827', padding: '20px' }}>
               <IconCard icon={Clock} color="#06B6D4" />
-              <p className="text-sm text-[#94A3B8]">Minutes Practiced</p>
-              <p className="text-2xl font-bold text-white">{stats?.totalMinutes ?? 0}</p>
+              <p style={{ fontSize: '0.875rem', color: '#94A3B8', marginBottom: '8px' }}>Minutes Practiced</p>
+              <p style={{ fontSize: '1.5rem', fontWeight: 'bold', color: 'white' }}>{stats?.totalMinutes ?? 0}</p>
             </div>
-            <div className="rounded-2xl border border-white/10 bg-[#111827] p-5">
+            <div style={{ borderRadius: '16px', border: '1px solid rgba(255,255,255,0.1)', backgroundColor: '#111827', padding: '20px' }}>
               <IconCard icon={Coins} color="#F59E0B" />
-              <p className="text-sm text-[#94A3B8]">Credits Remaining</p>
-              <p className="text-2xl font-bold text-white">{creditsLoading ? '…' : balance}</p>
+              <p style={{ fontSize: '0.875rem', color: '#94A3B8', marginBottom: '8px' }}>Credits Remaining</p>
+              <p style={{ fontSize: '1.5rem', fontWeight: 'bold', color: 'white' }}>{creditsLoading ? '…' : balance}</p>
             </div>
-            <div className="rounded-2xl border border-white/10 bg-[#111827] p-5">
+            <div style={{ borderRadius: '16px', border: '1px solid rgba(255,255,255,0.1)', backgroundColor: '#111827', padding: '20px' }}>
               <IconCard icon={CalendarDays} color="#8B5CF6" />
-              <p className="text-sm text-[#94A3B8]">Sessions This Week</p>
-              <p className="text-2xl font-bold text-white">{stats?.sessionsThisWeek ?? 0}</p>
+              <p style={{ fontSize: '0.875rem', color: '#94A3B8', marginBottom: '8px' }}>Sessions This Week</p>
+              <p style={{ fontSize: '1.5rem', fontWeight: 'bold', color: 'white' }}>{stats?.sessionsThisWeek ?? 0}</p>
             </div>
           </>
         )}
       </div>
 
       <div>
-        <h2 className="mb-4 text-lg font-semibold text-white">Quick actions</h2>
-        <div className="grid gap-4 md:grid-cols-3">
+        <h2 style={{ fontSize: '1.125rem', fontWeight: '600', color: 'white', marginBottom: '16px' }}>Quick actions</h2>
+        <div style={{ display: 'grid', gap: '16px', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr)' }}>
           <Link
             href="/interview"
-            className="group rounded-2xl border border-white/10 bg-gradient-to-br from-[#2563EB] to-[#0EA5E9] p-8 text-center font-semibold text-white transition hover:opacity-90"
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              textDecoration: 'none',
+              borderRadius: '16px',
+              border: '1px solid rgba(255,255,255,0.1)',
+              background: 'linear-gradient(135deg, #2563EB, #0EA5E9)',
+              padding: '32px 24px',
+              color: 'white',
+              fontWeight: '600',
+              transition: 'opacity 0.2s'
+            }}
+            onMouseEnter={(e) => e.currentTarget.style.opacity = '0.9'}
+            onMouseLeave={(e) => e.currentTarget.style.opacity = '1'}
           >
             <div style={{
-              width: "56px",
-              height: "56px",
-              borderRadius: "14px",
-              background: "rgba(255,255,255,0.1)",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              color: "white",
-              margin: "0 auto 16px",
+              width: '56px',
+              height: '56px',
+              borderRadius: '14px',
+              backgroundColor: 'rgba(255,255,255,0.2)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              marginBottom: '16px',
             }}>
               <Mic size={28} />
             </div>
-            Start Interview Assistant <ChevronRight size={16} className="inline group-hover:translate-x-1 transition-transform" />
+            <div>Start Interview Assistant</div>
+            <ChevronRight size={20} style={{ marginTop: '8px', transition: 'transform 0.2s' }} />
           </Link>
           <Link
             href="/mock-interview"
-            className="group rounded-2xl border border-white/10 bg-gradient-to-br from-blue-600 to-cyan-600 p-8 text-center font-semibold text-white transition hover:opacity-90"
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              textDecoration: 'none',
+              borderRadius: '16px',
+              border: '1px solid rgba(255,255,255,0.1)',
+              background: 'linear-gradient(135deg, #3B82F6, #06B6D4)',
+              padding: '32px 24px',
+              color: 'white',
+              fontWeight: '600',
+              transition: 'opacity 0.2s'
+            }}
+            onMouseEnter={(e) => e.currentTarget.style.opacity = '0.9'}
+            onMouseLeave={(e) => e.currentTarget.style.opacity = '1'}
           >
             <div style={{
-              width: "56px",
-              height: "56px",
-              borderRadius: "14px",
-              background: "rgba(255,255,255,0.1)",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              color: "white",
-              margin: "0 auto 16px",
+              width: '56px',
+              height: '56px',
+              borderRadius: '14px',
+              backgroundColor: 'rgba(255,255,255,0.2)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              marginBottom: '16px',
             }}>
               <Target size={28} />
             </div>
-            Practice Mock Interview <ChevronRight size={16} className="inline group-hover:translate-x-1 transition-transform" />
+            <div>Practice Mock Interview</div>
+            <ChevronRight size={20} style={{ marginTop: '8px', transition: 'transform 0.2s' }} />
           </Link>
           <Link
             href="/resume-builder"
-            className="group rounded-2xl border border-white/10 bg-gradient-to-br from-emerald-600 to-teal-600 p-8 text-center font-semibold text-white transition hover:opacity-90"
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              textDecoration: 'none',
+              borderRadius: '16px',
+              border: '1px solid rgba(255,255,255,0.1)',
+              background: 'linear-gradient(135deg, #10B981, #059669)',
+              padding: '32px 24px',
+              color: 'white',
+              fontWeight: '600',
+              transition: 'opacity 0.2s'
+            }}
+            onMouseEnter={(e) => e.currentTarget.style.opacity = '0.9'}
+            onMouseLeave={(e) => e.currentTarget.style.opacity = '1'}
           >
             <div style={{
-              width: "56px",
-              height: "56px",
-              borderRadius: "14px",
-              background: "rgba(255,255,255,0.1)",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              color: "white",
-              margin: "0 auto 16px",
+              width: '56px',
+              height: '56px',
+              borderRadius: '14px',
+              backgroundColor: 'rgba(255,255,255,0.2)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              marginBottom: '16px',
             }}>
               <FileText size={28} />
             </div>
-            Build Resume <ChevronRight size={16} className="inline group-hover:translate-x-1 transition-transform" />
+            <div>Build Resume</div>
+            <ChevronRight size={20} style={{ marginTop: '8px', transition: 'transform 0.2s' }} />
           </Link>
         </div>
       </div>
 
       <div>
-        <h2 className="mb-4 text-lg font-semibold text-white">Recent Sessions</h2>
-        <div className="overflow-x-auto rounded-2xl border border-white/10 bg-[#111827]">
+        <h2 style={{ fontSize: '1.125rem', fontWeight: '600', color: 'white', marginBottom: '16px' }}>Recent Sessions</h2>
+        <div style={{ overflowX: 'auto', borderRadius: '16px', border: '1px solid rgba(255,255,255,0.1)', backgroundColor: '#111827' }}>
           {loading ? (
-            <div className="p-6 space-y-2">
-              <Skeleton height="2rem" />
-              <Skeleton height="2rem" />
+            <div style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              <div style={{ height: '48px', backgroundColor: '#1E2A3A', borderRadius: '8px' }}></div>
+              <div style={{ height: '48px', backgroundColor: '#1E2A3A', borderRadius: '8px' }}></div>
             </div>
           ) : sessions.length === 0 ? (
-            <div className="flex flex-col items-center justify-center p-16 text-center">
+            <div style={{ padding: '64px 24px', display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center' }}>
               <div style={{
-                width: "64px",
-                height: "64px",
-                borderRadius: "16px",
-                background: "rgba(255,255,255,0.1)",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                color: "#94A3B8",
-                marginBottom: "16px",
+                width: '64px',
+                height: '64px',
+                borderRadius: '16px',
+                backgroundColor: 'rgba(255,255,255,0.1)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: '#94A3B8',
+                marginBottom: '16px',
               }}>
                 <Inbox size={32} />
               </div>
-              <h3 className="text-xl font-semibold mb-2 text-zinc-300">No sessions yet</h3>
-              <p className="text-[#94A3B8] mb-4 max-w-sm">Get started with a live interview or mock practice session.</p>
-              <div className="flex gap-3">
-                <Link href="/interview" className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-[#2563EB] to-[#0EA5E9] font-semibold text-white hover:opacity-90">
+              <h3 style={{ fontSize: '1.25rem', fontWeight: '600', color: '#D1D5DB', marginBottom: '8px' }}>No sessions yet</h3>
+              <p style={{ color: '#94A3B8', maxWidth: '400px' }}>Get started with a live interview or mock practice session.</p>
+              <div style={{ display: 'flex', gap: '12px', marginTop: '24px' }}>
+                <Link href="/interview" style={{ padding: '12px 24px', borderRadius: '10px', background: 'linear-gradient(135deg, #2563EB, #0EA5E9)', color: 'white', fontWeight: '600', textDecoration: 'none' }}>
                   Start Interview
                 </Link>
-                <Link href="/mock-interview" className="px-6 py-2.5 rounded-xl border border-white/20 bg-transparent font-semibold text-[#94A3B8] hover:bg-white/10 hover:text-white">
+                <Link href="/mock-interview" style={{ padding: '12px 24px', borderRadius: '10px', border: '1px solid rgba(255,255,255,0.2)', color: '#94A3B8', fontWeight: '600', textDecoration: 'none', backgroundColor: 'transparent' }}>
                   Try Mock
                 </Link>
               </div>
             </div>
           ) : (
-            <table className="w-full text-left text-sm text-zinc-300">
-              <thead className="border-b border-white/10 text-xs uppercase text-zinc-500">
+            <table style={{ width: '100%' }}>
+              <thead style={{ backgroundColor: 'rgba(255,255,255,0.03)' }}>
                 <tr>
-                  <th className="px-4 py-3">Date <MessageSquare size={12} className="inline ml-1" /></th>
-                  <th className="px-4 py-3">Duration</th>
-                  <th className="px-4 py-3">Mode</th>
-                  <th className="px-4 py-3">Credits Used</th>
-                  <th className="px-4 py-3">Questions Answered</th>
+                  <th style={{ padding: '12px 16px', fontWeight: '600', color: '#94A3B8', textAlign: 'left', fontSize: '0.75rem', textTransform: 'uppercase' }}>
+                    Date <MessageSquare size={12} style={{ display: 'inline', marginLeft: '4px' }} />
+                  </th>
+                  <th style={{ padding: '12px 16px', fontWeight: '600', color: '#94A3B8', textAlign: 'left', fontSize: '0.75rem', textTransform: 'uppercase' }}>Duration</th>
+                  <th style={{ padding: '12px 16px', fontWeight: '600', color: '#94A3B8', textAlign: 'left', fontSize: '0.75rem', textTransform: 'uppercase' }}>Mode</th>
+                  <th style={{ padding: '12px 16px', fontWeight: '600', color: '#94A3B8', textAlign: 'left', fontSize: '0.75rem', textTransform: 'uppercase' }}>Credits Used</th>
+                  <th style={{ padding: '12px 16px', fontWeight: '600', color: '#94A3B8', textAlign: 'left', fontSize: '0.75rem', textTransform: 'uppercase' }}>Questions Answered</th>
                 </tr>
               </thead>
               <tbody>
                 {sessions.map((row) => (
-                  <tr key={row.id} className="border-b border-white/5 hover:bg-white/5">
-                    <td className="px-4 py-3">
+                  <tr key={row.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+                    <td style={{ padding: '12px 16px', color: 'white' }}>
                       {new Date(row.createdAt).toLocaleString()}
                     </td>
-                    <td className="px-4 py-3">{Math.round(row.duration / 60)} min</td>
-                    <td className="px-4 py-3">
-                      <span className="rounded-full bg-violet-500/20 px-2 py-0.5 text-xs capitalize text-violet-200">
+                    <td style={{ padding: '12px 16px' }}>{Math.round(row.duration / 60)} min</td>
+                    <td style={{ padding: '12px 16px' }}>
+                      <span style={{ 
+                        padding: '4px 8px', 
+                        borderRadius: '9999px', 
+                        backgroundColor: 'rgba(139,92,246,0.2)', 
+                        color: 'rgb(168,85,247)', 
+                        fontSize: '0.75rem', 
+                        fontWeight: '500' 
+                      }}>
                         {row.mode}
                       </span>
                     </td>
-                    <td className="px-4 py-3">{row.creditsUsed}</td>
-                    <td className="px-4 py-3">{qaCount(row)}</td>
+                    <td style={{ padding: '12px 16px' }}>{row.creditsUsed}</td>
+                    <td style={{ padding: '12px 16px' }}>{qaCount(row)}</td>
                   </tr>
                 ))}
               </tbody>
