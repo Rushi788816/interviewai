@@ -14,13 +14,10 @@ export async function GET() {
 
     const user = await prisma.user.findUnique({
       where: { id: session.user.id },
+      select: { credits: true }
     })
 
-    if (!user) {
-      return NextResponse.json({ credits: 0 })
-    }
-
-    return NextResponse.json({ credits: user.credits })
+    return NextResponse.json({ credits: user?.credits ?? 0 })
   } catch (error) {
     console.error('Credits balance error:', error)
     return NextResponse.json({ credits: 0 })

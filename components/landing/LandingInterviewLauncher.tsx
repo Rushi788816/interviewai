@@ -20,6 +20,7 @@ export default function LandingInterviewLauncher() {
       router.push('/login')
       return
     }
+    router.push('/interview')
     setShowAssistant(true)
   }
 

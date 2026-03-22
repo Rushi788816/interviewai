@@ -13,16 +13,7 @@ export default function TranscriptDisplay({ transcript, interimTranscript, isMob
   
   return (
     <div style={{ display: 'flex' as const, flexDirection: 'column' as const, gap: '12px' }}>
-      <div style={{ 
-        fontSize: '14px',
-        fontWeight: '600' as const,
-        color: 'rgb(59,130,246)',
-        textTransform: 'uppercase' as const,
-        letterSpacing: '0.05em' as const,
-        marginBottom: '0',
-      }}>
-        Live transcript
-      </div>
+      {/* Label removed - shown in parent */}
       {(transcript || interimTranscript) && (
         <div
           style={{

@@ -1,10 +1,10 @@
 export default function HeroSection() {
   return (
-    <section className="relative flex min-h-screen flex-col items-center justify-center overflow-hidden bg-[#0a0a0f] px-5 pb-20 pt-28 text-center">
+    <section className="relative flex min-h-screen flex-col items-center justify-center overflow-hidden bg-[#0A0F1E] px-5 pb-20 pt-28 text-center">
       <div className="absolute inset-0 pointer-events-none opacity-40" aria-hidden>
         <div
           className="absolute top-1/4 left-1/2 -translate-x-1/2 w-[800px] h-[500px] rounded-full blur-[120px]"
-          style={{ background: 'radial-gradient(ellipse, rgba(108, 99, 255, 0.25), transparent 70%)' }}
+          style={{ background: 'radial-gradient(ellipse, rgba(37, 99, 235, 0.25), transparent 70%)' }}
         />
       </div>
 
@@ -35,14 +35,14 @@ export default function HeroSection() {
           <span
             className="bg-clip-text text-transparent"
             style={{
-              backgroundImage: 'linear-gradient(90deg, #6c63ff, #ff6584)',
+              backgroundImage: 'linear-gradient(90deg, #2563EB, #0EA5E9)',
             }}
           >
             Invisible
           </span>{' '}
           to Interviewers
         </h1>
-        <p className="text-lg md:text-xl max-w-3xl mx-auto leading-relaxed" style={{ color: '#8888aa' }}>
+        <p className="text-lg md:text-xl max-w-3xl mx-auto leading-relaxed" style={{ color: '#94A3B8' }}>
           Listens to questions in real time and shows concise, private answers on your screen — designed to stay
           unnoticed on screen shares.
         </p>
@@ -56,7 +56,7 @@ export default function HeroSection() {
             </span>
           ))}
         </div>
-        <span style={{ color: '#8888aa' }} className="text-base">
+        <span style={{ color: '#94A3B8' }} className="text-base">
           Used by 5000+ candidates
         </span>
       </div>
@@ -64,17 +64,17 @@ export default function HeroSection() {
       <div className="relative z-10 flex flex-col items-center gap-3 mb-16">
         <button
           type="button"
-          className="group text-lg md:text-xl px-10 py-5 rounded-2xl font-semibold text-white shadow-2xl transition-all duration-300 hover:scale-[1.02] hover:shadow-[0_0_40px_rgba(108,99,255,0.45)]"
+          className="group text-lg md:text-xl px-10 py-5 rounded-2xl font-semibold text-white shadow-2xl transition-all duration-300 hover:scale-[1.02] hover:shadow-[0_0_40px_rgba(37,99,235,0.45)]"
           style={{
-            backgroundImage: 'linear-gradient(135deg, #6c63ff 0%, #ff6584 100%)',
-            boxShadow: '0 10px 40px rgba(108, 99, 255, 0.35)',
+            backgroundImage: 'linear-gradient(135deg, #2563EB 0%, #0EA5E9 100%)',
+            boxShadow: '0 10px 40px rgba(37, 99, 235, 0.35)',
           }}
         >
           <span className="inline-flex items-center gap-2">
             ✨ TRY FOR FREE <span className="group-hover:translate-x-1 transition-transform">→</span>
           </span>
         </button>
-        <p className="text-sm" style={{ color: '#8888aa' }}>
+        <p className="text-sm" style={{ color: '#94A3B8' }}>
           No Credit Card Required
         </p>
       </div>
@@ -83,7 +83,7 @@ export default function HeroSection() {
         <div
           className="rounded-3xl border p-6 md:p-8 shadow-2xl backdrop-blur-xl"
           style={{
-            backgroundColor: '#16161f',
+            backgroundColor: '#111827',
             borderColor: 'rgba(255, 255, 255, 0.08)',
             boxShadow: '0 25px 80px rgba(0, 0, 0, 0.5)',
           }}
@@ -100,7 +100,7 @@ export default function HeroSection() {
             />
             <span
               className="text-sm font-medium pr-2 bg-clip-text text-transparent"
-              style={{ backgroundImage: 'linear-gradient(90deg, #6c63ff, #ff6584)' }}
+              style={{ backgroundImage: 'linear-gradient(90deg, #2563EB, #0EA5E9)' }}
             >
               InterviewAI — Live Session
             </span>
@@ -110,19 +110,19 @@ export default function HeroSection() {
             <div
               className="rounded-2xl border p-6 text-left"
               style={{
-                backgroundColor: 'rgba(108, 99, 255, 0.06)',
+                backgroundColor: 'rgba(37, 99, 235, 0.06)',
                 borderColor: 'rgba(255, 255, 255, 0.08)',
               }}
             >
               <div className="flex items-center gap-2 mb-4">
-                <span className="w-2 h-2 rounded-full animate-pulse" style={{ backgroundColor: '#6c63ff' }} />
-                <span className="text-xs font-semibold uppercase tracking-wider" style={{ color: '#8888aa' }}>
+                <span className="w-2 h-2 rounded-full animate-pulse" style={{ backgroundColor: '#2563EB' }} />
+                <span className="text-xs font-semibold uppercase tracking-wider" style={{ color: '#94A3B8' }}>
                   Transcript (Live)
                 </span>
               </div>
               <p className="text-white leading-relaxed text-base md:text-lg">
                 &ldquo;Can you walk me through how you would design a{' '}
-                <span className="font-mono" style={{ color: '#6c63ff' }}>
+                <span className="font-mono" style={{ color: '#2563EB' }}>
                   scalable notification system
                 </span>{' '}
                 for a social media platform?&rdquo;
@@ -138,7 +138,7 @@ export default function HeroSection() {
             >
               <div className="flex items-center gap-2 mb-4">
                 <span className="w-2 h-2 rounded-full animate-pulse" style={{ backgroundColor: '#43e97b' }} />
-                <span className="text-xs font-semibold uppercase tracking-wider" style={{ color: '#8888aa' }}>
+                <span className="text-xs font-semibold uppercase tracking-wider" style={{ color: '#94A3B8' }}>
                   AI Answer (Private)
                 </span>
               </div>

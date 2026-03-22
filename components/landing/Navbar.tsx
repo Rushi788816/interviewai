@@ -17,7 +17,7 @@ export default function Navbar() {
           href="/"
           className="inline-block text-xl font-bold tracking-tight bg-clip-text text-transparent"
           style={{
-            backgroundImage: 'linear-gradient(90deg, #6c63ff, #ff6584)',
+            backgroundImage: 'linear-gradient(90deg, #2563EB, #0EA5E9)',
           }}
         >
           InterviewAI
@@ -28,21 +28,21 @@ export default function Navbar() {
         <Link
           href="/blog"
           className="text-sm transition-colors hover:text-white"
-          style={{ color: '#8888aa' }}
+          style={{ color: '#94A3B8' }}
         >
           Blog
         </Link>
         <Link
           href="/compare"
           className="text-sm transition-colors hover:text-white"
-          style={{ color: '#8888aa' }}
+          style={{ color: '#94A3B8' }}
         >
           Compare
         </Link>
         <Link
           href="/pricing"
           className="text-sm transition-colors hover:text-white"
-          style={{ color: '#8888aa' }}
+          style={{ color: '#94A3B8' }}
         >
           Pricing
         </Link>
@@ -52,8 +52,9 @@ export default function Navbar() {
         <button
           type="button"
           className="hidden sm:inline-flex px-4 py-2 rounded-lg text-sm font-medium border transition-colors hover:bg-white/5"
+          title="Coming Soon"
           style={{
-            color: '#8888aa',
+            color: '#94A3B8',
             borderColor: 'rgba(255, 255, 255, 0.12)',
             backgroundColor: 'transparent',
           }}
@@ -64,7 +65,7 @@ export default function Navbar() {
           href="/login"
           className="inline-flex items-center gap-1 px-4 py-2 rounded-lg text-sm font-semibold text-white transition-opacity hover:opacity-90"
           style={{
-            backgroundImage: 'linear-gradient(90deg, #6c63ff, #ff6584)',
+            backgroundImage: 'linear-gradient(90deg, #2563EB, #0EA5E9)',
           }}
         >
           Sign in →

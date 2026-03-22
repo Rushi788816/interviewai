@@ -112,7 +112,7 @@ export default function DashboardPage() {
         <div className="grid gap-4 md:grid-cols-3">
           <Link
             href="/interview"
-            className="rounded-2xl border border-white/10 bg-gradient-to-br from-[#6c63ff] to-[#9b8fff] p-8 text-center font-semibold text-white transition hover:opacity-90"
+className="rounded-2xl border border-white/10 bg-gradient-to-br from-[#2563EB] to-[#0EA5E9] p-8 text-center font-semibold text-white transition hover:opacity-90"
           >
             Start Interview
           </Link>

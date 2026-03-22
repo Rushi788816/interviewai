@@ -6,17 +6,29 @@ interface OverlayWindowProps {
 
 export default function OverlayWindow({ children }: OverlayWindowProps) {
   return (
-    <div
-      className="fixed inset-0 z-[1000] flex items-center justify-center p-4"
-      style={{ backgroundColor: 'rgba(0, 0, 0, 0.75)' }}
-    >
-      <div
-        className="relative flex w-full max-w-4xl max-h-[92vh] flex-col overflow-hidden rounded-2xl border shadow-2xl"
-        style={{
-          backgroundColor: '#0f0f14',
-          borderColor: 'rgba(255, 255, 255, 0.08)',
-        }}
-      >
+    <div style={{
+      position: "fixed",
+      inset: 0,
+      zIndex: 9999,
+      background: "rgba(0,0,0,0.85)",
+      backdropFilter: "blur(4px)",
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      padding: "16px",
+      overflowY: "auto",
+    }}>
+      <div style={{
+        background: "#111827",
+        border: "1px solid rgba(37,99,235,0.3)",
+        borderRadius: "20px",
+        width: "100%",
+        maxWidth: "780px",
+        maxHeight: "90vh",
+        overflowY: "auto",
+        position: "relative",
+        boxShadow: "0 25px 80px rgba(0,0,0,0.8)",
+      }}>
         {children}
       </div>
     </div>

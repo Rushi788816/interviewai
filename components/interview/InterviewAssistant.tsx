@@ -19,7 +19,7 @@ import SetupScreen from '@/components/interview/SetupScreen'
 type InterviewType = 'technical' | 'behavioral' | 'coding'
 type SessionPhase = 'idle' | 'running' | 'paused'
 
-export interface InterviewAssistantProps {
+interface InterviewAssistantProps {
   userId?: string
   credits?: number
   showFloatingLauncher?: boolean
@@ -27,13 +27,15 @@ export interface InterviewAssistantProps {
 }
 
 export default function InterviewAssistant({
-  userId: _userId,
+  userId: _userId = '',
   credits: creditsProp,
   showFloatingLauncher = true,
   defaultOpen = false,
 }: InterviewAssistantProps) {
-  const { data: session, update: updateSession } from 'next-auth/react'
-  const addToast = useToast((s) => s.addToast)
+  const { data: session, update: updateSession } = useSession()
+  const addToast = useCallback((message: string, type: 'success' | 'error' | 'info' = 'info', duration = 3000) => {
+    useToast.getState().addToast(message, type, duration)
+  }, [])
 
   // Mobile responsive state
   const [isMobile, setIsMobile] = useState(false)
@@ -45,7 +47,7 @@ export default function InterviewAssistant({
   }, [])
 
   // Style object for responsive design
-const styles = {
+  const styles: { [key: string]: React.CSSProperties } = {
     container: {
       padding: isMobile ? '12px' : '24px',
       maxWidth: isMobile ? '100vw' : '900px',
@@ -64,7 +66,7 @@ const styles = {
       fontWeight: '600' as const,
     } as React.CSSProperties,
     transcriptBox: {
-      minHeight: isMobile ? '100px' : '120px',
+      minHeight: '120px',
       maxHeight: isMobile ? '180px' : '200px',
       overflowY: 'auto' as const,
       background: 'rgba(59,130,246,0.08)',
@@ -75,7 +77,7 @@ const styles = {
       lineHeight: '1.6' as const,
     } as React.CSSProperties,
     answerBox: {
-      minHeight: isMobile ? '150px' : '160px',
+      minHeight: '160px',
       maxHeight: isMobile ? '280px' : '300px',
       overflowY: 'auto' as const,
       background: 'rgba(67,233,123,0.08)',
@@ -164,6 +166,118 @@ const styles = {
   const { balance, isLoading: creditsLoading, refetch: refetchCredits } = useCredits()
   const displayCredits = creditsProp ?? balance
 
+  // Speech Recognition
+  const {
+    transcript,
+    interimTranscript,
+    isListening,
+    resetTranscript,
+    toggleListening,
+    error: speechError
+  } = useSpeechRecognition({
+    language,
+    isDesiMode,
+    onSilence: async ({ finalTranscript }) => {
+      if (!finalTranscript || finalTranscript.trim().length < 3) return
+      if (sessionPhase !== "running") return
+
+      console.log("onSilence fired with:", finalTranscript)
+      setLiveQuestion(finalTranscript)
+      setStreamingAnswer("")
+      setIsStreamingAnswer(true)
+
+      try {
+        const response = await fetch("/api/ai/interview-answer", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            question: finalTranscript,
+            isDesiMode,
+            interviewType,
+            language,
+            sessionContext,
+          }),
+        })
+
+        console.log("API response status:", response.status)
+
+        if (!response.ok) {
+          const err = await response.text()
+          console.error("API error:", err)
+          setIsStreamingAnswer(false)
+          return
+        }
+
+        if (!response.body) {
+          setIsStreamingAnswer(false)
+          return
+        }
+
+        const reader = response.body.getReader()
+        const decoder = new TextDecoder()
+        let buffer = ""
+        let fullAnswer = ""
+
+        while (true) {
+          const { done, value } = await reader.read()
+          if (done) break
+
+          buffer += decoder.decode(value, { stream: true })
+          const lines = buffer.split("\n")
+          buffer = lines.pop() || ""
+
+          for (const line of lines) {
+            const trimmed = line.trim()
+            if (!trimmed || !trimmed.startsWith("data: ")) continue
+            const data = trimmed.slice(6).trim()
+            if (data === "[DONE]") {
+              if (fullAnswer) {
+                addQAPair(finalTranscript, fullAnswer)
+              }
+              setIsStreamingAnswer(false)
+              return
+            }
+            try {
+              const parsed = JSON.parse(data)
+              const token = parsed.text || parsed.delta?.text || ""
+              if (token) {
+                fullAnswer += token
+                setStreamingAnswer(prev => prev + token)
+              }
+            } catch (e) {}
+          }
+        }
+        setIsStreamingAnswer(false)
+      } catch (err) {
+        console.error("Fetch error:", err)
+        setIsStreamingAnswer(false)
+      }
+    }
+  })
+
+
+
+
+
+  const handleDesiToggle = () => {
+    const newDesiMode = !isDesiMode
+    setIsDesiMode(newDesiMode)
+    if (newDesiMode) {
+      setLanguage("en-IN")
+    } else {
+      setLanguage("en-US")
+    }
+  }
+
+  const handleSetupComplete = (ctx: SessionContext) => {
+    setSessionContextStore(ctx)
+    setShowSetup(false)
+  }
+
+  const handleSetupSkip = () => {
+    setShowSetup(false)
+  }
+
   const addQAPair = useInterviewStore((s) => s.addQAPair)
   const qaHistory = useInterviewStore((s) => s.qaHistory)
 
@@ -247,16 +361,23 @@ const styles = {
   }
 
   const handleStartSession = () => {
-    if (sessionPhase === 'idle') {
-      setElapsedSeconds(0)
+    setSessionPhase("running")
+    setElapsedSeconds(0)
+    setStreamingAnswer("")
+    setLiveQuestion("")
+    if (!isListening) {
+      toggleListening()
     }
-    setSessionPhase('running')
-    startListening()
   }
 
   const handlePauseSession = () => {
-    setSessionPhase('paused')
-    stopListening()
+    if (sessionPhase === "running") {
+      setSessionPhase("paused")
+      if (isListening) toggleListening()
+    } else if (sessionPhase === "paused") {
+      setSessionPhase("running")
+      if (!isListening) toggleListening()
+    }
   }
 
   const finalizeStop = async () => {
@@ -306,7 +427,7 @@ const styles = {
 
     setSessionPhase('idle')
     setElapsedSeconds(0)
-    stopListening()
+    toggleListening()
     resetTranscript()
     setStreamingAnswer('')
     setLiveQuestion('')
@@ -315,7 +436,15 @@ const styles = {
   }
 
   const handleStopSession = () => {
-    void finalizeStop()
+    setSessionPhase("idle")
+    setElapsedSeconds(0)
+    if (isListening) {
+      toggleListening()
+    }
+    resetTranscript()
+    setStreamingAnswer("")
+    setLiveQuestion("")
+    setShowSetup(true)
   }
 
   const handleCloseOverlay = () => {
@@ -344,8 +473,8 @@ const styles = {
           fontSize: '16px',
           fontWeight: '700' as const,
           color: 'white',
-          backgroundImage: 'linear-gradient(90deg, #6c63ff, #ff6584)',
-          boxShadow: '0 8px 32px rgba(108,99,255,0.4)',
+          backgroundImage: 'linear-gradient(90deg, #2563EB, #0EA5E9)',
+          boxShadow: '0 8px 32px rgba(37,99,235,0.4)',
           border: 'none' as const,
           cursor: 'pointer' as const,
         }}
@@ -371,7 +500,13 @@ const styles = {
 
   return (
     <OverlayWindow>
-      <div style={{ display: 'flex' as const, maxHeight: '92vh' as const, flexDirection: 'column' as const, overflow: 'hidden' as const, ...styles.container }}>
+      <div style={{
+  padding: "24px",
+  display: "flex",
+  flexDirection: "column",
+  gap: "16px",
+  position: "relative",
+}}>
         {/* Header - 3 rows on mobile */}
         <header style={{ borderBottom: '1px solid rgba(255,255,255,0.08)', padding: isMobile ? '12px' : '16px', paddingRight: '12px' }}>
           {/* Row 1: Title + Credits */}
@@ -398,8 +533,8 @@ const styles = {
               onClick={openInvisibleMode}
               style={{
                 ...styles.controlButton,
-                backgroundColor: 'rgba(108,99,255,0.2)',
-                border: '1px solid rgba(108,99,255,0.5)',
+                backgroundColor: 'rgba(37,99,235,0.2)',
+                border: '1px solid rgba(37,99,235,0.5)',
                 color: 'white',
               }}
             >
@@ -460,9 +595,9 @@ const styles = {
               onClick={() => setInterviewType(type)}
               style={{
                 ...styles.tabButton,
-                backgroundColor: interviewType === type ? 'rgb(139,92,246)' : 'rgba(0,0,0,0.4)',
-                color: interviewType === type ? 'white' : 'rgb(148,163,184)',
-                border: interviewType === type ? '1px solid rgb(139,92,246)' : '1px solid rgba(255,255,255,0.1)',
+                backgroundColor: interviewType === type ? '#2563EB' : 'rgba(0,0,0,0.4)',
+                color: interviewType === type ? 'white' : '#94A3B8',
+                border: interviewType === type ? '1px solid #2563EB' : '1px solid rgba(255,255,255,0.1)',
               }}
             >
               {type.charAt(0).toUpperCase() + type.slice(1)}
@@ -471,7 +606,7 @@ const styles = {
         </div>
 
         {/* Main panels */}
-        <div style={{ display: 'flex' as const, flexDirection: 'column' as const, gap: '16px', flex: 1 as const, overflow: 'hidden' as const, minHeight: 0 }}>
+        <div style={{ display: 'flex' as const, flexDirection: 'column' as const, gap: '16px', marginBottom: '16px' }}>
           <div style={{ ...styles.transcriptBox }}>
             <div style={{ fontSize: '14px', fontWeight: '600' as const, color: 'rgb(59,130,246)', marginBottom: '8px' }}>
               🎙️ LIVE TRANSCRIPT
@@ -511,8 +646,8 @@ const styles = {
           <div style={{ display: 'flex' as const, gap: '12px', alignItems: 'center' as const, flexWrap: 'wrap' as const }}>
             <MicrophoneButton
               isListening={isListening}
-              onToggle={handleMicToggle}
-              disabled={micDisabled}
+              onToggle={toggleListening}
+              disabled={!!speechError}
               isMobile={isMobile}
             />
             <div style={{ display: 'flex' as const, flex: 1 as const, gap: '8px', minWidth: 0 }}>

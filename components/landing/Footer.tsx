@@ -2,7 +2,7 @@ import Link from 'next/link'
 
 export default function Footer() {
   return (
-    <footer className="pt-16 pb-8 px-5 border-t" style={{ backgroundColor: '#0a0a0f', borderColor: 'rgba(255, 255, 255, 0.08)' }}>
+    <footer className="pt-16 pb-8 px-5 border-t" style={{ backgroundColor: '#0A0F1E', borderColor: 'rgba(255, 255, 255, 0.08)' }}>
       <div className="max-w-6xl mx-auto">
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-10 lg:gap-8 mb-12">
           <div>
@@ -10,12 +10,12 @@ export default function Footer() {
               <span className="text-2xl">🐦</span>
               <span
                 className="text-lg font-bold bg-clip-text text-transparent"
-                style={{ backgroundImage: 'linear-gradient(90deg, #6c63ff, #ff6584)' }}
+                style={{ backgroundImage: 'linear-gradient(90deg, #2563EB, #0EA5E9)' }}
               >
                 InterviewAI
               </span>
             </div>
-            <p className="text-sm mb-6 leading-relaxed" style={{ color: '#8888aa' }}>
+            <p className="text-sm mb-6 leading-relaxed" style={{ color: '#94A3B8' }}>
               Real-time AI coaching for interviews — private, fast, and human-sounding.
             </p>
             <div className="flex gap-3">
@@ -24,7 +24,7 @@ export default function Footer() {
                 target="_blank"
                 rel="noopener noreferrer"
                 className="w-10 h-10 rounded-lg flex items-center justify-center border transition-colors hover:bg-white/5"
-                style={{ borderColor: 'rgba(255, 255, 255, 0.1)', color: '#8888aa' }}
+                style={{ borderColor: 'rgba(255, 255, 255, 0.1)', color: '#94A3B8' }}
                 aria-label="Twitter"
               >
                 𝕏
@@ -34,7 +34,7 @@ export default function Footer() {
                 target="_blank"
                 rel="noopener noreferrer"
                 className="w-10 h-10 rounded-lg flex items-center justify-center border transition-colors hover:bg-white/5"
-                style={{ borderColor: 'rgba(255, 255, 255, 0.1)', color: '#8888aa' }}
+                style={{ borderColor: 'rgba(255, 255, 255, 0.1)', color: '#94A3B8' }}
                 aria-label="LinkedIn"
               >
                 in
@@ -44,7 +44,7 @@ export default function Footer() {
                 target="_blank"
                 rel="noopener noreferrer"
                 className="w-10 h-10 rounded-lg flex items-center justify-center border transition-colors hover:bg-white/5"
-                style={{ borderColor: 'rgba(255, 255, 255, 0.1)', color: '#8888aa' }}
+                style={{ borderColor: 'rgba(255, 255, 255, 0.1)', color: '#94A3B8' }}
                 aria-label="GitHub"
               >
                 ⌘
@@ -56,22 +56,22 @@ export default function Footer() {
             <h3 className="text-white font-semibold mb-4">Product</h3>
             <ul className="space-y-3 text-sm">
               <li>
-                <Link href="/pricing" style={{ color: '#8888aa' }} className="hover:text-white transition-colors">
+                <Link href="/pricing" style={{ color: '#94A3B8' }} className="hover:text-white transition-colors">
                   Pricing
                 </Link>
               </li>
               <li>
-                <Link href="/compare" style={{ color: '#8888aa' }} className="hover:text-white transition-colors">
+                <Link href="/compare" style={{ color: '#94A3B8' }} className="hover:text-white transition-colors">
                   Compare
                 </Link>
               </li>
               <li>
-                <Link href="/blog" style={{ color: '#8888aa' }} className="hover:text-white transition-colors">
+                <Link href="/blog" style={{ color: '#94A3B8' }} className="hover:text-white transition-colors">
                   Blog
                 </Link>
               </li>
               <li>
-                <Link href="/dashboard" style={{ color: '#8888aa' }} className="hover:text-white transition-colors">
+                <Link href="/dashboard" style={{ color: '#94A3B8' }} className="hover:text-white transition-colors">
                   Dashboard
                 </Link>
               </li>
@@ -82,17 +82,17 @@ export default function Footer() {
             <h3 className="text-white font-semibold mb-4">Legal</h3>
             <ul className="space-y-3 text-sm">
               <li>
-                <Link href="/privacy" style={{ color: '#8888aa' }} className="hover:text-white transition-colors">
+                <Link href="/privacy" style={{ color: '#94A3B8' }} className="hover:text-white transition-colors">
                   Privacy Policy
                 </Link>
               </li>
               <li>
-                <Link href="/terms" style={{ color: '#8888aa' }} className="hover:text-white transition-colors">
+                <Link href="/terms" style={{ color: '#94A3B8' }} className="hover:text-white transition-colors">
                   Terms of Service
                 </Link>
               </li>
               <li>
-                <Link href="/refund" style={{ color: '#8888aa' }} className="hover:text-white transition-colors">
+                <Link href="/refund" style={{ color: '#94A3B8' }} className="hover:text-white transition-colors">
                   Refund Policy
                 </Link>
               </li>
@@ -103,17 +103,17 @@ export default function Footer() {
             <h3 className="text-white font-semibold mb-4">Support</h3>
             <ul className="space-y-3 text-sm">
               <li>
-                <Link href="/help" style={{ color: '#8888aa' }} className="hover:text-white transition-colors">
+                <Link href="/contact" style={{ color: '#94A3B8' }} className="hover:text-white transition-colors">
                   Help Center
                 </Link>
               </li>
               <li>
-                <a href="mailto:support@interviewai.app" style={{ color: '#8888aa' }} className="hover:text-white transition-colors">
+                <a href="mailto:support@interviewai.app" style={{ color: '#94A3B8' }} className="hover:text-white transition-colors">
                   support@interviewai.app
                 </a>
               </li>
               <li>
-                <Link href="/contact" style={{ color: '#8888aa' }} className="hover:text-white transition-colors">
+                <Link href="/contact" style={{ color: '#94A3B8' }} className="hover:text-white transition-colors">
                   Contact
                 </Link>
               </li>
@@ -123,7 +123,7 @@ export default function Footer() {
 
         <div
           className="pt-8 flex flex-col sm:flex-row justify-between items-center gap-4 border-t text-sm"
-          style={{ borderColor: 'rgba(255, 255, 255, 0.08)', color: '#8888aa' }}
+          style={{ borderColor: 'rgba(255, 255, 255, 0.08)', color: '#94A3B8' }}
         >
           <p>© {new Date().getFullYear()} InterviewAI. All rights reserved.</p>
           <p className="text-center sm:text-right">

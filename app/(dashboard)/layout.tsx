@@ -12,8 +12,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const [menuOpen, setMenuOpen] = useState(false)
 
   useEffect(() => {
-    if (status === 'unauthenticated') {
-      router.replace('/login')
+    if (status === "unauthenticated") {
+      router.push("/login")
     }
   }, [status, router])
 

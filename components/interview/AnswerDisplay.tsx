@@ -28,29 +28,20 @@ export default function AnswerDisplay({ answer, isStreaming, isMobile }: AnswerD
         whiteSpace: 'pre-wrap' as const,
       }}
     >
-      <div style={{
-        marginBottom: '8px',
-        display: 'flex' as const,
-        alignItems: 'center' as const,
-        gap: '8px',
-        fontSize: '14px',
-        fontWeight: 'bold' as const,
-        textTransform: 'uppercase' as const,
-        letterSpacing: '0.05em' as const,
-      }}>
-        AI answer
-        {isStreaming && (
-          <span style={{
-            backgroundColor: 'rgba(67,233,123,0.3)',
-            padding: '4px 8px',
-            borderRadius: '12px',
-            fontSize: '12px',
-            fontWeight: 'normal' as const,
-          }}>
-            streaming…
-          </span>
-        )}
-      </div>
+      {/* Label removed - shown in parent */}
+      {isStreaming && (
+        <span style={{
+          backgroundColor: 'rgba(67,233,123,0.3)',
+          padding: '4px 8px',
+          borderRadius: '12px',
+          fontSize: '12px',
+          fontWeight: 'normal' as const,
+          display: 'inline-block',
+          marginBottom: '8px',
+        }}>
+          streaming…
+        </span>
+      )}
       {answer ? (
         <div style={{ lineHeight: '1.7' as const }}>
           {answer}

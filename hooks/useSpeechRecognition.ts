@@ -1,87 +1,41 @@
-'use client'
+"use client"
+import { useEffect, useRef, useState, useCallback } from "react"
 
-import { useCallback, useEffect, useRef, useState } from 'react'
-
-/** Minimal typings — DOM lib may omit Web Speech API in some TS setups */
-interface SpeechRecognitionLike extends EventTarget {
-  continuous: boolean
-  interimResults: boolean
-  lang: string
-  start(): void
-  stop(): void
-  onresult: ((this: SpeechRecognitionLike, ev: SpeechRecognitionEventLike) => void) | null
-  onerror: ((this: SpeechRecognitionLike, ev: SpeechRecognitionErrorLike) => void) | null
-  onend: ((this: SpeechRecognitionLike, ev: Event) => void) | null
-}
-
-interface SpeechRecognitionEventLike extends Event {
-  resultIndex: number
-  results: {
-    length: number
-    [i: number]: {
-      isFinal: boolean
-      [j: number]: { transcript: string }
-    }
-  }
-}
-
-interface SpeechRecognitionErrorLike extends Event {
-  error: string
-}
-
-function getSpeechRecognitionCtor(): (new () => SpeechRecognitionLike) | null {
-  if (typeof window === 'undefined') return null
-  const w = window as unknown as {
-    SpeechRecognition?: new () => SpeechRecognitionLike
-    webkitSpeechRecognition?: new () => SpeechRecognitionLike
-  }
-  return w.SpeechRecognition ?? w.webkitSpeechRecognition ?? null
-}
-
-export interface UseSpeechRecognitionOptions {
-  language: string
-  /** When true, recognition uses en-IN (Indian English) for better accent handling */
+interface UseSpeechRecognitionProps {
+  language?: string
   isDesiMode?: boolean
-  onSilence?: (finalText: string) => void
+  onSilence?: (params: { finalTranscript: string }) => void
 }
 
-export interface SpeechRecognitionHook {
+interface UseSpeechRecognitionReturn {
   transcript: string
   interimTranscript: string
   isListening: boolean
   error: string | null
-  start: () => void
-  stop: () => void
   resetTranscript: () => void
   toggleListening: () => void
-  setLanguage: (lang: string) => void
   language: string
 }
 
-export function useSpeechRecognition(options: UseSpeechRecognitionOptions): SpeechRecognitionHook {
-  const { language, isDesiMode = false, onSilence } = options
-  const onSilenceRef = useRef(onSilence)
-  onSilenceRef.current = onSilence
-
-  const effectiveLang = isDesiMode ? 'en-IN' : language
-
-  const [transcript, setTranscript] = useState('')
-  const [interimTranscript, setInterimTranscript] = useState('')
+export function useSpeechRecognition({
+  language = "en-US",
+  isDesiMode = false,
+  onSilence,
+}: UseSpeechRecognitionProps = {}): UseSpeechRecognitionReturn {
+  const [transcript, setTranscript] = useState("")
+  const [interimTranscript, setInterimTranscript] = useState("")
   const [isListening, setIsListening] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [langState, setLangState] = useState(effectiveLang)
 
-  const recognitionRef = useRef<SpeechRecognitionLike | null>(null)
-  const silenceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
-  const accumulatedRef = useRef('')
-  const listeningIntentRef = useRef(false)
-  const langRef = useRef(effectiveLang)
-  const prevEffectiveLangRef = useRef<string | null>(null)
+  const recognitionRef = useRef<any>(null)
+  const silenceTimerRef = useRef<NodeJS.Timeout | null>(null)
+  const finalTranscriptRef = useRef("")
+  const onSilenceRef = useRef(onSilence)
+  const isListeningRef = useRef(false)
 
   useEffect(() => {
-    langRef.current = effectiveLang
-    setLangState(effectiveLang)
-  }, [effectiveLang])
+    onSilenceRef.current = onSilence
+  }, [onSilence])
 
   const clearSilenceTimer = useCallback(() => {
     if (silenceTimerRef.current) {
@@ -90,188 +44,167 @@ export function useSpeechRecognition(options: UseSpeechRecognitionOptions): Spee
     }
   }, [])
 
-  const destroyRecognition = useCallback(() => {
-    if (recognitionRef.current) {
-      try {
-        recognitionRef.current.stop()
-      } catch {
-        /* noop */
+  const startSilenceTimer = useCallback((text: string) => {
+    clearSilenceTimer()
+    silenceTimerRef.current = setTimeout(() => {
+      const textToSend = text.trim()
+      console.log("Silence timer fired, sending:", textToSend)
+      if (textToSend && onSilenceRef.current) {
+        onSilenceRef.current({ finalTranscript: textToSend })
+        finalTranscriptRef.current = ""
+        setTranscript("")
       }
-      recognitionRef.current = null
-    }
-  }, [])
+    }, 1500)
+  }, [clearSilenceTimer])
 
-  const bindRecognition = useCallback(() => {
-    const Ctor = getSpeechRecognitionCtor()
-    if (!Ctor) {
-      setError('Speech Recognition not supported in this browser')
+  const initRecognition = useCallback(() => {
+    if (typeof window === "undefined") return null
+
+    const SpeechRecognition =
+      (window as any).SpeechRecognition ||
+      (window as any).webkitSpeechRecognition
+
+    if (!SpeechRecognition) {
+      setError("Speech recognition not supported in this browser. Use Chrome.")
       return null
     }
 
-    destroyRecognition()
-
-    const recognition = new Ctor()
+    const recognition = new SpeechRecognition()
     recognition.continuous = true
     recognition.interimResults = true
-    recognition.lang = langRef.current
+    recognition.lang = isDesiMode ? "en-IN" : language
+    recognition.maxAlternatives = 1
 
-    recognition.onresult = (event: SpeechRecognitionEventLike) => {
-      let interim = ''
-      for (let i = event.resultIndex; i < event.results.length; i++) {
-        const result = event.results[i]
-        if (result.isFinal) {
-          accumulatedRef.current += result[0].transcript
-        } else {
-          interim += result[0].transcript
-        }
-      }
-      setTranscript(accumulatedRef.current.trim())
-      setInterimTranscript(interim)
-
-      clearSilenceTimer()
-      console.log('Speech detected, starting silence timer. Final so far:', accumulatedRef.current)
-
-      silenceTimerRef.current = setTimeout(() => {
-        const textToSend = accumulatedRef.current.trim()
-        console.log('Silence timer fired, calling onSilence with:', textToSend)
-        if (textToSend && onSilenceRef.current) {
-          onSilenceRef.current(textToSend)
-          accumulatedRef.current = ''
-          setTranscript('')
-          setInterimTranscript('')
-        }
-        silenceTimerRef.current = null
-      }, 1500)
-    }
-
-    recognition.onerror = (event: SpeechRecognitionErrorLike) => {
-      if (event.error === 'no-speech' || event.error === 'aborted') return
-      setError(event.error)
+    recognition.onstart = () => {
+      console.log("Speech recognition started")
+      setIsListening(true)
+      isListeningRef.current = true
+      setError(null)
     }
 
     recognition.onend = () => {
-      if (listeningIntentRef.current) {
+      console.log("Speech recognition ended, isListening:", isListeningRef.current)
+      if (isListeningRef.current) {
+        // Auto restart if we want to keep listening
         try {
           recognition.start()
-        } catch {
+        } catch (e) {
+          console.log("Restart failed:", e)
           setIsListening(false)
-          listeningIntentRef.current = false
+          isListeningRef.current = false
         }
       } else {
         setIsListening(false)
       }
     }
 
-    recognitionRef.current = recognition
+    recognition.onerror = (event: any) => {
+      console.error("Speech recognition error:", event.error)
+      if (event.error === "no-speech") return
+      if (event.error === "aborted") return
+      setError(`Mic error: ${event.error}`)
+      setIsListening(false)
+      isListeningRef.current = false
+    }
+
+    recognition.onresult = (event: any) => {
+      let interim = ""
+      let finalChunk = ""
+
+      for (let i = event.resultIndex; i < event.results.length; i++) {
+        const result = event.results[i]
+        if (result.isFinal) {
+          finalChunk += result[0].transcript
+        } else {
+          interim += result[0].transcript
+        }
+      }
+
+      if (finalChunk) {
+        finalTranscriptRef.current += finalChunk + " "
+        setTranscript(finalTranscriptRef.current.trim())
+        console.log("Speech detected, starting silence timer. Final so far:", finalTranscriptRef.current)
+        startSilenceTimer(finalTranscriptRef.current)
+      }
+
+      setInterimTranscript(interim)
+    }
+
     return recognition
-  }, [destroyRecognition, clearSilenceTimer])
+  }, [language, isDesiMode, startSilenceTimer])
 
-  /** When language / Desi mode changes while mic is active, restart recognition so `lang` applies */
-  useEffect(() => {
-    if (prevEffectiveLangRef.current === null) {
-      prevEffectiveLangRef.current = effectiveLang
-      return
-    }
-    if (prevEffectiveLangRef.current === effectiveLang) return
-    prevEffectiveLangRef.current = effectiveLang
+  const toggleListening = useCallback(() => {
+    if (isListeningRef.current) {
+      // Stop listening
+      console.log("Stopping speech recognition")
+      isListeningRef.current = false
+      setIsListening(false)
+      clearSilenceTimer()
+      if (recognitionRef.current) {
+        try {
+          recognitionRef.current.stop()
+        } catch (e) {
+          console.log("Stop error:", e)
+        }
+      }
+    } else {
+      // Start listening
+      console.log("Starting speech recognition")
+      finalTranscriptRef.current = ""
+      setTranscript("")
+      setInterimTranscript("")
 
-    if (!listeningIntentRef.current) return
+      const recognition = initRecognition()
+      if (!recognition) return
 
-    const wasListening = listeningIntentRef.current
-    clearSilenceTimer()
-    listeningIntentRef.current = false
-    try {
-      recognitionRef.current?.stop()
-    } catch {
-      /* noop */
-    }
-    destroyRecognition()
+      recognitionRef.current = recognition
+      isListeningRef.current = true
 
-    listeningIntentRef.current = wasListening
-    const recognition = bindRecognition()
-    if (recognition && wasListening) {
       try {
         recognition.start()
-        setIsListening(true)
-      } catch {
-        setError('Could not restart microphone with new language')
-        listeningIntentRef.current = false
+      } catch (e) {
+        console.error("Failed to start recognition:", e)
+        setError("Failed to start microphone")
+        isListeningRef.current = false
         setIsListening(false)
       }
     }
-  }, [effectiveLang, bindRecognition, clearSilenceTimer, destroyRecognition])
-
-  const start = useCallback(() => {
-    const Ctor = getSpeechRecognitionCtor()
-    if (!Ctor) {
-      setError('Speech Recognition not supported in this browser')
-      return
-    }
-    listeningIntentRef.current = true
-    const recognition = bindRecognition()
-    if (!recognition) return
-    try {
-      recognition.start()
-      setIsListening(true)
-      setError(null)
-    } catch {
-      setError('Could not start microphone')
-      listeningIntentRef.current = false
-      setIsListening(false)
-    }
-  }, [bindRecognition])
-
-  const stop = useCallback(() => {
-    listeningIntentRef.current = false
-    clearSilenceTimer()
-    if (recognitionRef.current) {
-      try {
-        recognitionRef.current.stop()
-      } catch {
-        /* noop */
-      }
-    }
-    setIsListening(false)
-  }, [clearSilenceTimer])
-
-  const toggleListening = useCallback(() => {
-    if (listeningIntentRef.current) stop()
-    else start()
-  }, [start, stop])
+  }, [initRecognition, clearSilenceTimer])
 
   const resetTranscript = useCallback(() => {
-    accumulatedRef.current = ''
-    setTranscript('')
-    setInterimTranscript('')
-  }, [])
+    finalTranscriptRef.current = ""
+    setTranscript("")
+    setInterimTranscript("")
+    clearSilenceTimer()
+  }, [clearSilenceTimer])
 
-  const setLanguage = useCallback(
-    (lang: string) => {
-      const next = isDesiMode ? 'en-IN' : lang
-      langRef.current = next
-      setLangState(next)
-    },
-    [isDesiMode]
-  )
+  // Update language when it changes
+  useEffect(() => {
+    if (recognitionRef.current && isListeningRef.current) {
+      recognitionRef.current.lang = isDesiMode ? "en-IN" : language
+    }
+  }, [language, isDesiMode])
 
+  // Cleanup on unmount
   useEffect(() => {
     return () => {
+      isListeningRef.current = false
       clearSilenceTimer()
-      listeningIntentRef.current = false
-      destroyRecognition()
+      if (recognitionRef.current) {
+        try {
+          recognitionRef.current.stop()
+        } catch (e) {}
+      }
     }
-  }, [clearSilenceTimer, destroyRecognition])
+  }, [clearSilenceTimer])
 
   return {
     transcript,
     interimTranscript,
     isListening,
     error,
-    start,
-    stop,
     resetTranscript,
     toggleListening,
-    setLanguage,
-    language: langState,
+    language: isDesiMode ? "en-IN" : language,
   }
 }
