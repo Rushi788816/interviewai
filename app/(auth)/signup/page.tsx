@@ -1,153 +1,78 @@
-'use client'
-
-import { useState } from 'react'
-import Link from 'next/link'
-import { signIn } from 'next-auth/react'
-import { useRouter } from 'next/navigation'
+"use client"
+import { useState } from "react"
+import { signIn } from "next-auth/react"
+import { useRouter } from "next/navigation"
 
 export default function SignupPage() {
   const router = useRouter()
-  const [name, setName] = useState('')
-  const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
-  const [confirm, setConfirm] = useState('')
-  const [errors, setErrors] = useState<string[]>([])
+  const [name, setName] = useState("")
+  const [email, setEmail] = useState("")
+  const [password, setPassword] = useState("")
+  const [error, setError] = useState("")
   const [loading, setLoading] = useState(false)
 
-  const handleGoogle = () => {
-    void signIn('google', { callbackUrl: '/dashboard' })
-  }
-
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault()
-    const next: string[] = []
-    if (password.length < 6) next.push('Password must be at least 6 characters')
-    if (password !== confirm) next.push('Passwords do not match')
-    if (next.length) {
-      setErrors(next)
-      return
-    }
-    setErrors([])
     setLoading(true)
+    setError("")
     try {
-      const res = await fetch('/api/auth/register', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+      const res = await fetch("/api/auth/register", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ name, email, password }),
       })
       const data = await res.json()
       if (!res.ok) {
-        setErrors([data.error || 'Registration failed'])
+        setError(data.error || "Signup failed")
         setLoading(false)
         return
       }
-      const sign = await signIn('credentials', {
-        email,
-        password,
-        redirect: false,
-        callbackUrl: '/dashboard',
-      })
-      if (sign?.error) {
-        setErrors(['Account created but sign-in failed. Please log in manually.'])
-        setLoading(false)
-        return
+      const result = await signIn("credentials", { email, password, redirect: false })
+      if (result?.error) {
+        router.push("/login")
+      } else {
+        router.push("/dashboard")
       }
-      router.push('/dashboard')
-      router.refresh()
     } catch {
-      setErrors(['Something went wrong'])
-    } finally {
-      setLoading(false)
+      setError("Something went wrong. Try again.")
     }
+    setLoading(false)
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center px-4 py-16" style={{ backgroundColor: '#0a0a0f' }}>
-      <div
-        className="w-full max-w-md rounded-2xl border p-10"
-        style={{
-          backgroundColor: '#16161f',
-          borderColor: 'rgba(255, 255, 255, 0.08)',
-        }}
-      >
-        <div className="mb-8 text-center">
-          <div
-            className="mb-2 text-2xl font-bold bg-clip-text text-transparent"
-            style={{ backgroundImage: 'linear-gradient(90deg, #6c63ff, #ff6584)' }}
-          >
-            🐦 InterviewAI
+    <div style={{ minHeight: "100vh", background: "#0a0a0f", display: "flex", alignItems: "center", justifyContent: "center", padding: "20px" }}>
+      <div style={{ background: "#16161f", border: "1px solid rgba(255,255,255,0.08)", borderRadius: "16px", padding: "40px", width: "100%", maxWidth: "400px" }}>
+        <div style={{ textAlign: "center", marginBottom: "32px" }}>
+          <div style={{ fontSize: "32px", marginBottom: "8px" }}>🐦</div>
+          <h1 style={{ color: "#fff", fontSize: "1.5rem", fontWeight: "700", marginBottom: "8px" }}>Create account</h1>
+          <p style={{ color: "#8888aa", fontSize: "0.9rem" }}>Get 30 free credits on signup</p>
+        </div>
+        <form onSubmit={handleSignup}>
+          <div style={{ marginBottom: "16px" }}>
+            <label style={{ display: "block", color: "#8888aa", fontSize: "0.85rem", marginBottom: "8px" }}>Full Name</label>
+            <input type="text" value={name} onChange={e => setName(e.target.value)} required placeholder="Your name"
+              style={{ width: "100%", background: "#0a0a0f", border: "1px solid rgba(255,255,255,0.1)", borderRadius: "8px", padding: "12px 16px", color: "#fff", fontSize: "0.95rem", outline: "none", boxSizing: "border-box" }} />
           </div>
-          <h1 className="text-2xl font-semibold text-white">Create your account</h1>
-        </div>
-
-        <button
-          type="button"
-          onClick={handleGoogle}
-          className="mb-6 flex w-full items-center justify-center gap-2 rounded-xl bg-white py-3 font-semibold text-zinc-900 transition hover:bg-zinc-100"
-        >
-          <span className="font-bold text-lg">G</span>
-          Continue with Google
-        </button>
-
-        <div className="relative mb-6 text-center">
-          <span className="relative z-10 bg-[#16161f] px-3 text-sm text-zinc-500">or continue with email</span>
-          <div className="absolute left-0 right-0 top-1/2 h-px bg-zinc-700" />
-        </div>
-
-        <form onSubmit={handleSubmit} className="space-y-4">
-          {errors.length > 0 && (
-            <ul className="rounded-lg bg-red-500/10 px-3 py-2 text-sm text-red-400">
-              {errors.map((err) => (
-                <li key={err}>{err}</li>
-              ))}
-            </ul>
+          <div style={{ marginBottom: "16px" }}>
+            <label style={{ display: "block", color: "#8888aa", fontSize: "0.85rem", marginBottom: "8px" }}>Email</label>
+            <input type="email" value={email} onChange={e => setEmail(e.target.value)} required placeholder="you@example.com"
+              style={{ width: "100%", background: "#0a0a0f", border: "1px solid rgba(255,255,255,0.1)", borderRadius: "8px", padding: "12px 16px", color: "#fff", fontSize: "0.95rem", outline: "none", boxSizing: "border-box" }} />
+          </div>
+          <div style={{ marginBottom: "24px" }}>
+            <label style={{ display: "block", color: "#8888aa", fontSize: "0.85rem", marginBottom: "8px" }}>Password</label>
+            <input type="password" value={password} onChange={e => setPassword(e.target.value)} required placeholder="Min 6 characters"
+              style={{ width: "100%", background: "#0a0a0f", border: "1px solid rgba(255,255,255,0.1)", borderRadius: "8px", padding: "12px 16px", color: "#fff", fontSize: "0.95rem", outline: "none", boxSizing: "border-box" }} />
+          </div>
+          {error && (
+            <div style={{ background: "#ff658422", border: "1px solid #ff658444", borderRadius: "8px", padding: "12px", color: "#ff6584", fontSize: "0.875rem", marginBottom: "16px" }}>{error}</div>
           )}
-          <input
-            type="text"
-            required
-            placeholder="Full name"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            className="bg-[#0a0a0f] text-white border border-white/10 rounded-lg px-4 py-3 w-full focus:outline-none focus:border-[#6c63ff]"
-          />
-          <input
-            type="email"
-            required
-            placeholder="Email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            className="bg-[#0a0a0f] text-white border border-white/10 rounded-lg px-4 py-3 w-full focus:outline-none focus:border-[#6c63ff]"
-          />
-          <input
-            type="password"
-            required
-            placeholder="Password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            className="bg-[#0a0a0f] text-white border border-white/10 rounded-lg px-4 py-3 w-full focus:outline-none focus:border-[#6c63ff]"
-          />
-          <input
-            type="password"
-            required
-            placeholder="Confirm password"
-            value={confirm}
-            onChange={(e) => setConfirm(e.target.value)}
-            className="bg-[#0a0a0f] text-white border border-white/10 rounded-lg px-4 py-3 w-full focus:outline-none focus:border-[#6c63ff]"
-          />
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full cursor-pointer rounded-xl border-none bg-gradient-to-r from-[#6c63ff] to-[#9b8fff] py-3 font-semibold text-white transition hover:opacity-90 disabled:opacity-50"
-          >
-            {loading ? 'Creating…' : 'Create Account'}
+          <button type="submit" disabled={loading}
+            style={{ width: "100%", background: "linear-gradient(135deg, #6c63ff, #9b8fff)", border: "none", borderRadius: "10px", padding: "14px", color: "#fff", fontSize: "1rem", fontWeight: "700", cursor: loading ? "not-allowed" : "pointer", opacity: loading ? 0.7 : 1 }}>
+            {loading ? "Creating account..." : "Create Account →"}
           </button>
         </form>
-
-        <p className="mt-8 text-center text-sm text-zinc-400">
-          Already have an account?{' '}
-          <Link href="/login" className="font-medium text-violet-400 hover:underline">
-            Sign in
-          </Link>
+        <p style={{ textAlign: "center", color: "#8888aa", fontSize: "0.875rem", marginTop: "24px" }}>
+          Have an account? <a href="/login" style={{ color: "#6c63ff", textDecoration: "none", fontWeight: "600" }}>Sign in</a>
         </p>
       </div>
     </div>

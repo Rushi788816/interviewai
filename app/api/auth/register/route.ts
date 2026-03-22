@@ -1,11 +1,14 @@
 import { NextResponse } from 'next/server'
-import bcrypt from 'bcryptjs'
-import { prisma } from '@/lib/prisma'
+
+let bcrypt: any
+let prisma: any
+
+export const dynamic = 'force-dynamic'
 
 export async function POST(request: Request) {
   try {
     const body = await request.json()
-    const { name, email, password } = body as { name?: string; email?: string; password?: string }
+    const { name, email, password } = body
 
     if (!name?.trim() || !email?.trim() || !password) {
       return NextResponse.json({ error: 'Name, email, and password are required' }, { status: 400 })
@@ -13,6 +16,9 @@ export async function POST(request: Request) {
     if (password.length < 6) {
       return NextResponse.json({ error: 'Password must be at least 6 characters' }, { status: 400 })
     }
+
+    if (!prisma) prisma = (await import('@/lib/prisma')).prisma
+    if (!bcrypt) bcrypt = require('bcryptjs')
 
     const existing = await prisma.user.findUnique({ where: { email: email.trim().toLowerCase() } })
     if (existing) {
