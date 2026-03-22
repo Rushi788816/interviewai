@@ -71,13 +71,7 @@ export default function SettingsPage() {
     }
   }
 
-  if (!session?.user || status === 'loading') {
-    return (
-      <div style={{ minHeight: '100vh', backgroundColor: '#0A0F1E', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <div style={{ width: '32px', height: '32px', border: '2px solid #2563EB', borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin 1s linear infinite' }}></div>
-      </div>
-    )
-  }
+  if (status === 'loading') {\n    return (\n      <div style={{ minHeight: '100vh', backgroundColor: '#0A0F1E', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>\n        <div style={{ width: '32px', height: '32px', border: '2px solid #2563EB', borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin 1s linear infinite' }}></div>\n      </div>\n    )\n  }\n\n  if (!session?.user) {\n    return null\n  }
 
   const initial = (session.user.name || session.user.email || '?')[0].toUpperCase()
 

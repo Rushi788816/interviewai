@@ -31,9 +31,7 @@ model User {
   interviewSessions InterviewSession[]
   payments      Payment[]
   mockSessions  MockSession[]
-  sessions      Session[]
-}
-}
+  sessions      Session[]\n}\n\n
 
 model InterviewSession {
   id             String   @id @default(cuid())
