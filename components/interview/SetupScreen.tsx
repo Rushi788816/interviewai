@@ -151,20 +151,40 @@ export default function SetupScreen({ onComplete, onSkip, initialContext }: Setu
   }
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col overflow-y-auto bg-[#0a0a0f] p-4 sm:p-6">
+    <div className="flex min-h-0 flex-1 flex-col overflow-y-auto bg-[#0A0F1E] p-4 sm:p-6" style={{ position: "relative" }}>
+      <button
+        onClick={onSkip}
+        style={{
+          position: "absolute",
+          top: "16px",
+          right: "16px",
+          width: "36px",
+          height: "36px",
+          borderRadius: "50%",
+          background: "rgba(255,255,255,0.08)",
+          border: "1px solid rgba(255,255,255,0.15)",
+          color: "#94A3B8",
+          fontSize: "20px",
+          cursor: "pointer",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          lineHeight: "1",
+          zIndex: 10,
+          transition: "background 0.2s",
+        }}
+        onMouseEnter={e => (e.currentTarget.style.background = "rgba(255,255,255,0.15)")}
+        onMouseLeave={e => (e.currentTarget.style.background = "rgba(255,255,255,0.08)")}
+        title="Close setup"
+      >
+        ×
+      </button>
       <div className="mx-auto flex w-full max-w-lg flex-1 flex-col">
         <div className="mb-4 flex items-start justify-between gap-2">
           <div>
             <h1 className="text-xl font-bold text-white sm:text-2xl">🎯 Setup Your Interview Session</h1>
             <p className="mt-1 text-sm text-zinc-400">Help AI give you personalized answers</p>
           </div>
-          <button
-            type="button"
-            onClick={onSkip}
-            className="shrink-0 text-xs text-zinc-500 underline hover:text-zinc-300"
-          >
-            Skip Setup
-          </button>
         </div>
 
         <div className="mb-6 flex items-center justify-center gap-2 text-xs text-zinc-500">
@@ -174,7 +194,7 @@ export default function SetupScreen({ onComplete, onSkip, initialContext }: Setu
               <span
                 className={
                   step === i + 1
-                    ? 'font-semibold text-[#6c63ff]'
+                    ? 'font-semibold text-[#2563EB]'
                     : step > i + 1
                       ? 'text-emerald-500/90'
                       : ''
@@ -186,7 +206,7 @@ export default function SetupScreen({ onComplete, onSkip, initialContext }: Setu
           ))}
         </div>
 
-        <div className="rounded-2xl border border-white/[0.08] bg-[#16161f] p-4 sm:p-6">
+        <div className="rounded-2xl border border-white/[0.08] bg-[#111827] p-4 sm:p-6">
           {step === 1 && (
             <div className="space-y-4">
               <label className="block text-sm font-medium text-zinc-300">
@@ -197,7 +217,7 @@ export default function SetupScreen({ onComplete, onSkip, initialContext }: Setu
                 value={jobRole}
                 onChange={(e) => setJobRole(e.target.value)}
                 placeholder="e.g. Senior Software Engineer, Product Manager, Data Analyst"
-                className="w-full rounded-lg border border-white/10 bg-[#0a0a0f] px-4 py-3 text-white placeholder:text-zinc-600 focus:border-[#6c63ff] focus:outline-none"
+                className="w-full rounded-lg border border-white/10 bg-[#0A0F1E] px-4 py-3 text-white placeholder:text-zinc-600 focus:border-[#2563EB] focus:outline-none"
               />
               <div className="flex flex-wrap gap-2">
                 {ROLE_CHIPS.map((chip) => (
@@ -205,7 +225,7 @@ export default function SetupScreen({ onComplete, onSkip, initialContext }: Setu
                     key={chip}
                     type="button"
                     onClick={() => setJobRole(chip)}
-                    className="rounded-full border border-white/10 bg-[#0a0a0f] px-3 py-1.5 text-xs text-zinc-300 transition hover:border-[#6c63ff]/50 hover:text-white"
+                    className="rounded-full border border-white/10 bg-[#0A0F1E] px-3 py-1.5 text-xs text-zinc-300 transition hover:border-[#2563EB]/50 hover:text-white"
                   >
                     {chip}
                   </button>
@@ -224,7 +244,7 @@ export default function SetupScreen({ onComplete, onSkip, initialContext }: Setu
                 onChange={(e) => setJobDescription(e.target.value.slice(0, JD_MAX))}
                 rows={8}
                 placeholder="Paste the full job description here. AI will tailor answers to match exactly what the company is looking for..."
-                className="w-full resize-y rounded-lg border border-white/10 bg-[#0a0a0f] px-4 py-3 text-white placeholder:text-zinc-600 focus:border-[#6c63ff] focus:outline-none"
+                className="w-full resize-y rounded-lg border border-white/10 bg-[#0A0F1E] px-4 py-3 text-white placeholder:text-zinc-600 focus:border-[#2563EB] focus:outline-none"
               />
               <div className="flex items-center justify-between text-xs text-zinc-500">
                 <span>
@@ -263,8 +283,8 @@ export default function SetupScreen({ onComplete, onSkip, initialContext }: Setu
                 onClick={() => fileInputRef.current?.click()}
                 className={`w-full cursor-pointer rounded-xl border-2 border-dashed p-8 text-center text-sm transition-all ${
                   isDragging
-                    ? 'border-[#6c63ff] bg-[#6c63ff]/10'
-                    : 'border-white/20 hover:border-[#6c63ff]/50 hover:bg-white/5'
+                    ? 'border-[#2563EB] bg-[#2563EB]/10'
+                    : 'border-white/20 hover:border-[#2563EB]/50 hover:bg-white/5'
                 }`}
               >
                 📄 Drop your resume here or click to browse
@@ -272,9 +292,9 @@ export default function SetupScreen({ onComplete, onSkip, initialContext }: Setu
               </button>
 
               {isExtracting && (
-                <div className="flex items-center gap-2 rounded-lg border border-[#6c63ff]/30 bg-[#6c63ff]/10 px-3 py-2 text-sm text-zinc-200">
+                <div className="flex items-center gap-2 rounded-lg border border-[#2563EB]/30 bg-[#2563EB]/10 px-3 py-2 text-sm text-zinc-200">
                   <span
-                    className="inline-block size-4 shrink-0 animate-spin rounded-full border-2 border-[#6c63ff] border-t-transparent"
+                    className="inline-block size-4 shrink-0 animate-spin rounded-full border-2 border-[#2563EB] border-t-transparent"
                     aria-hidden
                   />
                   <span>📄 Extracting text from resume...</span>
@@ -302,11 +322,11 @@ export default function SetupScreen({ onComplete, onSkip, initialContext }: Setu
                 <div className="relative">
                   {isExtracting ? (
                     <div
-                      className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-2 rounded-lg bg-[#0a0a0f]/85 px-4 text-center text-sm text-zinc-300"
+                      className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-2 rounded-lg bg-[#0A0F1E]/85 px-4 text-center text-sm text-zinc-300"
                       aria-live="polite"
                     >
                       <span
-                        className="size-8 animate-spin rounded-full border-2 border-[#6c63ff] border-t-transparent"
+                        className="size-8 animate-spin rounded-full border-2 border-[#2563EB] border-t-transparent"
                         aria-hidden
                       />
                       <span>📄 Extracting text from resume...</span>
@@ -318,7 +338,7 @@ export default function SetupScreen({ onComplete, onSkip, initialContext }: Setu
                     disabled={isExtracting}
                     rows={6}
                     placeholder="Paste resume content..."
-                    className="w-full resize-y rounded-lg border border-white/10 bg-[#0a0a0f] px-4 py-3 text-white placeholder:text-zinc-600 focus:border-[#6c63ff] focus:outline-none disabled:cursor-wait disabled:opacity-60"
+                    className="w-full resize-y rounded-lg border border-white/10 bg-[#0A0F1E] px-4 py-3 text-white placeholder:text-zinc-600 focus:border-[#2563EB] focus:outline-none disabled:cursor-wait disabled:opacity-60"
                   />
                 </div>
               </div>
@@ -333,13 +353,14 @@ export default function SetupScreen({ onComplete, onSkip, initialContext }: Setu
               </div>
             </div>
           )}
+
         </div>
 
         <div className="mt-6 flex flex-wrap items-center justify-between gap-3">
           <button
             type="button"
             onClick={step === 1 ? onSkip : goBack}
-            className="rounded-xl border border-white/10 bg-zinc-800 px-5 py-2.5 text-sm font-medium text-zinc-300 hover:bg-zinc-700"
+            className="rounded-xl border border-white/10 bg-[#1E2A3A] px-5 py-2.5 text-sm font-medium text-zinc-300 hover:bg-[#1E3A5F]"
           >
             {step === 1 ? 'Skip Setup' : 'Back'}
           </button>
@@ -348,7 +369,7 @@ export default function SetupScreen({ onComplete, onSkip, initialContext }: Setu
               type="button"
               onClick={goNext}
               disabled={step === 1 && !jobRole.trim()}
-              className="cursor-pointer rounded-xl border-none bg-gradient-to-r from-[#6c63ff] to-[#9b8fff] px-6 py-3 text-sm font-semibold text-white transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40"
+              className="cursor-pointer rounded-xl border-none bg-gradient-to-r from-[#2563EB] to-[#0EA5E9] px-6 py-3 text-sm font-semibold text-white transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40"
             >
               Next
             </button>
@@ -357,16 +378,16 @@ export default function SetupScreen({ onComplete, onSkip, initialContext }: Setu
               type="button"
               onClick={goNext}
               disabled={isExtracting}
-              className="cursor-pointer rounded-xl border-none bg-gradient-to-r from-[#6c63ff] to-[#9b8fff] px-8 py-3 text-base font-semibold text-white shadow-[0_0_24px_rgba(108,99,255,0.45)] transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
+              className="cursor-pointer rounded-xl border-none bg-gradient-to-r from-[#2563EB] to-[#0EA5E9] px-8 py-3 text-base font-semibold text-white shadow-[0_0_24px_rgba(37,99,235,0.45)] transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
             >
               Start Interview →
             </button>
           )}
         </div>
 
-        <div className="mt-6 h-1.5 w-full overflow-hidden rounded-full bg-zinc-800">
+        <div className="mt-6 h-1.5 w-full overflow-hidden rounded-full bg-[#1E2A3A]">
           <div
-            className="h-full rounded-full bg-gradient-to-r from-[#6c63ff] to-[#9b8fff] transition-all duration-300"
+            className="h-full rounded-full bg-gradient-to-r from-[#2563EB] to-[#0EA5E9] transition-all duration-300"
             style={{ width: `${progressPct}%` }}
           />
         </div>

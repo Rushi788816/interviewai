@@ -20,57 +20,47 @@ export const authOptions: NextAuthOptions = {
         email: { label: "Email", type: "email" },
         password: { label: "Password", type: "password" },
       },
-      async authorize(credentials) {
-        try {
-          if (!credentials?.email || !credentials?.password) return null
+        async authorize(credentials) {
+          try {
+            if (!credentials?.email || !credentials?.password) return null
 
-          const user = await prisma.user.findUnique({
-            where: { email: credentials.email as string },
-          })
+            const user = await prisma.user.findUnique({
+              where: { email: credentials.email as string },
+            })
 
-          if (!user || !user.password) return null
+            if (!user || !user.password) return null
 
-          const bcrypt = require("bcryptjs")
-          const isValid = await bcrypt.compare(
-            credentials.password as string,
-            user.password
-          )
+            const bcrypt = require("bcryptjs")
+            const isValid = await bcrypt.compare(credentials.password as string, user.password)
+            if (!isValid) return null
 
-          if (!isValid) return null
+            // Try to save session token but do not block login if it fails
+            let sessionToken = null
+            try {
+              const crypto = require("crypto")
+              const token = crypto.randomBytes(32).toString("hex")
+              const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
+              await prisma.session.create({
+                data: { userId: user.id, token, expiresAt },
+              })
+              sessionToken = token
+            } catch (sessionError: any) {
+              console.error("Session save failed (non-blocking):", sessionError.message)
+            }
 
-          // Save session token to database
-          const token = crypto.randomBytes(32).toString("hex")
-          const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
-
-          await prisma.session.create({
-            data: {
-              userId: user.id,
-              token,
-              expiresAt,
-            },
-          })
-
-          // Clean up expired sessions for this user
-          await prisma.session.deleteMany({
-            where: {
-              userId: user.id,
-              expiresAt: { lt: new Date() },
-            },
-          })
-
-          return {
-            id: user.id,
-            email: user.email,
-            name: user.name || "",
-            credits: user.credits,
-            plan: user.plan,
-            sessionToken: token,
+            return {
+              id: user.id,
+              email: user.email,
+              name: user.name || "",
+              credits: user.credits,
+              plan: user.plan,
+              sessionToken,
+            }
+          } catch (err: any) {
+            console.error("Auth error:", err.message)
+            return null
           }
-        } catch (err: any) {
-          console.error("Auth error:", err.message)
-          return null
         }
-      },
     }),
   ],
   callbacks: {
