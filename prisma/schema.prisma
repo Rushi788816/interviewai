@@ -3,71 +3,45 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
-}
-
-model Session {
-  id           String   @id @default(cuid())
-  userId       String
-  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  token        String   @unique
-  expiresAt    DateTime
-  createdAt    DateTime @default(now())
-  userAgent    String?
-  ipAddress    String?
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
 
 model User {
-  id            String             @id @default(cuid())
-  email         String             @unique
-  name          String?
-  password      String?
-  image         String?
-  credits       Int                @default(30)
-  plan          String             @default("free")
-  createdAt     DateTime           @default(now())
-  updatedAt     DateTime           @updatedAt
+  id                String             @id @default(cuid())
+  email             String             @unique
+  name              String?
+  password          String?
+  image             String?
+  credits           Int                @default(30)
+  plan              String             @default("free")
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
   interviewSessions InterviewSession[]
-  payments      Payment[]
-  mockSessions  MockSession[]
-  sessions      Session[]
+  payments          Payment[]
+  mockSessions      MockSession[]
+  sessions          Session[]
 }
 
 model InterviewSession {
-  id             String   @id @default(cuid())
-  userId         String
-  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  duration       Int      @default(0)
-  creditsUsed    Int      @default(0)
-  transcript     Json     @default("[]")
-  qaHistory      Json     @default("[]")
-  language       String   @default("en-US")
-  mode           String   @default("technical")
-  isDesiMode     Boolean  @default(false)
-  jobRole        String   @default("")
-  jobDescription String  @default("")
-  resumeText     String   @default("")
-  resumeFileName String   @default("")
-  createdAt      DateTime @default(now())
-}
-
-model Payment {
-  id         String   @id @default(cuid())
-  userId     String
-  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  razorpayId String   @default("")
-  amount     Int
-  credits    Int
-  plan       String
-  status     String   @default("pending")
-  createdAt  DateTime @default(now())
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id])
+  duration    Int      @default(0)
+  creditsUsed Int      @default(0)
+  transcript  Json     @default("[]")
+  qaHistory   Json     @default("[]")
+  language    String   @default("en-US")
+  mode        String   @default("technical")
+  isDesiMode  Boolean  @default(false)
+  jobRole     String?
+  createdAt   DateTime @default(now())
 }
 
 model MockSession {
   id           String   @id @default(cuid())
   userId       String
-  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   role         String
   companyType  String
   difficulty   String
@@ -79,3 +53,25 @@ model MockSession {
   createdAt    DateTime @default(now())
 }
 
+model Payment {
+  id         String   @id @default(cuid())
+  userId     String
+  user       User     @relation(fields: [userId], references: [id])
+  razorpayId String   @default("")
+  amount     Int
+  credits    Int
+  plan       String
+  status     String   @default("pending")
+  createdAt  DateTime @default(now())
+}
+
+model Session {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  token     String   @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  userAgent String?
+  ipAddress String?
+}
