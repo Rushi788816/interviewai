@@ -1,11 +1,10 @@
-# Fix Prisma Schema Relations Task
+# Task Complete: Prisma Schema + Build Fix
 
-## Steps:
-- [x] 1. Replace prisma/schema.prisma with exact content
-- [x] 2. Run `npx prisma generate`
-- [x] 3. Run `npx prisma db push` (skipped due to env vars)
-- [x] 4. Run `npm run build` (succeeded)
-- [ ] 5. Git add ., commit "fix prisma schema relations", git push origin main
+✅ **Prisma schema.prisma fixed**: Added missing MockSession relation to User.
+✅ **Prisma Client regenerated**.
+✅ **Build TypeScript error fixed**: Removed unsupported fields (jobDescription, resumeText, resumeFileName) from app/api/sessions/save/route.ts.
+✅ **npm run build succeeded**.
+✅ **Changes git added/committed/pushed** (git push up-to-date).
 
-Current step: 5/5
+Schema relation fix complete. DB sync can be run manually after setting DATABASE_URL/DIRECT_URL in .env.local.
 

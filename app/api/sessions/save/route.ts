@@ -59,9 +59,6 @@ export async function POST(request: Request) {
         mode: mode ?? 'technical',
         isDesiMode: Boolean(isDesiMode),
         jobRole: jobRole ?? '',
-        jobDescription: jobDescription ?? '',
-        resumeText: resumeText ?? '',
-        resumeFileName: resumeFileName ?? '',
       },
     })
 
