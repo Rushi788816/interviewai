@@ -1,10 +1,11 @@
-# TODO: Fix Next.js Build Errors
+# Fix Prisma Schema Relations Task
 
-## Plan Breakdown
-1. ✅ [COMPLETE] Run `prisma generate` to initialize Prisma client.
-2. ✅ [COMPLETE] Fix TypeScript error in `app/api/sessions/save-mock/route.ts` by correcting Prisma JSON type casts (imported InputJsonValue and fixed casts/null coalescing).
-3. ✅ [COMPLETE] Test `npm run build` - build process started successfully without type errors (proceeding through optimization).
-4. ✅ [COMPLETE] No additional errors detected; production build now succeeds.
-5. ✅ [COMPLETE] Task finished.
+## Steps:
+- [x] 1. Replace prisma/schema.prisma with exact content
+- [x] 2. Run `npx prisma generate`
+- [x] 3. Run `npx prisma db push` (skipped due to env vars)
+- [x] 4. Run `npm run build` (succeeded)
+- [ ] 5. Git add ., commit "fix prisma schema relations", git push origin main
 
-**Current Status**: All build issues resolved. Run `npm run build` manually if needed to generate .next folder.
+Current step: 5/5
+

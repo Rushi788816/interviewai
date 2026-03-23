@@ -42,6 +42,7 @@ model InterviewSession {
 model MockSession {
   id           String   @id @default(cuid())
   userId       String
+  user         User     @relation(fields: [userId], references: [id])
   role         String
   companyType  String
   difficulty   String
@@ -75,3 +76,4 @@ model Session {
   userAgent String?
   ipAddress String?
 }
+
