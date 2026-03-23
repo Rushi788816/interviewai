@@ -14,31 +14,19 @@ export default function InterviewPage() {
   const router = useRouter()
 
   useEffect(() => {
-    if (status === "unauthenticated") {
-      router.push("/login")
-    }
+    if (status === "unauthenticated") router.push("/login")
   }, [status, router])
 
-  if (status === "loading") {
-    return (
-      <div style={{
-        minHeight: "100vh",
-        background: "#0A0F1E",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        color: "white",
-        fontSize: "1rem",
-      }}>
-        Loading...
-      </div>
-    )
-  }
+  if (status === "loading") return (
+    <div style={{ minHeight: "100vh", background: "#030304", display: "flex", alignItems: "center", justifyContent: "center" }}>
+      <div style={{ width: "32px", height: "32px", border: "2px solid #F7931A", borderTopColor: "transparent", borderRadius: "50%", animation: "spin 1s linear infinite" }} />
+    </div>
+  )
 
   if (!session) return null
 
   return (
-    <div style={{ minHeight: "100vh", background: "#0A0F1E" }}>
+    <div style={{ minHeight: "100vh", background: "#030304", padding: "32px 24px" }}>
       <InterviewAssistant
         showFloatingLauncher={false}
         defaultOpen={true}

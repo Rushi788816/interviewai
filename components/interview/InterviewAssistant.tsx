@@ -1,53 +1,25 @@
-'use client'
-
-import { useCallback, useEffect, useRef, useState } from "react"
+"use client"
+import { useState, useEffect, useRef, useCallback } from "react"
 import { useSession } from "next-auth/react"
 import { useSpeechRecognition } from "@/hooks/useSpeechRecognition"
 import { useInterviewStore } from "@/store/interviewStore"
 import { useCredits } from "@/hooks/useCredits"
 import { useToast } from "@/hooks/useToast"
-import type { SessionContext } from "@/types"
-import { sanitizeReadableText } from "@/lib/sanitizeText"
-import OverlayWindow from "@/components/interview/OverlayWindow"
-import MicrophoneButton from "@/components/interview/MicrophoneButton"
-import DesiModeToggle from "@/components/interview/DesiModeToggle"
-import LanguageSelector from "@/components/interview/LanguageSelector"
-import TranscriptDisplay from "@/components/interview/TranscriptDisplay"
-import AnswerDisplay from "@/components/interview/AnswerDisplay"
+import { Mic, MicOff, Pause, Square, Play, Ghost, Info, ChevronDown } from "lucide-react"
 import SetupScreen from "@/components/interview/SetupScreen"
+import type { SessionContext } from "@/types/index"
 
 type InterviewType = "technical" | "behavioral" | "coding"
 type SessionPhase = "idle" | "running" | "paused"
 
-interface InterviewAssistantProps {
-  userId?: string
-  credits?: number
-  showFloatingLauncher?: boolean
-  defaultOpen?: boolean
-}
+export default function InterviewAssistant({ userId, credits: creditsProp, showFloatingLauncher = false, defaultOpen = true }: any) {
+  const { data: session } = useSession()
+  const addToast = useToast((s: any) => s.addToast)
+  const { balance, refetch: refetchCredits } = useCredits()
+  const displayCredits = creditsProp ?? balance
 
-export default function InterviewAssistant({
-  userId: _userId,
-  credits: creditsProp,
-  showFloatingLauncher = true,
-  defaultOpen = false,
-}: InterviewAssistantProps) {
-  const { data: session, update: updateSession } = useSession()
-
-  // Toast selector moved to useCallback/useEffect to prevent render-phase effects
-  const addToast = useCallback((message: string, type: 'success' | 'error' | 'info' = 'info', duration = 3000) => {
-    useToast.getState().addToast(message, type, duration)
-  }, [])
-
-  // Toast moved to useEffect to avoid render-phase updates
-  useEffect(() => {
-    if (session?.user) {
-      // Welcome toast on mount - safe in useEffect
-    }
-  }, [])
-
-  // State
-  const [isOpen, setIsOpen] = useState(() => (showFloatingLauncher ? defaultOpen : true))
+  const [showSetup, setShowSetup] = useState(true)
+  const [sessionContext, setSessionContextLocal] = useState<SessionContext | null>(null)
   const [interviewType, setInterviewType] = useState<InterviewType>("technical")
   const [isDesiMode, setIsDesiMode] = useState(false)
   const [language, setLanguage] = useState("en-US")
@@ -55,626 +27,401 @@ export default function InterviewAssistant({
   const [isStreamingAnswer, setIsStreamingAnswer] = useState(false)
   const [sessionPhase, setSessionPhase] = useState<SessionPhase>("idle")
   const [elapsedSeconds, setElapsedSeconds] = useState(0)
-  const [showSetup, setShowSetup] = useState(true)
-  const [invisibleMode, setInvisibleMode] = useState(false)
-  const [showInvisibleHelp, setShowInvisibleHelp] = useState(false)
   const [liveQuestion, setLiveQuestion] = useState("")
-
-  // Mobile responsive
   const [isMobile, setIsMobile] = useState(false)
+  const [showInvisibleHelp, setShowInvisibleHelp] = useState(false)
+  const popupRef = useRef<Window | null>(null)
+  const [invisibleMode, setInvisibleMode] = useState(false)
+
+  const { sessionContext: storeContext, setSessionContext: setSessionContextStore, addQAPair, qaHistory } = useInterviewStore((s: any) => s)
+
   useEffect(() => {
-    const checkMobile = () => setIsMobile(window.innerWidth < 768)
-    checkMobile()
-    window.addEventListener("resize", checkMobile)
-    return () => window.removeEventListener("resize", checkMobile)
+    const check = () => setIsMobile(window.innerWidth < 768)
+    check()
+    window.addEventListener("resize", check)
+    return () => window.removeEventListener("resize", check)
   }, [])
 
-  // Store
-  const sessionContext = useInterviewStore((s) => s.sessionContext)
-  const setSessionContextStore = useInterviewStore((s) => s.setSessionContext)
-  const clearSessionContext = useInterviewStore((s) => s.clearSessionContext)
-  const addQAPair = useInterviewStore((s) => s.addQAPair)
-  const qaHistory = useInterviewStore((s) => s.qaHistory)
+  // Session timer
+  useEffect(() => {
+    if (sessionPhase !== "running") return
+    const timer = setInterval(() => setElapsedSeconds(s => s + 1), 1000)
+    return () => clearInterval(timer)
+  }, [sessionPhase])
 
-  // Credits
-  const { balance, isLoading: creditsLoading, refetch: refetchCredits } = useCredits()
-  const displayCredits = creditsProp ?? balance
+  const formatTime = (s: number) => `${String(Math.floor(s/60)).padStart(2,"0")}:${String(s%60).padStart(2,"0")}`
 
-  // Speech
-  const {
-    transcript,
-    interimTranscript,
-    resetTranscript,
-    toggleListening,
-    language: currentLang,
-    error: speechError
-  } = useSpeechRecognition({
-    language,
+  const { transcript, interimTranscript, isListening, toggleListening, resetTranscript } = useSpeechRecognition({
+    language: isDesiMode ? "en-IN" : language,
     isDesiMode,
-    onSilence: ({ finalTranscript }) => {
-      console.log('Silence detected, sending:', finalTranscript)
-      // Add AI response logic here or via store action
+    onSilence: async ({ finalTranscript }: { finalTranscript: string }) => {
+      if (!finalTranscript || finalTranscript.trim().length < 3) return
+      if (sessionPhase !== "running") return
+
       setLiveQuestion(finalTranscript)
+      setStreamingAnswer("")
+      setIsStreamingAnswer(true)
+
+      try {
+        const response = await fetch("/api/ai/interview-answer", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            question: finalTranscript,
+            isDesiMode,
+            interviewType,
+            language: isDesiMode ? "en-IN" : language,
+            sessionContext: storeContext,
+          }),
+        })
+
+        if (!response.ok || !response.body) { setIsStreamingAnswer(false); return }
+
+        const reader = response.body.getReader()
+        const decoder = new TextDecoder()
+        let buffer = ""
+        let fullAnswer = ""
+
+        while (true) {
+          const { done, value } = await reader.read()
+          if (done) break
+          buffer += decoder.decode(value, { stream: true })
+          const lines = buffer.split("\n")
+          buffer = lines.pop() || ""
+          for (const line of lines) {
+            const trimmed = line.trim()
+            if (!trimmed.startsWith("data: ")) continue
+            const data = trimmed.slice(6).trim()
+            if (data === "[DONE]") {
+              if (fullAnswer) addQAPair(finalTranscript, fullAnswer)
+              setIsStreamingAnswer(false)
+              return
+            }
+            try {
+              const parsed = JSON.parse(data)
+              const token = parsed.text || parsed.delta?.text || ""
+              if (token) { fullAnswer += token; setStreamingAnswer(prev => prev + token) }
+            } catch {}
+          }
+        }
+        setIsStreamingAnswer(false)
+      } catch { setIsStreamingAnswer(false) }
     }
   })
-  const [isListening, setIsListening] = useState(false)
-  const [micDisabled, setMicDisabled] = useState(false)
 
-  const startListening = useCallback(() => {
-    toggleListening()
-    setIsListening(true)
-  }, [toggleListening])
-
-  const stopListening = useCallback(() => {
-    toggleListening()
-    setIsListening(false)
-  }, [toggleListening])
-
-  // Refs
-  const popupRef = useRef<Window | null>(null)
-  const popupCheckIntervalRef = useRef<number | null>(null)
-  const startBtnRef = useRef<HTMLButtonElement>(null)
-
-  // Sync refs
-  const interviewTypeRef = useRef(interviewType)
-  const isDesiModeRef = useRef(isDesiMode)
-  const languageRef = useRef(language)
-
-  useEffect(() => {
-    interviewTypeRef.current = interviewType
-  }, [interviewType])
-  useEffect(() => {
-    isDesiModeRef.current = isDesiMode
-  }, [isDesiMode])
-  useEffect(() => {
-    languageRef.current = language
-  }, [language])
-
-  // Auto focus start button
-  useEffect(() => {
-    if (!showSetup && isOpen) {
-      const t = window.setTimeout(() => startBtnRef.current?.focus(), 150)
-      return () => clearTimeout(t)
-    }
-  }, [showSetup, isOpen])
-
-  // Close existing popup when opening new invisible mode
-  useEffect(() => {
-    return () => {
-      if (popupCheckIntervalRef.current) {
-        clearInterval(popupCheckIntervalRef.current)
-        popupCheckIntervalRef.current = null
-      }
-      if (popupRef.current && !popupRef.current.closed) {
-        popupRef.current.close()
-      }
-    }
-  }, [])
-
-  const openInvisibleMode = useCallback(() => {
-    if (popupCheckIntervalRef.current) {
-      clearInterval(popupCheckIntervalRef.current)
-      popupCheckIntervalRef.current = null
-    }
-    if (popupRef.current && !popupRef.current.closed) {
-      popupRef.current.close()
-    }
-
-    const width = isMobile ? 360 : 480
-    const height = isMobile ? 500 : 600
-    const left = window.screen.width - width - 20
-    const top = 100
-
-    const popup = window.open(
-      '/interview/overlay',
-      'InterviewAI_Overlay',
-      `width=${width},height=${height},left=${left},top=${top},resizable=yes,scrollbars=no,toolbar=no,menubar=no,location=no,status=no`
-    )
-
-    if (!popup) {
-      addToast("Popup blocked — allow popups for this site to use Invisible Mode.", "error")
-      return
-    }
-
-    popupRef.current = popup
-    setInvisibleMode(true)
-
-    const sendInit = () => {
-      if (popup.closed) return
-      popup.postMessage(
-        {
-          type: "INIT",
-          isDesiMode: isDesiModeRef.current,
-          interviewType: interviewTypeRef.current,
-          sessionContext: useInterviewStore.getState().sessionContext,
-        },
-        window.location.origin
-      )
-    }
-
-    popup.onload = sendInit
-    window.setTimeout(sendInit, 100)
-    window.setTimeout(sendInit, 500)
-
-    popupCheckIntervalRef.current = window.setInterval(() => {
-      if (popup.closed) {
-        setInvisibleMode(false)
-        popupRef.current = null
-        if (popupCheckIntervalRef.current) {
-          clearInterval(popupCheckIntervalRef.current)
-          popupCheckIntervalRef.current = null
-        }
-      }
-    }, 800)
-  }, [addToast, isMobile])
-
-  const handleDesiToggle = () => {
-    const newDesiMode = !isDesiMode
-    setIsDesiMode(newDesiMode)
-    if (newDesiMode) {
-      setLanguage("en-IN")
-    } else {
-      setLanguage("en-US")
-    }
-  }
-
-  const handleStartSession = () => {
-    if (sessionPhase === "idle") {
-      setElapsedSeconds(0)
-    }
+  const handleStart = () => {
     setSessionPhase("running")
-    startListening()
+    if (!isListening) toggleListening()
   }
 
-  const handlePauseSession = () => {
-    setSessionPhase("paused")
-    stopListening()
+  const handlePause = () => {
+    if (sessionPhase === "running") {
+      setSessionPhase("paused")
+      if (isListening) toggleListening()
+    } else {
+      setSessionPhase("running")
+      if (!isListening) toggleListening()
+    }
   }
 
-  const handleStopSession = () => {
+  const handleStop = () => {
     setSessionPhase("idle")
     setElapsedSeconds(0)
-    stopListening()
+    if (isListening) toggleListening()
     resetTranscript()
     setStreamingAnswer("")
     setLiveQuestion("")
-    clearSessionContext()
-    setShowSetup(true)
+    // Removed setShowSetup(true) to keep setup inline
   }
 
-  const formatTime = (total: number) => {
-    const m = Math.floor(total / 60)
-    const s = total % 60
-    return `${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`
+  const handleDesiToggle = () => {
+    const next = !isDesiMode
+    setIsDesiMode(next)
+    setLanguage(next ? "en-IN" : "en-US")
   }
 
-  // Responsive styles
-  const styles: { [key: string]: React.CSSProperties } = {
-    container: {
-      padding: isMobile ? "12px" : "24px",
-      maxWidth: isMobile ? "100vw" : "900px",
-      margin: "0 auto",
-    },
-    headerRow: {
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "space-between",
-      gap: isMobile ? "8px" : "12px",
-      minHeight: "44px",
-      marginBottom: isMobile ? "8px" : "12px",
-    },
-    sessionInfo: {
-      fontSize: isMobile ? "16px" : "14px",
-      fontWeight: "600" as const,
-    },
-    transcriptBox: {
-      minHeight: isMobile ? "100px" : "120px",
-      maxHeight: isMobile ? "180px" : "200px",
-      overflowY: "auto" as const,
-      background: "rgba(59,130,246,0.08)",
-      border: "1px solid rgba(59,130,246,0.3)",
-      borderRadius: "12px",
-      padding: "14px",
-      fontSize: isMobile ? "16px" : "15px",
-      lineHeight: "1.6" as const,
-    },
-    answerBox: {
-      minHeight: isMobile ? "150px" : "160px",
-      maxHeight: isMobile ? "280px" : "300px",
-      overflowY: "auto" as const,
-      background: "rgba(67,233,123,0.08)",
-      border: "2px solid rgba(67,233,123,0.4)",
-      borderLeft: "4px solid #43e97b",
-      borderRadius: "12px",
-      padding: "14px",
-      fontSize: isMobile ? "16px" : "15px",
-      lineHeight: "1.7" as const,
-      color: "#43e97b",
-    },
-    micButton: {
-      width: isMobile ? "64px" : "56px",
-      height: isMobile ? "64px" : "56px",
-      borderRadius: "50%",
-      border: "none" as const,
-      cursor: "pointer" as const,
-      fontSize: "24px",
-      display: "flex" as const,
-      alignItems: "center" as const,
-      justifyContent: "center" as const,
-    },
-    controlButton: {
-      padding: isMobile ? "12px 20px" : "10px 20px",
-      borderRadius: "10px",
-      border: "none" as const,
-      fontWeight: "700" as const,
-      fontSize: isMobile ? "15px" : "14px",
-      cursor: "pointer" as const,
-      flex: "1" as const,
-      minHeight: "44px",
-    },
-    tabButton: {
-      padding: isMobile ? "12px 8px" : "8px 16px",
-      borderRadius: "8px",
-      border: "none" as const,
-      fontWeight: "600" as const,
-      fontSize: isMobile ? "14px" : "13px",
-      cursor: "pointer" as const,
-      flex: "1" as const,
-      minHeight: "44px",
-    },
-    card: {
-      backgroundColor: "#111827",
-      border: "1px solid rgba(255,255,255,0.1)",
-      borderRadius: "12px",
-      padding: isMobile ? "12px" : "16px",
-    },
+  const openInvisibleMode = () => {
+    const popup = window.open("/interview/overlay", "InterviewAI_Overlay",
+      `width=480,height=600,left=${window.screen.width - 500},top=100,resizable=yes`)
+    if (popup) { popupRef.current = popup; setInvisibleMode(true) }
+    else addToast("Popup blocked — allow popups for this site", "error")
   }
 
-  if (!isOpen) {
-    return (
-      <button
-        type="button"
-        onClick={() => setIsOpen(true)}
-        style={{
-          position: "fixed" as const,
-          bottom: "24px",
-          right: "24px" as const,
-          zIndex: 50 as const,
-          padding: "16px 24px",
-          borderRadius: "16px",
-          fontSize: "16px",
-          fontWeight: "700" as const,
-          color: "white",
-          backgroundImage: "linear-gradient(90deg, #2563EB, #0EA5E9)",
-          boxShadow: "0 8px 32px rgba(37,99,235,0.4)",
-          border: "none" as const,
-          cursor: "pointer" as const,
-        }}
-      >
-        🎤 Start Interview Assistant
-      </button>
-    )
-  }
+  // Send updates to popup
+  useEffect(() => {
+    if (invisibleMode && popupRef.current && !popupRef.current.closed) {
+      popupRef.current.postMessage({
+        type: "UPDATE", currentQuestion: liveQuestion, currentAnswer: streamingAnswer,
+        isStreaming: isStreamingAnswer, qaHistory, credits: displayCredits, sessionActive: sessionPhase === "running"
+      }, window.location.origin)
+    }
+  }, [streamingAnswer, liveQuestion, isStreamingAnswer, invisibleMode])
 
-  if (showSetup) {
-    return (
-      <OverlayWindow>
-        <div style={{ maxHeight: "92vh" as const, overflow: "hidden" as const }}>
-          <SetupScreen
-            onComplete={(ctx) => {
-              setSessionContextStore(ctx)
-              setShowSetup(false)
-            }}
-            onSkip={() => setShowSetup(false)}
-            initialContext={sessionContext}
-          />
-        </div>
-      </OverlayWindow>
-    )
+  const mainContainerStyle = {
+    maxWidth: "1100px", 
+    margin: "0 auto", 
+    display: "flex", 
+    flexDirection: "column" as const, 
+    gap: "16px"
   }
 
   return (
-    <OverlayWindow>
-      <div style={{ 
-        display: "flex" as const, 
-        maxHeight: "92vh" as const, 
-        flexDirection: "column" as const, 
-        overflow: "hidden" as const, 
-        ...styles.container 
-      }}>
-        {/* Header */}
-        <header style={{ 
-          borderBottom: "1px solid rgba(255,255,255,0.08)", 
-          padding: isMobile ? "12px" : "16px", 
-          paddingRight: "12px",
-          position: "relative" 
+    <div style={mainContainerStyle}>
+      {showSetup ? (
+        <div style={{
+          background: "#0F1115",
+          border: "1px solid rgba(255,255,255,0.08)",
+          borderRadius: "12px",
+          padding: "24px"
         }}>
-          <button
-            onClick={() => setIsOpen(false)}
-            style={{
-              position: "absolute",
-              top: "16px",
-              right: "16px",
-              width: "36px",
-              height: "36px",
-              borderRadius: "50%",
-              background: "rgba(255,255,255,0.08)",
-              border: "1px solid rgba(255,255,255,0.15)",
-              color: "#94A3B8",
-              fontSize: "20px",
-              cursor: "pointer",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              lineHeight: "1",
-              zIndex: 10,
-              transition: "background 0.2s",
+          <div style={{
+            display: "flex", 
+            alignItems: "center", 
+            justifyContent: "space-between", 
+            marginBottom: "24px",
+            flexWrap: "wrap" as const,
+            gap: "12px"
+          }}>
+            <div>
+              <h2 style={{ 
+                color: "#fff", 
+                fontSize: "24px", 
+                fontWeight: "700" as const, 
+                margin: "0 0 8px" 
+              }}>
+                🎯 Setup Your Interview Session
+              </h2>
+              <p style={{ 
+                color: "#94A3B8", 
+                fontSize: "14px", 
+                margin: 0 
+              }}>
+                Help AI give you personalized answers
+              </p>
+            </div>
+            <div style={{ display: "flex", gap: "10px" }}>
+              <button 
+                onClick={() => setShowSetup(false)}
+                style={{
+                  background: "rgba(255,255,255,0.08)",
+                  border: "1px solid rgba(255,255,255,0.15)",
+                  borderRadius: "20px",
+                  padding: "8px 16px",
+                  color: "#94A3B8",
+                  fontSize: "13px",
+                  cursor: "pointer"
+                }}
+              >
+                Skip Setup
+              </button>
+            </div>
+          </div>
+          <SetupScreen
+            onComplete={(ctx: SessionContext) => { 
+              setSessionContextStore(ctx); 
+              setSessionContextLocal(ctx); 
+              setShowSetup(false) 
             }}
-            onMouseEnter={e => (e.currentTarget.style.background = "rgba(255,255,255,0.15)")}
-            onMouseLeave={e => (e.currentTarget.style.background = "rgba(255,255,255,0.08)")}
-            title="Close"
-          >
-            ×
-          </button>
-
-          <div style={styles.headerRow}>
-            <h2 style={{ fontSize: isMobile ? "20px" : "24px", fontWeight: "bold" as const, color: "white", margin: 0 }}>
-              AI Interview Coach
-            </h2>
-            <div style={{ 
-              padding: "8px 12px",
-              backgroundColor: "rgba(251,191,36,0.1)",
-              border: "1px solid rgba(251,191,36,0.3)",
-              borderRadius: "20px",
-              fontSize: "14px",
-              fontWeight: "600" as const,
-              color: "rgb(251,191,36)",
-            }}>
-              {creditsLoading ? "…" : displayCredits} credits
-            </div>
-          </div>
-          
-          <div style={styles.headerRow}>
-            <button
-              onClick={openInvisibleMode}
-              style={{
-                ...styles.controlButton,
-                backgroundColor: "rgba(37,99,235,0.2)",
-                border: "1px solid rgba(37,99,235,0.5)",
-                color: "white",
-              }}
-            >
-              👻 Invisible Mode
-            </button>
-            <button
-              onClick={() => setShowInvisibleHelp(true)}
-              style={{
-                padding: "12px",
-                borderRadius: "10px",
-                backgroundColor: "rgba(0,0,0,0.3)",
-                border: "1px solid rgba(255,255,255,0.2)",
-                color: "white",
-                fontSize: "16px",
-                minHeight: "44px",
-                minWidth: "44px",
-              }}
-            >
-              ℹ️
-            </button>
-            <DesiModeToggle isDesiMode={isDesiMode} onToggle={handleDesiToggle} />
-          </div>
-
-          <div style={{ width: "100%" }}>
-            <LanguageSelector language={language} onChange={setLanguage} />
-          </div>
-        </header>
-
-        {/* Session info */}
-        <div style={{ 
-          ...styles.card, 
-          marginBottom: "12px",
-          padding: isMobile ? "12px" : "16px",
-          borderBottom: "1px solid rgba(255,255,255,0.08)",
-          ...styles.sessionInfo 
-        }}>
-          <div style={{ display: "flex" as const, gap: "16px", flexWrap: "wrap" as const, fontSize: "16px" }}>
-            <div style={{ color: "rgb(148,163,184)", fontWeight: "600" as const }}>
-              Session: <span style={{ color: "white", fontFamily: "monospace" }}>{formatTime(elapsedSeconds)}</span>
-            </div>
-            <div style={{ color: "rgb(148,163,184)", fontWeight: "600" as const }}>
-              Credits: <span style={{ color: "rgb(251,191,36)", fontWeight: "bold" }}>{displayCredits}</span>
-            </div>
-          </div>
+            onSkip={() => setShowSetup(false)}
+            initialContext={storeContext}
+          />
         </div>
-
-        {/* Tabs */}
-        <div style={{ 
-          display: "flex" as const, 
-          gap: "8px", 
-          marginBottom: "16px",
-          flexWrap: "wrap" as const 
-        }}>
-          {(["technical", "behavioral", "coding"] as const).map((type) => (
-            <button
-              key={type}
-              onClick={() => setInterviewType(type)}
-              style={{
-                ...styles.tabButton,
-                backgroundColor: interviewType === type ? "rgb(139,92,246)" : "rgba(0,0,0,0.4)",
-                color: interviewType === type ? "white" : "rgb(148,163,184)",
-                border: interviewType === type ? "1px solid rgb(139,92,246)" : "1px solid rgba(255,255,255,0.1)",
-              }}
-            >
-              {type.charAt(0).toUpperCase() + type.slice(1)}
-            </button>
-          ))}
-        </div>
-
-        {/* Main panels */}
-        <div style={{ display: "flex" as const, flexDirection: "column" as const, gap: "16px", flex: "1" as const, overflow: "hidden" as const, minHeight: 0 }}>
-          <div style={styles.transcriptBox}>
-            <div style={{ fontSize: "14px", fontWeight: "600" as const, color: "rgb(59,130,246)", marginBottom: "8px" }}>
-              🎙️ LIVE TRANSCRIPT
+      ) : (
+        <>
+          {/* Page Header */}
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: "12px" }}>
+            <div>
+              <h1 style={{ color: "#fff", fontSize: "24px", fontWeight: "700", margin: "0 0 4px", fontFamily: "var(--font-heading, system-ui)" }}>
+                Live Interview Assistant
+              </h1>
+              <p style={{ color: "#94A3B8", fontSize: "13px", margin: 0 }}>AI answers stream privately to your screen in real-time</p>
             </div>
-            <TranscriptDisplay transcript={transcript} interimTranscript={interimTranscript} isMobile={isMobile} />
-          </div>
-
-          <div style={styles.answerBox}>
-            <div style={{ fontSize: "14px", fontWeight: "bold" as const, marginBottom: "8px" }}>
-              🤖 AI ANSWER
-              {isStreamingAnswer && (
-                <span style={{ 
-                  backgroundColor: "rgba(67,233,123,0.3)",
-                  padding: "4px 8px",
-                  borderRadius: "12px",
-                  fontSize: "12px",
-                  marginLeft: "8px",
-                }}>
-                  streaming…
-                </span>
+            <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+              <div style={{ background: "rgba(247,147,26,0.15)", border: "1px solid rgba(247,147,26,0.3)", borderRadius: "20px", padding: "6px 14px", fontSize: "13px", color: "#F7931A", fontWeight: "600" }}>
+                🪙 {displayCredits} credits
+              </div>
+              {sessionPhase === "idle" && (
+                <button onClick={handleStart} style={{ background: "linear-gradient(to right, #EA580C, #F7931A)", border: "none", borderRadius: "20px", padding: "8px 20px", color: "white", fontSize: "13px", fontWeight: "700", cursor: "pointer", boxShadow: "0 0 20px rgba(247,147,26,0.3)" }}>
+                  Start Session
+                </button>
               )}
             </div>
-            <AnswerDisplay answer={streamingAnswer} isStreaming={isStreamingAnswer} isMobile={isMobile} />
           </div>
-        </div>
 
-        {/* Controls */}
-        <div style={{ 
-          marginTop: "16px",
-          paddingTop: "16px",
-          borderTop: "1px solid rgba(255,255,255,0.08)",
-          paddingBottom: "12px",
-        }}>
-          <div style={{ fontSize: "12px", textTransform: "uppercase" as const, fontWeight: "600" as const, color: "rgb(148,163,184)", marginBottom: "12px" }}>
-            Session controls
+          {/* Context Banner if setup was done */}
+          {storeContext?.jobRole && (
+            <div style={{ background: "rgba(247,147,26,0.06)", border: "1px solid rgba(247,147,26,0.2)", borderRadius: "10px", padding: "10px 16px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+              <div style={{ fontSize: "13px", color: "#F7931A" }}>
+                🎯 <strong>{storeContext.jobRole}</strong>
+                {storeContext.jobDescription && <span style={{ color: "#94A3B8" }}> · 📋 JD attached</span>}
+                {storeContext.resumeText && <span style={{ color: "#94A3B8" }}> · 📄 Resume attached</span>}
+              </div>
+              <button onClick={() => setShowSetup(true)} style={{ background: "transparent", border: "1px solid rgba(247,147,26,0.3)", borderRadius: "8px", padding: "4px 10px", color: "#F7931A", fontSize: "12px", cursor: "pointer" }}>Edit</button>
+            </div>
+          )}
+
+          {/* Controls Row */}
+          <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr 1fr", gap: "12px" }}>
+            {/* Interview Type Card */}
+            <div style={{ background: "#0F1115", border: "1px solid rgba(255,255,255,0.08)", borderRadius: "12px", padding: "16px" }}>
+              <p style={{ color: "#94A3B8", fontSize: "11px", textTransform: "uppercase", letterSpacing: "0.08em", margin: "0 0 10px", fontWeight: "600" }}>Interview Type</p>
+              <div style={{ display: "flex", gap: "6px", flexWrap: "wrap" }}>
+                {(["technical", "behavioral", "coding"] as const).map(t => (
+                  <button key={t} onClick={() => setInterviewType(t)} style={{
+                    background: interviewType === t ? "rgba(247,147,26,0.15)" : "transparent",
+                    border: `1px solid ${interviewType === t ? "#F7931A" : "rgba(255,255,255,0.1)"}`,
+                    borderRadius: "20px", padding: "5px 12px", fontSize: "12px",
+                    color: interviewType === t ? "#F7931A" : "#94A3B8",
+                    fontWeight: interviewType === t ? "600" : "400", cursor: "pointer"
+                  }}>
+                    {t.charAt(0).toUpperCase() + t.slice(1)}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Mode & Language Card */}
+            <div style={{ background: "#0F1115", border: "1px solid rgba(255,255,255,0.08)", borderRadius: "12px", padding: "16px" }}>
+              <p style={{ color: "#94A3B8", fontSize: "11px", textTransform: "uppercase", letterSpacing: "0.08em", margin: "0 0 10px", fontWeight: "600" }}>Mode & Language</p>
+              <div style={{ display: "flex", gap: "8px", alignItems: "center", flexWrap: "wrap" }}>
+                <button onClick={handleDesiToggle} style={{
+                  background: isDesiMode ? "rgba(247,147,26,0.1)" : "transparent",
+                  border: `1px solid ${isDesiMode ? "rgba(247,147,26,0.4)" : "rgba(255,255,255,0.1)"}`,
+                  borderRadius: "20px", padding: "5px 12px", fontSize: "12px",
+                  color: isDesiMode ? "#F7931A" : "#94A3B8", cursor: "pointer", fontWeight: isDesiMode ? "600" : "400"
+                }}>
+                  🇮🇳 Desi Mode
+                </button>
+                <select value={language} onChange={e => setLanguage(e.target.value)} style={{
+                  background: "#0a0a0f", border: "1px solid rgba(255,255,255,0.1)", borderRadius: "8px",
+                  padding: "5px 10px", color: "#94A3B8", fontSize: "12px", cursor: "pointer"
+                }}>
+                  <option value="en-US">English (US)</option>
+                  <option value="en-IN">English (India)</option>
+                  <option value="hi-IN">Hindi</option>
+                  <option value="ta-IN">Tamil</option>
+                  <option value="te-IN">Telugu</option>
+                </select>
+              </div>
+            </div>
+
+            {/* Session Timer Card */}
+            <div style={{ background: "#0F1115", border: "1px solid rgba(255,255,255,0.08)", borderRadius: "12px", padding: "16px" }}>
+              <p style={{ color: "#94A3B8", fontSize: "11px", textTransform: "uppercase", letterSpacing: "0.08em", margin: "0 0 10px", fontWeight: "600" }}>Session</p>
+              <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+                <span style={{ color: "white", fontSize: "22px", fontWeight: "700", fontFamily: "monospace" }}>{formatTime(elapsedSeconds)}</span>
+                <div style={{ display: "flex", gap: "6px" }}>
+                  {sessionPhase === "running" && (
+                    <button onClick={handlePause} style={{ background: "rgba(251,191,36,0.15)", border: "1px solid rgba(251,191,36,0.4)", borderRadius: "8px", padding: "5px 10px", color: "#FCD34D", fontSize: "12px", cursor: "pointer", display: "flex", alignItems: "center", gap: "4px" }}>
+                      <Pause size={12} /> Pause
+                    </button>
+                  )}
+                  {sessionPhase === "paused" && (
+                    <button onClick={handlePause} style={{ background: "rgba(34,197,94,0.15)", border: "1px solid rgba(34,197,94,0.4)", borderRadius: "8px", padding: "5px 10px", color: "#4ade80", fontSize: "12px", cursor: "pointer", display: "flex", alignItems: "center", gap: "4px" }}>
+                      <Play size={12} /> Resume
+                    </button>
+                  )}
+                  {sessionPhase !== "idle" && (
+                    <button onClick={handleStop} style={{ background: "rgba(239,68,68,0.15)", border: "1px solid rgba(239,68,68,0.4)", borderRadius: "8px", padding: "5px 10px", color: "#f87171", fontSize: "12px", cursor: "pointer", display: "flex", alignItems: "center", gap: "4px" }}>
+                      <Square size={12} /> Stop
+                    </button>
+                  )}
+                </div>
+              </div>
+            </div>
           </div>
-          <div style={{ display: "flex" as const, gap: "12px", alignItems: "center" as const, flexWrap: "wrap" as const }}>
-            <MicrophoneButton
-              isListening={isListening}
-              onToggle={() => {
-                if (isListening) {
-                  stopListening()
-                } else {
-                  startListening()
-                }
-              }}
-              disabled={micDisabled || !!speechError}
-              isMobile={isMobile}
-            />
-            <div style={{ display: "flex" as const, flex: "1" as const, gap: "8px", minWidth: 0 }}>
-              <button
-                ref={startBtnRef}
-                onClick={handleStartSession}
-                disabled={sessionPhase === "running"}
-                style={{
-                  ...styles.controlButton,
-                  backgroundColor: sessionPhase === "running" ? "rgba(239,68,68,0.2)" : "rgba(34,197,94,0.2)",
-                  border: "1px solid rgba(34,197,94,0.5)",
-                  color: "rgb(34,197,94)",
-                }}
-              >
-                {sessionPhase === "paused" ? "Resume" : "Start"}
-              </button>
-              <button
-                onClick={handlePauseSession}
-                disabled={sessionPhase !== "running"}
-                style={{
-                  ...styles.controlButton,
-                  backgroundColor: "rgba(251,191,36,0.2)",
-                  border: "1px solid rgba(251,191,36,0.5)",
-                  color: "rgb(251,191,36)",
-                }}
-              >
-                Pause
-              </button>
-              <button
-                onClick={handleStopSession}
+
+          {/* Main Content: Transcript + Answer */}
+          <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: "16px" }}>
+            {/* Live Transcript */}
+            <div style={{ background: "#0F1115", border: "1px solid rgba(59,130,246,0.25)", borderRadius: "12px", padding: "20px", minHeight: "180px" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "14px" }}>
+                {isListening && <div style={{ width: "8px", height: "8px", borderRadius: "50%", background: "#F7931A", boxShadow: "0 0 8px rgba(247,147,26,0.6)" }} />}
+                <span style={{ color: "#94A3B8", fontSize: "11px", textTransform: "uppercase", letterSpacing: "0.1em", fontWeight: "600" }}>Live Transcript</span>
+              </div>
+              <p style={{ color: "#fff", fontSize: "15px", lineHeight: "1.65", margin: 0, fontStyle: transcript || interimTranscript ? "normal" : "italic", opacity: transcript || interimTranscript ? 1 : 0.4 }}>
+                {transcript || interimTranscript || "Speech appears here. Start the session and use the microphone."}
+              </p>
+              {interimTranscript && <p style={{ color: "#94A3B8", fontSize: "13px", margin: "8px 0 0", fontStyle: "italic" }}>{interimTranscript}</p>}
+            </div>
+
+            {/* AI Answer */}
+            <div style={{ background: "#0F1115", border: "1px solid rgba(34,197,94,0.25)", borderRadius: "12px", padding: "20px", minHeight: "180px" }}>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "14px" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                  {isStreamingAnswer && <div style={{ width: "8px", height: "8px", borderRadius: "50%", background: "#4ade80", boxShadow: "0 0 8px rgba(74,222,128,0.6)" }} />}
+                  <span style={{ color: "#4ade80", fontSize: "11px", textTransform: "uppercase", letterSpacing: "0.1em", fontWeight: "600" }}>AI Answer</span>
+                </div>
+                {isStreamingAnswer && (
+                  <span style={{ background: "rgba(34,197,94,0.1)", border: "1px solid rgba(34,197,94,0.3)", borderRadius: "10px", padding: "2px 8px", fontSize: "11px", color: "#4ade80" }}>streaming...</span>
+                )}
+              </div>
+              <p style={{ color: isStreamingAnswer ? "#4ade80" : "#fff", fontSize: "14px", lineHeight: "1.7", margin: 0, fontStyle: streamingAnswer ? "normal" : "italic", opacity: streamingAnswer ? 1 : 0.4 }}>
+                {streamingAnswer || "Speak a question... AI answer appears here after ~1.5s silence."}
+              </p>
+            </div>
+          </div>
+
+          {/* Bottom Row: Mic + Invisible Mode + Q&A History */}
+          <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "120px 1fr", gap: "16px" }}>
+            {/* Mic Controls */}
+            <div style={{ background: "#0F1115", border: "1px solid rgba(255,255,255,0.08)", borderRadius: "12px", padding: "16px", display: "flex", flexDirection: "column" as const, alignItems: "center", gap: "12px" }}>
+              <button onClick={() => sessionPhase === "running" ? (isListening ? toggleListening() : toggleListening()) : null}
                 disabled={sessionPhase === "idle"}
                 style={{
-                  ...styles.controlButton,
-                  backgroundColor: "rgba(239,68,68,0.2)",
-                  border: "1px solid rgba(239,68,68,0.5)",
-                  color: "rgb(239,68,68)",
-                }}
-              >
-                Stop
+                  width: "60px", height: "60px", borderRadius: "50%",
+                  background: isListening ? "linear-gradient(to bottom, #EA580C, #F7931A)" : "rgba(255,255,255,0.08)",
+                  border: "none", cursor: sessionPhase === "idle" ? "not-allowed" : "pointer",
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                  boxShadow: isListening ? "0 0 24px rgba(247,147,26,0.5)" : "none",
+                  opacity: sessionPhase === "idle" ? 0.4 : 1,
+                  transition: "all 0.3s"
+                }}>
+                {isListening ? <Mic size={24} color="white" /> : <MicOff size={24} color="#94A3B8" />}
+              </button>
+              <button onClick={openInvisibleMode} style={{ background: "rgba(247,147,26,0.08)", border: "1px solid rgba(247,147,26,0.25)", borderRadius: "8px", padding: "6px 10px", color: "#F7931A", fontSize: "11px", cursor: "pointer", display: "flex", alignItems: "center", gap: "4px", width: "100%", justifyContent: "center" }}>
+                <Ghost size={12} /> Invisible
               </button>
             </div>
-          </div>
-          <p style={{ textAlign: "center" as const, marginTop: "12px", fontSize: "14px", color: "rgb(148,163,184)" }}>
-            Mic active during session. AI responds after ~1.5s silence.
-          </p>
-        </div>
 
-        {/* Q&A History */}
-        {qaHistory.length > 0 && (
-          <div style={{ marginTop: "16px" }}>
-            <div style={{ ...styles.card, maxHeight: isMobile ? "200px" : "300px", overflowY: "auto" }}>
-              <div style={{ marginBottom: "12px", fontSize: "12px", fontWeight: "600" as const, color: "rgb(148,163,184)", textTransform: "uppercase" as const }}>
-                Q&A History ({qaHistory.length})
-              </div>
-              {qaHistory.slice(-3).map((item, i) => (
-                <div key={i} style={{ marginBottom: "12px", padding: "12px", backgroundColor: "rgba(0,0,0,0.3)", borderRadius: "8px" }}>
-                  <div style={{ fontWeight: "500" as const, color: "rgb(59,130,246)", marginBottom: "4px", fontSize: "14px" }}>
-                    Q: {item.question.slice(0, 100)}...
-                  </div>
-                  <div style={{ color: "#43e97b", fontSize: "14px", lineHeight: "1.4" }}>
-                    A: {item.answer.slice(0, 150)}...
-                  </div>
+            {/* Q&A History */}
+            <div style={{ background: "#0F1115", border: "1px solid rgba(255,255,255,0.08)", borderRadius: "12px", padding: "16px" }}>
+              <p style={{ color: "#94A3B8", fontSize: "11px", textTransform: "uppercase", letterSpacing: "0.08em", margin: "0 0 12px", fontWeight: "600" }}>
+                Q&A History ({qaHistory?.length ?? 0})
+              </p>
+              {qaHistory && qaHistory.length > 0 ? (
+                <div style={{ display: "flex", flexDirection: "column" as const, gap: "8px", maxHeight: "160px", overflowY: "auto" }}>
+                  {qaHistory.slice(-5).reverse().map((item: any, i: number) => (
+                    <div key={i} style={{ background: "rgba(255,255,255,0.03)", borderRadius: "8px", padding: "10px 12px" }}>
+                      <p style={{ color: "#60a5fa", fontSize: "12px", margin: "0 0 3px", fontWeight: "500" }}>Q: {item.question?.slice(0, 80)}...</p>
+                      <p style={{ color: "#94A3B8", fontSize: "12px", margin: 0 }}>A: {item.answer?.slice(0, 100)}...</p>
+                    </div>
+                  ))}
                 </div>
-              ))}
+              ) : (
+                <p style={{ color: "#64748B", fontSize: "13px", fontStyle: "italic" as const, margin: 0 }}>No questions answered yet. Start your session and speak.</p>
+              )}
             </div>
           </div>
-        )}
 
-        {/* Invisible help modal */}
-        {showInvisibleHelp && (
-          <div style={{ 
-            position: "fixed" as const, 
-            inset: 0, 
-            zIndex: 100 as const, 
-            display: "flex" as const,
-            alignItems: "center" as const, 
-            justifyContent: "center" as const, 
-            backgroundColor: "rgba(0,0,0,0.8)",
-            padding: "20px",
-          }}>
-            <div style={{ 
-              ...styles.card, 
-              maxWidth: isMobile ? "95vw" : "500px",
-              maxHeight: "90vh",
-              overflowY: "auto" as const,
-            }}>
-              <h3 style={{ fontSize: "20px", fontWeight: "bold" as const, color: "white", marginBottom: "16px" }}>
-                How Invisible Mode Works
-              </h3>
-              <ol style={{ margin: 0, paddingLeft: "20px", lineHeight: "1.6", color: "rgb(200,200,200)" }}>
-                <li>Click "👻 Invisible Mode" — popup opens</li>
-                <li>Share screen: Choose <em>Tab</em> or <em>Window</em> (this tab only)</li>
-                <li>Popup stays hidden from screen share</li>
-                <li>Position popup in corner while interviewing</li>
-              </ol>
-              <button
-                onClick={() => setShowInvisibleHelp(false)}
-                style={{
-                  width: "100%",
-                  marginTop: "20px",
-                  padding: "14px",
-                  backgroundImage: "linear-gradient(90deg, #2563EB, #0EA5E9)",
-                  border: "none" as const,
-                  borderRadius: "12px",
-                  color: "white",
-                  fontSize: "16px",
-                  fontWeight: "600" as const,
-                  cursor: "pointer" as const,
-                }}
-              >
-                Got it
-              </button>
+          {/* Invisible Mode Help Modal */}
+          {showInvisibleHelp && (
+            <div style={{ position: "fixed" as const, inset: 0, zIndex: 100, background: "rgba(0,0,0,0.8)", display: "flex", alignItems: "center", justifyContent: "center", padding: "20px" }}>
+              <div style={{ background: "#0F1115", border: "1px solid rgba(255,255,255,0.1)", borderRadius: "16px", padding: "32px", maxWidth: "480px", width: "100%" }}>
+                <h3 style={{ color: "#fff", fontSize: "18px", fontWeight: "700" as const, marginBottom: "16px" }}>How Invisible Mode Works</h3>
+                <ol style={{ margin: 0, paddingLeft: "20px", lineHeight: "1.8", color: "#94A3B8", fontSize: "14px" }}>
+                  <li>Click Invisible Mode — a popup opens</li>
+                  <li>In Zoom/Meet — share only THIS tab</li>
+                  <li>The popup stays hidden from screen share</li>
+                  <li>AI answers appear in the popup automatically</li>
+                </ol>
+                <button onClick={() => setShowInvisibleHelp(false)} style={{ width: "100%", marginTop: "20px", padding: "12px", background: "linear-gradient(to right, #EA580C, #F7931A)", border: "none", borderRadius: "20px", color: "white", fontSize: "14px", fontWeight: "700" as const, cursor: "pointer" }}>Got it</button>
+              </div>
             </div>
-          </div>
-        )}
-      </div>
-    </OverlayWindow>
+          )}
+        </>
+      )}
+    </div>
   )
 }
+

@@ -151,34 +151,8 @@ export default function SetupScreen({ onComplete, onSkip, initialContext }: Setu
   }
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col overflow-y-auto bg-[#0A0F1E] p-4 sm:p-6" style={{ position: "relative" }}>
-      <button
-        onClick={onSkip}
-        style={{
-          position: "absolute",
-          top: "16px",
-          right: "16px",
-          width: "36px",
-          height: "36px",
-          borderRadius: "50%",
-          background: "rgba(255,255,255,0.08)",
-          border: "1px solid rgba(255,255,255,0.15)",
-          color: "#94A3B8",
-          fontSize: "20px",
-          cursor: "pointer",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          lineHeight: "1",
-          zIndex: 10,
-          transition: "background 0.2s",
-        }}
-        onMouseEnter={e => (e.currentTarget.style.background = "rgba(255,255,255,0.15)")}
-        onMouseLeave={e => (e.currentTarget.style.background = "rgba(255,255,255,0.08)")}
-        title="Close setup"
-      >
-        ×
-      </button>
+    <div className="flex min-h-0 flex-1 flex-col overflow-y-auto bg-[#0A0F1E] p-4 sm:p-6">
+      {/* Removed absolute close button for inline integration */}
       <div className="mx-auto flex w-full max-w-lg flex-1 flex-col">
         <div className="mb-4 flex items-start justify-between gap-2">
           <div>
@@ -207,6 +181,7 @@ export default function SetupScreen({ onComplete, onSkip, initialContext }: Setu
         </div>
 
         <div className="rounded-2xl border border-white/[0.08] bg-[#111827] p-4 sm:p-6">
+          {/* Step content unchanged */}
           {step === 1 && (
             <div className="space-y-4">
               <label className="block text-sm font-medium text-zinc-300">
@@ -396,3 +371,4 @@ export default function SetupScreen({ onComplete, onSkip, initialContext }: Setu
     </div>
   )
 }
+
