@@ -14,6 +14,21 @@ import type { SessionContext } from "@/types/index"
 type InterviewType = "technical" | "behavioral" | "coding"
 type SessionPhase = "idle" | "running" | "paused"
 
+// ── Electron IPC bridge (only available in the desktop app) ──────────────────
+declare global {
+  interface Window {
+    electronAPI?: {
+      isElectron: boolean
+      sendAnswer: (data: { text?: string; done?: boolean }) => void
+      sendQuestion: (text: string) => void
+      setStatus: (status: "idle" | "listening" | "thinking" | "ready") => void
+      clearOverlay: () => void
+      toggleOverlay: () => void
+    }
+  }
+}
+const eAPI = () => (typeof window !== "undefined" ? window.electronAPI : undefined)
+
 export default function InterviewAssistant({ userId, credits: creditsProp, showFloatingLauncher = false, defaultOpen = true }: any) {
   const { data: session } = useSession()
   const addToast = useToast((s: any) => s.addToast)
@@ -67,6 +82,10 @@ export default function InterviewAssistant({ userId, credits: creditsProp, showF
       setStreamingAnswer("")
       setIsStreamingAnswer(true)
 
+      // Forward question to Electron overlay (if running as desktop app)
+      eAPI()?.sendQuestion(finalTranscript)
+      eAPI()?.setStatus("thinking")
+
       try {
         const response = await fetch("/api/ai/interview-answer", {
           method: "POST",
@@ -100,12 +119,20 @@ export default function InterviewAssistant({ userId, credits: creditsProp, showF
             if (data === "[DONE]") {
               if (fullAnswer) addQAPair(finalTranscript, fullAnswer)
               setIsStreamingAnswer(false)
+              // Signal overlay: streaming finished
+              eAPI()?.sendAnswer({ done: true })
+              eAPI()?.setStatus("ready")
               return
             }
             try {
               const parsed = JSON.parse(data)
               const token = parsed.text || parsed.delta?.text || ""
-              if (token) { fullAnswer += token; setStreamingAnswer(prev => prev + token) }
+              if (token) {
+                fullAnswer += token
+                setStreamingAnswer(prev => prev + token)
+                // Forward each token to Electron overlay
+                eAPI()?.sendAnswer({ text: token })
+              }
             } catch {}
           }
         }
@@ -119,10 +146,12 @@ export default function InterviewAssistant({ userId, credits: creditsProp, showF
       setSessionPhase("paused")
       resetTranscript()
       if (isListening) toggleListening()
+      eAPI()?.setStatus("idle")
     } else {
       setSessionPhase("running")
       resetTranscript()
       if (!isListening) toggleListening()
+      eAPI()?.setStatus("listening")
     }
   }, [sessionPhase, isListening, toggleListening, resetTranscript])
 
@@ -133,6 +162,8 @@ export default function InterviewAssistant({ userId, credits: creditsProp, showF
     if (isListening) toggleListening()
     setStreamingAnswer("")
     setLiveQuestion("")
+    eAPI()?.setStatus("idle")
+    eAPI()?.clearOverlay()
   }
 
   const handleDesiToggle = () => {
@@ -354,27 +385,49 @@ export default function InterviewAssistant({ userId, credits: creditsProp, showF
                 }}>
                 {isListening ? <Mic size={24} color="white" /> : <MicOff size={24} color="#94A3B8" />}
               </button>
-              <button
-                onClick={handleStealthMode}
-                title={pip.isSupported ? "Document PiP — invisible to screen recorders" : "Popup overlay — hide by sharing only this tab"}
-                style={{
-                  background: pip.isOpen ? "rgba(34,197,94,0.12)" : "rgba(247,147,26,0.08)",
-                  border: `1px solid ${pip.isOpen ? "rgba(34,197,94,0.4)" : "rgba(247,147,26,0.25)"}`,
-                  borderRadius: "8px", padding: "6px 10px",
-                  color: pip.isOpen ? "#4ade80" : "#F7931A",
-                  fontSize: "11px", cursor: "pointer",
-                  display: "flex", alignItems: "center", gap: "4px",
-                  width: "100%", justifyContent: "center", fontWeight: "600",
-                }}>
-                <Ghost size={12} />
-                {pip.isOpen ? "Close Stealth" : pip.isSupported ? "Stealth" : "Overlay"}
-              </button>
-
-              {/* PiP badge */}
-              {pip.isSupported && (
-                <span style={{ fontSize: "9px", color: "#4ade80", textAlign: "center", letterSpacing: "0.05em" }}>
-                  ● Screen-invisible
-                </span>
+              {/* Electron desktop: toggle the always-on-top invisible overlay */}
+              {eAPI()?.isElectron ? (
+                <>
+                  <button
+                    onClick={() => eAPI()?.toggleOverlay()}
+                    style={{
+                      background: "rgba(34,197,94,0.12)",
+                      border: "1px solid rgba(34,197,94,0.4)",
+                      borderRadius: "8px", padding: "6px 10px",
+                      color: "#4ade80", fontSize: "11px", cursor: "pointer",
+                      display: "flex", alignItems: "center", gap: "4px",
+                      width: "100%", justifyContent: "center", fontWeight: "600",
+                    }}>
+                    <Ghost size={12} />
+                    Toggle Overlay
+                  </button>
+                  <span style={{ fontSize: "9px", color: "#4ade80", textAlign: "center", letterSpacing: "0.05em" }}>
+                    🛡 OS-level invisible
+                  </span>
+                </>
+              ) : (
+                <>
+                  <button
+                    onClick={handleStealthMode}
+                    title={pip.isSupported ? "Document PiP — invisible to screen recorders" : "Popup overlay — hide by sharing only this tab"}
+                    style={{
+                      background: pip.isOpen ? "rgba(34,197,94,0.12)" : "rgba(247,147,26,0.08)",
+                      border: `1px solid ${pip.isOpen ? "rgba(34,197,94,0.4)" : "rgba(247,147,26,0.25)"}`,
+                      borderRadius: "8px", padding: "6px 10px",
+                      color: pip.isOpen ? "#4ade80" : "#F7931A",
+                      fontSize: "11px", cursor: "pointer",
+                      display: "flex", alignItems: "center", gap: "4px",
+                      width: "100%", justifyContent: "center", fontWeight: "600",
+                    }}>
+                    <Ghost size={12} />
+                    {pip.isOpen ? "Close Stealth" : pip.isSupported ? "Stealth" : "Overlay"}
+                  </button>
+                  {pip.isSupported && (
+                    <span style={{ fontSize: "9px", color: "#4ade80", textAlign: "center", letterSpacing: "0.05em" }}>
+                      ● Screen-invisible
+                    </span>
+                  )}
+                </>
               )}
             </div>
 

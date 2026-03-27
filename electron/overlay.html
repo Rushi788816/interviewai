@@ -1,0 +1,555 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>InterviewAI Overlay</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --orange: #F7931A;
+      --orange2: #FF6B2B;
+      --bg: rgba(10, 12, 20, 0.92);
+      --card: rgba(17, 24, 39, 0.95);
+      --border: rgba(255,255,255,0.08);
+      --text: #e8e8f0;
+      --muted: #94A3B8;
+      --radius: 16px;
+    }
+
+    html, body {
+      width: 100%;
+      height: 100%;
+      background: transparent;
+      overflow: hidden;
+      user-select: none;
+      font-family: -apple-system, 'Segoe UI', system-ui, sans-serif;
+      font-size: 13px;
+      color: var(--text);
+    }
+
+    #app {
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      backdrop-filter: blur(24px);
+      -webkit-backdrop-filter: blur(24px);
+      overflow: hidden;
+      box-shadow:
+        0 0 0 1px rgba(247,147,26,0.12),
+        0 24px 64px rgba(0,0,0,0.6),
+        0 0 40px rgba(247,147,26,0.06);
+    }
+
+    /* ── Title bar (drag handle) ─────────────────────────── */
+    #titlebar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 12px 10px 14px;
+      background: rgba(0,0,0,0.3);
+      border-bottom: 1px solid var(--border);
+      -webkit-app-region: drag;
+      flex-shrink: 0;
+      gap: 8px;
+    }
+
+    #titlebar-left {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex: 1;
+      min-width: 0;
+    }
+
+    #logo {
+      font-size: 15px;
+      flex-shrink: 0;
+    }
+
+    #app-name {
+      font-weight: 700;
+      font-size: 12px;
+      background: linear-gradient(90deg, #F7931A, #FF6B2B);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      white-space: nowrap;
+    }
+
+    #status-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 3px 8px;
+      border-radius: 20px;
+      font-size: 10px;
+      font-weight: 600;
+      letter-spacing: 0.03em;
+      text-transform: uppercase;
+      transition: all 0.3s;
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+
+    #status-badge.idle {
+      background: rgba(100,116,139,0.15);
+      border: 1px solid rgba(100,116,139,0.3);
+      color: #64748B;
+    }
+    #status-badge.listening {
+      background: rgba(247,147,26,0.12);
+      border: 1px solid rgba(247,147,26,0.3);
+      color: #F7931A;
+    }
+    #status-badge.thinking {
+      background: rgba(139,92,246,0.12);
+      border: 1px solid rgba(139,92,246,0.3);
+      color: #A78BFA;
+    }
+    #status-badge.ready {
+      background: rgba(34,197,94,0.12);
+      border: 1px solid rgba(34,197,94,0.3);
+      color: #4ADE80;
+    }
+
+    .status-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+    .listening .status-dot { background: #F7931A; animation: pulse 1.2s ease-in-out infinite; }
+    .thinking .status-dot { background: #A78BFA; animation: spin-dot 1s linear infinite; }
+    .ready .status-dot { background: #4ADE80; }
+    .idle .status-dot { background: #64748B; }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 0.4; transform: scale(0.8); }
+      50% { opacity: 1; transform: scale(1.2); }
+    }
+    @keyframes spin-dot {
+      0% { opacity: 0.2; } 50% { opacity: 1; } 100% { opacity: 0.2; }
+    }
+
+    /* ── Controls (no drag) ──────────────────────────────── */
+    #controls {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      -webkit-app-region: no-drag;
+      flex-shrink: 0;
+    }
+
+    /* Opacity slider */
+    #opacity-wrap {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+    #opacity-icon { font-size: 11px; opacity: 0.5; }
+    #opacity-slider {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 60px;
+      height: 3px;
+      border-radius: 2px;
+      background: rgba(255,255,255,0.15);
+      outline: none;
+      cursor: pointer;
+    }
+    #opacity-slider::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      background: #F7931A;
+      cursor: pointer;
+      box-shadow: 0 0 6px rgba(247,147,26,0.5);
+    }
+
+    .ctrl-btn {
+      width: 22px;
+      height: 22px;
+      border-radius: 6px;
+      border: none;
+      background: rgba(255,255,255,0.06);
+      color: var(--muted);
+      cursor: pointer;
+      font-size: 11px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.15s;
+      -webkit-app-region: no-drag;
+    }
+    .ctrl-btn:hover { background: rgba(255,255,255,0.12); color: white; }
+    #close-btn:hover { background: rgba(239,68,68,0.2); color: #EF4444; }
+
+    /* ── Content ─────────────────────────────────────────── */
+    #content {
+      flex: 1;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      gap: 0;
+    }
+
+    /* Question section */
+    #question-section {
+      padding: 10px 14px 8px;
+      border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
+    }
+    #question-section.hidden { display: none; }
+
+    .section-label {
+      font-size: 9px;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 5px;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    #question-text {
+      font-size: 12px;
+      color: #CBD5E1;
+      line-height: 1.5;
+      max-height: 52px;
+      overflow: hidden;
+      display: -webkit-box;
+      -webkit-line-clamp: 3;
+      -webkit-box-orient: vertical;
+    }
+
+    /* Answer section */
+    #answer-section {
+      flex: 1;
+      padding: 10px 14px 6px;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    #answer-label-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-shrink: 0;
+    }
+
+    #answer-text-wrap {
+      flex: 1;
+      overflow-y: auto;
+      scrollbar-width: thin;
+      scrollbar-color: rgba(247,147,26,0.3) transparent;
+    }
+    #answer-text-wrap::-webkit-scrollbar { width: 3px; }
+    #answer-text-wrap::-webkit-scrollbar-thumb { background: rgba(247,147,26,0.3); border-radius: 2px; }
+
+    #answer-text {
+      font-size: 13px;
+      line-height: 1.65;
+      color: var(--text);
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+
+    #answer-text.empty { color: var(--muted); font-style: italic; }
+
+    #cursor {
+      display: inline-block;
+      width: 2px;
+      height: 14px;
+      background: #F7931A;
+      border-radius: 1px;
+      animation: blink 0.8s ease-in-out infinite;
+      vertical-align: text-bottom;
+      margin-left: 1px;
+    }
+    #cursor.hidden { display: none; }
+    @keyframes blink { 0%,100% { opacity: 1; } 50% { opacity: 0; } }
+
+    #copy-btn {
+      padding: 3px 10px;
+      border-radius: 8px;
+      border: 1px solid rgba(247,147,26,0.3);
+      background: rgba(247,147,26,0.08);
+      color: #F7931A;
+      font-size: 10px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.15s;
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+    #copy-btn:hover { background: rgba(247,147,26,0.18); }
+    #copy-btn.copied { color: #4ADE80; border-color: rgba(74,222,128,0.3); background: rgba(74,222,128,0.08); }
+
+    /* ── Footer / shortcuts ──────────────────────────────── */
+    #footer {
+      padding: 6px 14px 8px;
+      border-top: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-shrink: 0;
+      background: rgba(0,0,0,0.2);
+    }
+    .shortcut-hint {
+      font-size: 9px;
+      color: rgba(148,163,184,0.5);
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .kbd {
+      padding: 1px 4px;
+      border-radius: 3px;
+      background: rgba(255,255,255,0.06);
+      border: 1px solid rgba(255,255,255,0.08);
+      font-size: 9px;
+      font-family: monospace;
+    }
+    #shield-badge {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 9px;
+      color: #4ADE80;
+      font-weight: 600;
+    }
+
+    /* ── Thinking animation ─────────────────────────────── */
+    #thinking-dots {
+      display: none;
+      gap: 4px;
+      padding: 8px 0;
+      align-items: center;
+    }
+    #thinking-dots.visible { display: flex; }
+    .dot {
+      width: 6px; height: 6px;
+      border-radius: 50%;
+      background: #A78BFA;
+      animation: bounce 1.2s ease-in-out infinite;
+    }
+    .dot:nth-child(2) { animation-delay: 0.2s; }
+    .dot:nth-child(3) { animation-delay: 0.4s; }
+    @keyframes bounce {
+      0%,80%,100% { transform: translateY(0); opacity: 0.4; }
+      40% { transform: translateY(-6px); opacity: 1; }
+    }
+
+    /* ── Scrollbar hidden on Windows default ─────────────── */
+    * { -webkit-user-select: none; }
+    #answer-text { -webkit-user-select: text; }
+  </style>
+</head>
+<body>
+  <div id="app">
+
+    <!-- Title bar (drag handle) -->
+    <div id="titlebar">
+      <div id="titlebar-left">
+        <span id="logo">🐦</span>
+        <span id="app-name">InterviewAI</span>
+        <span id="status-badge" class="idle">
+          <span class="status-dot"></span>
+          <span id="status-text">Idle</span>
+        </span>
+      </div>
+      <div id="controls">
+        <div id="opacity-wrap" title="Adjust transparency">
+          <span id="opacity-icon">◑</span>
+          <input type="range" id="opacity-slider" min="15" max="100" value="95" />
+        </div>
+        <button class="ctrl-btn" id="clear-btn" title="Clear">⌫</button>
+        <button class="ctrl-btn" id="minimize-btn" title="Hide (Ctrl+Shift+Space)">─</button>
+        <button class="ctrl-btn" id="close-btn" title="Close">✕</button>
+      </div>
+    </div>
+
+    <!-- Content -->
+    <div id="content">
+
+      <!-- Question -->
+      <div id="question-section" class="hidden">
+        <div class="section-label">
+          <span>🎙</span> Question detected
+        </div>
+        <p id="question-text"></p>
+      </div>
+
+      <!-- Answer -->
+      <div id="answer-section">
+        <div id="answer-label-row">
+          <div class="section-label">
+            <span>🤖</span> AI Answer
+          </div>
+          <button id="copy-btn">Copy</button>
+        </div>
+
+        <!-- Thinking animation -->
+        <div id="thinking-dots">
+          <div class="dot"></div>
+          <div class="dot"></div>
+          <div class="dot"></div>
+          <span style="font-size:11px; color:#A78BFA; margin-left:4px;">Generating answer…</span>
+        </div>
+
+        <div id="answer-text-wrap">
+          <p id="answer-text" class="empty">Waiting for a question…</p>
+          <span id="cursor" class="hidden"></span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Footer -->
+    <div id="footer">
+      <div class="shortcut-hint">
+        <span class="kbd">Ctrl+Shift+Space</span> toggle
+        &nbsp;·&nbsp;
+        <span class="kbd">Ctrl+Shift+C</span> copy
+      </div>
+      <div id="shield-badge">
+        🛡 Screen invisible
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    const api = window.electronAPI
+
+    // ── State ────────────────────────────────────────────────
+    let fullAnswer = ''
+    let currentStatus = 'idle'
+
+    // ── DOM refs ─────────────────────────────────────────────
+    const statusBadge   = document.getElementById('status-badge')
+    const statusText    = document.getElementById('status-text')
+    const questionSec   = document.getElementById('question-section')
+    const questionText  = document.getElementById('question-text')
+    const answerText    = document.getElementById('answer-text')
+    const cursor        = document.getElementById('cursor')
+    const copyBtn       = document.getElementById('copy-btn')
+    const clearBtn      = document.getElementById('clear-btn')
+    const minimizeBtn   = document.getElementById('minimize-btn')
+    const closeBtn      = document.getElementById('close-btn')
+    const opacitySlider = document.getElementById('opacity-slider')
+    const thinkingDots  = document.getElementById('thinking-dots')
+    const answerWrap    = document.getElementById('answer-text-wrap')
+
+    // ── Status helper ─────────────────────────────────────────
+    function setStatus(s) {
+      currentStatus = s
+      statusBadge.className = 'idle'
+      statusBadge.classList.add(s)
+      const labels = { idle: 'Idle', listening: 'Listening', thinking: 'Thinking', ready: 'Ready' }
+      statusText.textContent = labels[s] || s
+
+      const isThinking = s === 'thinking'
+      thinkingDots.className = isThinking ? 'visible' : ''
+      answerWrap.style.display = isThinking ? 'none' : 'block'
+    }
+
+    // ── IPC listeners ─────────────────────────────────────────
+    if (api) {
+      // New question detected
+      api.onQuestion((data) => {
+        questionText.textContent = data.text || ''
+        questionSec.classList.remove('hidden')
+        fullAnswer = ''
+        answerText.textContent = ''
+        answerText.classList.remove('empty')
+        cursor.classList.remove('hidden')
+        setStatus('thinking')
+      })
+
+      // Streaming answer chunks
+      api.onAnswer((data) => {
+        if (data.done) {
+          cursor.classList.add('hidden')
+          setStatus('ready')
+          return
+        }
+        if (data.text) {
+          if (fullAnswer === '') {
+            setStatus('thinking')
+            answerWrap.style.display = 'block'
+            thinkingDots.className = ''
+          }
+          fullAnswer += data.text
+          answerText.textContent = fullAnswer
+          answerText.classList.remove('empty')
+          // Auto-scroll to bottom
+          answerWrap.scrollTop = answerWrap.scrollHeight
+        }
+      })
+
+      // Status updates
+      api.onStatus((s) => setStatus(s))
+
+      // Clear
+      api.onClear(() => {
+        fullAnswer = ''
+        answerText.textContent = 'Waiting for a question…'
+        answerText.classList.add('empty')
+        questionSec.classList.add('hidden')
+        cursor.classList.add('hidden')
+        setStatus('idle')
+      })
+
+      // Copy via global shortcut
+      api.onCopyAnswer(() => copyAnswer())
+    }
+
+    // ── Opacity slider ────────────────────────────────────────
+    opacitySlider.addEventListener('input', () => {
+      const val = parseInt(opacitySlider.value) / 100
+      api?.setOpacity(val)
+    })
+
+    // ── Copy answer ───────────────────────────────────────────
+    function copyAnswer() {
+      if (!fullAnswer) return
+      navigator.clipboard.writeText(fullAnswer).then(() => {
+        copyBtn.textContent = '✓ Copied'
+        copyBtn.classList.add('copied')
+        setTimeout(() => {
+          copyBtn.textContent = 'Copy'
+          copyBtn.classList.remove('copied')
+        }, 2000)
+      })
+    }
+    copyBtn.addEventListener('click', copyAnswer)
+
+    // ── Control buttons ───────────────────────────────────────
+    clearBtn.addEventListener('click', () => {
+      fullAnswer = ''
+      answerText.textContent = 'Waiting for a question…'
+      answerText.classList.add('empty')
+      questionSec.classList.add('hidden')
+      cursor.classList.add('hidden')
+      thinkingDots.className = ''
+      answerWrap.style.display = 'block'
+      setStatus('idle')
+    })
+
+    minimizeBtn.addEventListener('click', () => api?.hideOverlay())
+    closeBtn.addEventListener('click', () => api?.hideOverlay())
+
+    // ── Initial state ─────────────────────────────────────────
+    setStatus('idle')
+  </script>
+</body>
+</html>

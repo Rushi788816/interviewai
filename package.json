@@ -1,7 +1,9 @@
 {
   "name": "interviewai",
-  "version": "0.1.0",
+  "version": "1.0.0",
+  "description": "Real-time AI interview assistant — invisible to screen share",
   "private": true,
+  "main": "electron/main.js",
   "scripts": {
     "dev": "next dev",
     "build": "next build",
@@ -9,7 +11,74 @@
     "lint": "next lint",
     "postinstall": "prisma generate",
     "db:push": "prisma db push",
-    "db:generate": "prisma generate"
+    "db:generate": "prisma generate",
+    "electron:dev": "concurrently --kill-others \"npm run dev\" \"wait-on http://localhost:3000 && electron .\"",
+    "electron:build": "cross-env ELECTRON_BUILD=1 next build && electron-builder build --win --publish never",
+    "electron:build:mac": "cross-env ELECTRON_BUILD=1 next build && electron-builder build --mac --publish never",
+    "electron:pack": "electron-builder build --dir"
+  },
+  "build": {
+    "appId": "com.interviewai.desktop",
+    "productName": "InterviewAI",
+    "copyright": "Copyright © 2024 InterviewAI",
+    "asar": true,
+    "directories": {
+      "output": "dist-electron"
+    },
+    "files": [
+      "electron/**",
+      "public/**",
+      ".next/standalone/**",
+      ".next/static/**"
+    ],
+    "extraResources": [
+      {
+        "from": ".next/standalone",
+        "to": "app/.next/standalone",
+        "filter": [
+          "**/*"
+        ]
+      },
+      {
+        "from": ".next/static",
+        "to": "app/.next/standalone/.next/static",
+        "filter": [
+          "**/*"
+        ]
+      },
+      {
+        "from": "public",
+        "to": "app/public",
+        "filter": [
+          "**/*"
+        ]
+      }
+    ],
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "icon": "public/icon.ico",
+      "requestedExecutionLevel": "asInvoker"
+    },
+    "mac": {
+      "target": "dmg",
+      "icon": "public/icon.icns",
+      "category": "public.app-category.productivity"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "InterviewAI"
+    },
+    "publish": null
   },
   "dependencies": {
     "@hookform/resolvers": "^3",
@@ -42,10 +111,15 @@
     "@types/react": "^18",
     "@types/react-dom": "^18",
     "autoprefixer": "^10.0.1",
+    "concurrently": "^9.2.1",
+    "cross-env": "^10.1.0",
+    "electron": "^41.1.0",
+    "electron-builder": "^26.8.1",
     "eslint": "^8",
     "eslint-config-next": "14.2.0",
     "postcss": "^8",
     "prisma": "^5",
-    "tailwindcss-animate": "^1"
+    "tailwindcss-animate": "^1",
+    "wait-on": "^9.0.4"
   }
 }
