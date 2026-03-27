@@ -2,17 +2,23 @@
 import { useState } from "react"
 import { signIn } from "next-auth/react"
 import { useRouter } from "next/navigation"
+import Link from "next/link"
 
 export default function SignupPage() {
   const router = useRouter()
   const [name, setName] = useState("")
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
+  const [showPassword, setShowPassword] = useState(false)
   const [error, setError] = useState("")
   const [loading, setLoading] = useState(false)
 
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault()
+    if (password.length < 6) {
+      setError("Password must be at least 6 characters.")
+      return
+    }
     setLoading(true)
     setError("")
     try {
@@ -23,7 +29,7 @@ export default function SignupPage() {
       })
       const data = await res.json()
       if (!res.ok) {
-        setError(data.error || "Signup failed")
+        setError(data.error || "Signup failed. Please try again.")
         setLoading(false)
         return
       }
@@ -40,39 +46,144 @@ export default function SignupPage() {
   }
 
   return (
-    <div style={{ minHeight: "100vh", background: "#0a0a0f", display: "flex", alignItems: "center", justifyContent: "center", padding: "20px" }}>
-      <div style={{ background: "#16161f", border: "1px solid rgba(255,255,255,0.08)", borderRadius: "16px", padding: "40px", width: "100%", maxWidth: "400px" }}>
-        <div style={{ textAlign: "center", marginBottom: "32px" }}>
-          <div style={{ fontSize: "32px", marginBottom: "8px" }}>🐦</div>
-          <h1 style={{ color: "#fff", fontSize: "1.5rem", fontWeight: "700", marginBottom: "8px" }}>Create account</h1>
-          <p style={{ color: "#8888aa", fontSize: "0.9rem" }}>Get 30 free credits on signup</p>
+    <div className="min-h-screen bg-[#0A0F1E] flex items-center justify-center px-4 py-12">
+      {/* Background glow */}
+      <div className="fixed inset-0 pointer-events-none overflow-hidden">
+        <div
+          className="absolute top-1/3 left-1/2 -translate-x-1/2 w-[700px] h-[400px] rounded-full blur-[130px] opacity-15"
+          style={{ background: "radial-gradient(ellipse, #F7931A, transparent 70%)" }}
+        />
+      </div>
+
+      <div className="relative w-full max-w-md">
+        {/* Logo */}
+        <div className="text-center mb-8">
+          <Link href="/" className="inline-flex items-center gap-2 mb-6">
+            <span className="text-3xl">🐦</span>
+            <span
+              className="text-2xl font-bold bg-clip-text text-transparent"
+              style={{ backgroundImage: "linear-gradient(90deg, #F7931A, #FF6B2B)" }}
+            >
+              InterviewAI
+            </span>
+          </Link>
+          <h1 className="text-3xl font-bold text-white mb-2">Create your account</h1>
+          <p className="text-[#94A3B8] text-sm">
+            Get{" "}
+            <span className="text-[#F7931A] font-semibold">30 free credits</span>{" "}
+            on signup — no credit card needed
+          </p>
         </div>
-        <form onSubmit={handleSignup}>
-          <div style={{ marginBottom: "16px" }}>
-            <label style={{ display: "block", color: "#8888aa", fontSize: "0.85rem", marginBottom: "8px" }}>Full Name</label>
-            <input type="text" value={name} onChange={e => setName(e.target.value)} required placeholder="Your name"
-              style={{ width: "100%", background: "#0a0a0f", border: "1px solid rgba(255,255,255,0.1)", borderRadius: "8px", padding: "12px 16px", color: "#fff", fontSize: "0.95rem", outline: "none", boxSizing: "border-box" }} />
+
+        {/* Card */}
+        <div className="bg-[#111827] border border-white/8 rounded-2xl p-8 shadow-2xl">
+          <form onSubmit={handleSignup} className="space-y-5">
+            {/* Name */}
+            <div>
+              <label className="block text-sm font-medium text-[#94A3B8] mb-2">
+                Full name
+              </label>
+              <input
+                type="text"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                required
+                placeholder="Your name"
+                className="w-full bg-[#0A0F1E] border border-white/10 rounded-xl px-4 py-3 text-white placeholder-[#4B5563] text-sm outline-none focus:border-[#F7931A]/50 focus:ring-1 focus:ring-[#F7931A]/30 transition-all"
+              />
+            </div>
+
+            {/* Email */}
+            <div>
+              <label className="block text-sm font-medium text-[#94A3B8] mb-2">
+                Email address
+              </label>
+              <input
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+                placeholder="you@example.com"
+                className="w-full bg-[#0A0F1E] border border-white/10 rounded-xl px-4 py-3 text-white placeholder-[#4B5563] text-sm outline-none focus:border-[#F7931A]/50 focus:ring-1 focus:ring-[#F7931A]/30 transition-all"
+              />
+            </div>
+
+            {/* Password */}
+            <div>
+              <label className="block text-sm font-medium text-[#94A3B8] mb-2">
+                Password
+              </label>
+              <div className="relative">
+                <input
+                  type={showPassword ? "text" : "password"}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                  placeholder="Min 6 characters"
+                  className="w-full bg-[#0A0F1E] border border-white/10 rounded-xl px-4 py-3 pr-12 text-white placeholder-[#4B5563] text-sm outline-none focus:border-[#F7931A]/50 focus:ring-1 focus:ring-[#F7931A]/30 transition-all"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-[#64748B] hover:text-[#94A3B8] transition-colors text-xs"
+                >
+                  {showPassword ? "Hide" : "Show"}
+                </button>
+              </div>
+            </div>
+
+            {/* Error */}
+            {error && (
+              <div className="bg-red-500/10 border border-red-500/30 rounded-xl px-4 py-3 text-red-300 text-sm">
+                {error}
+              </div>
+            )}
+
+            {/* Submit */}
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full py-3.5 rounded-xl font-bold text-white text-sm transition-all hover:opacity-90 disabled:opacity-60 disabled:cursor-not-allowed"
+              style={{ background: "linear-gradient(135deg, #F7931A, #FF6B2B)" }}
+            >
+              {loading ? (
+                <span className="flex items-center justify-center gap-2">
+                  <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                  Creating account…
+                </span>
+              ) : (
+                "Create Free Account →"
+              )}
+            </button>
+          </form>
+
+          {/* Benefits */}
+          <div className="mt-6 grid grid-cols-3 gap-3 text-center">
+            {[
+              { icon: "🪙", label: "30 free credits" },
+              { icon: "🔒", label: "No card needed" },
+              { icon: "⚡", label: "Instant access" },
+            ].map((b, i) => (
+              <div key={i} className="bg-white/3 rounded-xl py-2.5 px-2">
+                <div className="text-base mb-0.5">{b.icon}</div>
+                <div className="text-[#94A3B8] text-xs font-medium">{b.label}</div>
+              </div>
+            ))}
           </div>
-          <div style={{ marginBottom: "16px" }}>
-            <label style={{ display: "block", color: "#8888aa", fontSize: "0.85rem", marginBottom: "8px" }}>Email</label>
-            <input type="email" value={email} onChange={e => setEmail(e.target.value)} required placeholder="you@example.com"
-              style={{ width: "100%", background: "#0a0a0f", border: "1px solid rgba(255,255,255,0.1)", borderRadius: "8px", padding: "12px 16px", color: "#fff", fontSize: "0.95rem", outline: "none", boxSizing: "border-box" }} />
-          </div>
-          <div style={{ marginBottom: "24px" }}>
-            <label style={{ display: "block", color: "#8888aa", fontSize: "0.85rem", marginBottom: "8px" }}>Password</label>
-            <input type="password" value={password} onChange={e => setPassword(e.target.value)} required placeholder="Min 6 characters"
-              style={{ width: "100%", background: "#0a0a0f", border: "1px solid rgba(255,255,255,0.1)", borderRadius: "8px", padding: "12px 16px", color: "#fff", fontSize: "0.95rem", outline: "none", boxSizing: "border-box" }} />
-          </div>
-          {error && (
-            <div style={{ background: "#ff658422", border: "1px solid #ff658444", borderRadius: "8px", padding: "12px", color: "#ff6584", fontSize: "0.875rem", marginBottom: "16px" }}>{error}</div>
-          )}
-          <button type="submit" disabled={loading}
-            style={{ width: "100%", background: "linear-gradient(135deg, #6c63ff, #9b8fff)", border: "none", borderRadius: "10px", padding: "14px", color: "#fff", fontSize: "1rem", fontWeight: "700", cursor: loading ? "not-allowed" : "pointer", opacity: loading ? 0.7 : 1 }}>
-            {loading ? "Creating account..." : "Create Account →"}
-          </button>
-        </form>
-        <p style={{ textAlign: "center", color: "#8888aa", fontSize: "0.875rem", marginTop: "24px" }}>
-          Have an account? <a href="/login" style={{ color: "#6c63ff", textDecoration: "none", fontWeight: "600" }}>Sign in</a>
+
+          {/* Sign in link */}
+          <p className="text-center text-sm text-[#94A3B8] mt-6">
+            Already have an account?{" "}
+            <Link href="/login" className="text-[#F7931A] font-semibold hover:underline">
+              Sign in
+            </Link>
+          </p>
+        </div>
+
+        <p className="text-center text-[#4B5563] text-xs mt-6">
+          By signing up, you agree to our{" "}
+          <span className="text-[#64748B] hover:text-[#94A3B8] cursor-pointer">Terms</span> and{" "}
+          <span className="text-[#64748B] hover:text-[#94A3B8] cursor-pointer">Privacy Policy</span>
         </p>
       </div>
     </div>

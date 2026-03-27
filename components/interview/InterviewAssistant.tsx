@@ -1,11 +1,13 @@
 "use client"
 import { useState, useEffect, useRef, useCallback } from "react"
+import { createPortal } from "react-dom"
 import { useSession } from "next-auth/react"
 import { useSpeechRecognition } from "@/hooks/useSpeechRecognition"
 import { useInterviewStore } from "@/store/interviewStore"
 import { useCredits } from "@/hooks/useCredits"
 import { useToast } from "@/hooks/useToast"
-import { Mic, MicOff, Pause, Square, Play, Ghost, Info, ChevronDown } from "lucide-react"
+import { useDocumentPiP } from "@/hooks/useDocumentPiP"
+import { Mic, MicOff, Pause, Square, Play, Ghost } from "lucide-react"
 import SetupScreen from "@/components/interview/SetupScreen"
 import type { SessionContext } from "@/types/index"
 
@@ -29,9 +31,9 @@ export default function InterviewAssistant({ userId, credits: creditsProp, showF
   const [elapsedSeconds, setElapsedSeconds] = useState(0)
   const [liveQuestion, setLiveQuestion] = useState("")
   const [isMobile, setIsMobile] = useState(false)
-  const [showInvisibleHelp, setShowInvisibleHelp] = useState(false)
-  const popupRef = useRef<Window | null>(null)
-  const [invisibleMode, setInvisibleMode] = useState(false)
+  const pip = useDocumentPiP(() => {
+    // called when PiP window is closed by user
+  })
 
   const { sessionContext: storeContext, setSessionContext: setSessionContextStore, addQAPair, qaHistory } = useInterviewStore((s: any) => s)
 
@@ -55,7 +57,10 @@ export default function InterviewAssistant({ userId, credits: creditsProp, showF
     language: isDesiMode ? "en-IN" : language,
     isDesiMode,
     onSilence: async ({ finalTranscript }: { finalTranscript: string }) => {
-      if (!finalTranscript || finalTranscript.trim().length < 3) return
+      if (!finalTranscript) return
+      const words = finalTranscript.trim().split(/\s+/).filter(Boolean)
+      // Require at least 4 words — avoids firing on noise, single words, or partial phrases
+      if (words.length < 4) return
       if (sessionPhase !== "running") return
 
       setLiveQuestion(finalTranscript)
@@ -109,29 +114,25 @@ export default function InterviewAssistant({ userId, credits: creditsProp, showF
     }
   })
 
-  const handleStart = () => {
-    setSessionPhase("running")
-    if (!isListening) toggleListening()
-  }
-
-  const handlePause = () => {
+  const handleToggleSession = useCallback(() => {
     if (sessionPhase === "running") {
       setSessionPhase("paused")
+      resetTranscript()
       if (isListening) toggleListening()
     } else {
       setSessionPhase("running")
+      resetTranscript()
       if (!isListening) toggleListening()
     }
-  }
+  }, [sessionPhase, isListening, toggleListening, resetTranscript])
 
   const handleStop = () => {
     setSessionPhase("idle")
     setElapsedSeconds(0)
-    if (isListening) toggleListening()
     resetTranscript()
+    if (isListening) toggleListening()
     setStreamingAnswer("")
     setLiveQuestion("")
-    // Removed setShowSetup(true) to keep setup inline
   }
 
   const handleDesiToggle = () => {
@@ -140,22 +141,13 @@ export default function InterviewAssistant({ userId, credits: creditsProp, showF
     setLanguage(next ? "en-IN" : "en-US")
   }
 
-  const openInvisibleMode = () => {
-    const popup = window.open("/interview/overlay", "InterviewAI_Overlay",
-      `width=480,height=600,left=${window.screen.width - 500},top=100,resizable=yes`)
-    if (popup) { popupRef.current = popup; setInvisibleMode(true) }
-    else addToast("Popup blocked — allow popups for this site", "error")
+  const handleStealthMode = async () => {
+    if (pip.isOpen) { pip.close(); return }
+    const result = await pip.open()
+    if (result === "blocked") addToast("Popup blocked — please allow popups for this site", "error")
+    else if (result === "pip") addToast("Stealth window opened — invisible to screen recorders ✓", "success")
+    else addToast("Overlay opened — share only this tab to keep it hidden", "info")
   }
-
-  // Send updates to popup
-  useEffect(() => {
-    if (invisibleMode && popupRef.current && !popupRef.current.closed) {
-      popupRef.current.postMessage({
-        type: "UPDATE", currentQuestion: liveQuestion, currentAnswer: streamingAnswer,
-        isStreaming: isStreamingAnswer, qaHistory, credits: displayCredits, sessionActive: sessionPhase === "running"
-      }, window.location.origin)
-    }
-  }, [streamingAnswer, liveQuestion, isStreamingAnswer, invisibleMode])
 
   const mainContainerStyle = {
     maxWidth: "1100px", 
@@ -171,50 +163,33 @@ export default function InterviewAssistant({ userId, credits: creditsProp, showF
         <div style={{
           background: "#0F1115",
           border: "1px solid rgba(255,255,255,0.08)",
-          borderRadius: "12px",
-          padding: "24px"
+          borderRadius: "16px",
+          padding: "28px"
         }}>
-          <div style={{
-            display: "flex", 
-            alignItems: "center", 
-            justifyContent: "space-between", 
-            marginBottom: "24px",
-            flexWrap: "wrap" as const,
-            gap: "12px"
-          }}>
+          {/* Setup header */}
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "24px", flexWrap: "wrap" as const, gap: "12px" }}>
             <div>
-              <h2 style={{ 
-                color: "#fff", 
-                fontSize: "24px", 
-                fontWeight: "700" as const, 
-                margin: "0 0 8px" 
-              }}>
+              <h2 style={{ color: "#fff", fontSize: "22px", fontWeight: "700" as const, margin: "0 0 6px", display: "flex", alignItems: "center", gap: "8px" }}>
                 🎯 Setup Your Interview Session
               </h2>
-              <p style={{ 
-                color: "#94A3B8", 
-                fontSize: "14px", 
-                margin: 0 
-              }}>
+              <p style={{ color: "#64748B", fontSize: "13px", margin: 0 }}>
                 Help AI give you personalized answers
               </p>
             </div>
-            <div style={{ display: "flex", gap: "10px" }}>
-              <button 
-                onClick={() => setShowSetup(false)}
-                style={{
-                  background: "rgba(255,255,255,0.08)",
-                  border: "1px solid rgba(255,255,255,0.15)",
-                  borderRadius: "20px",
-                  padding: "8px 16px",
-                  color: "#94A3B8",
-                  fontSize: "13px",
-                  cursor: "pointer"
-                }}
-              >
-                Skip Setup
-              </button>
-            </div>
+            <button
+              onClick={() => setShowSetup(false)}
+              style={{
+                background: "rgba(255,255,255,0.05)",
+                border: "1px solid rgba(255,255,255,0.1)",
+                borderRadius: "20px",
+                padding: "7px 16px",
+                color: "#64748B",
+                fontSize: "12px",
+                cursor: "pointer",
+              }}
+            >
+              Skip Setup
+            </button>
           </div>
           <SetupScreen
             onComplete={(ctx: SessionContext) => { 
@@ -241,7 +216,7 @@ export default function InterviewAssistant({ userId, credits: creditsProp, showF
                 🪙 {displayCredits} credits
               </div>
               {sessionPhase === "idle" && (
-                <button onClick={handleStart} style={{ background: "linear-gradient(to right, #EA580C, #F7931A)", border: "none", borderRadius: "20px", padding: "8px 20px", color: "white", fontSize: "13px", fontWeight: "700", cursor: "pointer", boxShadow: "0 0 20px rgba(247,147,26,0.3)" }}>
+                <button onClick={handleToggleSession} style={{ background: "linear-gradient(to right, #EA580C, #F7931A)", border: "none", borderRadius: "20px", padding: "8px 20px", color: "white", fontSize: "13px", fontWeight: "700", cursor: "pointer", boxShadow: "0 0 20px rgba(247,147,26,0.3)" }}>
                   Start Session
                 </button>
               )}
@@ -312,12 +287,12 @@ export default function InterviewAssistant({ userId, credits: creditsProp, showF
                 <span style={{ color: "white", fontSize: "22px", fontWeight: "700", fontFamily: "monospace" }}>{formatTime(elapsedSeconds)}</span>
                 <div style={{ display: "flex", gap: "6px" }}>
                   {sessionPhase === "running" && (
-                    <button onClick={handlePause} style={{ background: "rgba(251,191,36,0.15)", border: "1px solid rgba(251,191,36,0.4)", borderRadius: "8px", padding: "5px 10px", color: "#FCD34D", fontSize: "12px", cursor: "pointer", display: "flex", alignItems: "center", gap: "4px" }}>
+                    <button onClick={handleToggleSession} style={{ background: "rgba(251,191,36,0.15)", border: "1px solid rgba(251,191,36,0.4)", borderRadius: "8px", padding: "5px 10px", color: "#FCD34D", fontSize: "12px", cursor: "pointer", display: "flex", alignItems: "center", gap: "4px" }}>
                       <Pause size={12} /> Pause
                     </button>
                   )}
                   {sessionPhase === "paused" && (
-                    <button onClick={handlePause} style={{ background: "rgba(34,197,94,0.15)", border: "1px solid rgba(34,197,94,0.4)", borderRadius: "8px", padding: "5px 10px", color: "#4ade80", fontSize: "12px", cursor: "pointer", display: "flex", alignItems: "center", gap: "4px" }}>
+                    <button onClick={handleToggleSession} style={{ background: "rgba(34,197,94,0.15)", border: "1px solid rgba(34,197,94,0.4)", borderRadius: "8px", padding: "5px 10px", color: "#4ade80", fontSize: "12px", cursor: "pointer", display: "flex", alignItems: "center", gap: "4px" }}>
                       <Play size={12} /> Resume
                     </button>
                   )}
@@ -366,7 +341,7 @@ export default function InterviewAssistant({ userId, credits: creditsProp, showF
           <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "120px 1fr", gap: "16px" }}>
             {/* Mic Controls */}
             <div style={{ background: "#0F1115", border: "1px solid rgba(255,255,255,0.08)", borderRadius: "12px", padding: "16px", display: "flex", flexDirection: "column" as const, alignItems: "center", gap: "12px" }}>
-              <button onClick={() => sessionPhase === "running" ? (isListening ? toggleListening() : toggleListening()) : null}
+              <button onClick={handleToggleSession}
                 disabled={sessionPhase === "idle"}
                 style={{
                   width: "60px", height: "60px", borderRadius: "50%",
@@ -379,9 +354,28 @@ export default function InterviewAssistant({ userId, credits: creditsProp, showF
                 }}>
                 {isListening ? <Mic size={24} color="white" /> : <MicOff size={24} color="#94A3B8" />}
               </button>
-              <button onClick={openInvisibleMode} style={{ background: "rgba(247,147,26,0.08)", border: "1px solid rgba(247,147,26,0.25)", borderRadius: "8px", padding: "6px 10px", color: "#F7931A", fontSize: "11px", cursor: "pointer", display: "flex", alignItems: "center", gap: "4px", width: "100%", justifyContent: "center" }}>
-                <Ghost size={12} /> Invisible
+              <button
+                onClick={handleStealthMode}
+                title={pip.isSupported ? "Document PiP — invisible to screen recorders" : "Popup overlay — hide by sharing only this tab"}
+                style={{
+                  background: pip.isOpen ? "rgba(34,197,94,0.12)" : "rgba(247,147,26,0.08)",
+                  border: `1px solid ${pip.isOpen ? "rgba(34,197,94,0.4)" : "rgba(247,147,26,0.25)"}`,
+                  borderRadius: "8px", padding: "6px 10px",
+                  color: pip.isOpen ? "#4ade80" : "#F7931A",
+                  fontSize: "11px", cursor: "pointer",
+                  display: "flex", alignItems: "center", gap: "4px",
+                  width: "100%", justifyContent: "center", fontWeight: "600",
+                }}>
+                <Ghost size={12} />
+                {pip.isOpen ? "Close Stealth" : pip.isSupported ? "Stealth" : "Overlay"}
               </button>
+
+              {/* PiP badge */}
+              {pip.isSupported && (
+                <span style={{ fontSize: "9px", color: "#4ade80", textAlign: "center", letterSpacing: "0.05em" }}>
+                  ● Screen-invisible
+                </span>
+              )}
             </div>
 
             {/* Q&A History */}
@@ -404,22 +398,95 @@ export default function InterviewAssistant({ userId, credits: creditsProp, showF
             </div>
           </div>
 
-          {/* Invisible Mode Help Modal */}
-          {showInvisibleHelp && (
-            <div style={{ position: "fixed" as const, inset: 0, zIndex: 100, background: "rgba(0,0,0,0.8)", display: "flex", alignItems: "center", justifyContent: "center", padding: "20px" }}>
-              <div style={{ background: "#0F1115", border: "1px solid rgba(255,255,255,0.1)", borderRadius: "16px", padding: "32px", maxWidth: "480px", width: "100%" }}>
-                <h3 style={{ color: "#fff", fontSize: "18px", fontWeight: "700" as const, marginBottom: "16px" }}>How Invisible Mode Works</h3>
-                <ol style={{ margin: 0, paddingLeft: "20px", lineHeight: "1.8", color: "#94A3B8", fontSize: "14px" }}>
-                  <li>Click Invisible Mode — a popup opens</li>
-                  <li>In Zoom/Meet — share only THIS tab</li>
-                  <li>The popup stays hidden from screen share</li>
-                  <li>AI answers appear in the popup automatically</li>
-                </ol>
-                <button onClick={() => setShowInvisibleHelp(false)} style={{ width: "100%", marginTop: "20px", padding: "12px", background: "linear-gradient(to right, #EA580C, #F7931A)", border: "none", borderRadius: "20px", color: "white", fontSize: "14px", fontWeight: "700" as const, cursor: "pointer" }}>Got it</button>
-              </div>
-            </div>
+          {/* Document PiP portal — renders AI answers into the stealth window */}
+          {pip.isOpen && pip.container && createPortal(
+            <PiPContent
+              question={liveQuestion}
+              answer={streamingAnswer}
+              isStreaming={isStreamingAnswer}
+              qaHistory={qaHistory}
+              credits={displayCredits}
+              sessionActive={sessionPhase === "running"}
+              isDesiMode={isDesiMode}
+            />,
+            pip.container
           )}
         </>
+      )}
+    </div>
+  )
+}
+
+// ── PiP content rendered inside the Document PiP window ─────────────────────
+function PiPContent({ question, answer, isStreaming, qaHistory, credits, sessionActive, isDesiMode }: {
+  question: string; answer: string; isStreaming: boolean
+  qaHistory: any[]; credits: number; sessionActive: boolean; isDesiMode: boolean
+}) {
+  return (
+    <div style={{ padding: "12px", minHeight: "100vh", background: "#0a0a0f", fontFamily: "system-ui, sans-serif", color: "#fff" }}>
+      {/* Header */}
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "10px", padding: "8px 12px", background: "#111827", borderRadius: "10px", border: "1px solid rgba(255,255,255,0.08)" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+          <span style={{ fontSize: "14px" }}>🤖</span>
+          <span style={{ fontWeight: 700, fontSize: "13px" }}>InterviewAI</span>
+          <span style={{ background: "#43e97b22", color: "#43e97b", borderRadius: "100px", padding: "1px 8px", fontSize: "10px", fontWeight: 700 }}>STEALTH</span>
+        </div>
+        <div style={{ display: "flex", alignItems: "center", gap: "6px", fontSize: "11px" }}>
+          <span style={{ background: "#f59e0b22", color: "#f59e0b", padding: "2px 8px", borderRadius: "100px", fontWeight: 600 }}>🪙 {credits}</span>
+          <span style={{ background: sessionActive ? "#43e97b22" : "#ff658422", color: sessionActive ? "#43e97b" : "#ff6584", padding: "2px 8px", borderRadius: "100px", fontWeight: 600 }}>
+            {sessionActive ? "● Live" : "○ Idle"}
+          </span>
+          {isDesiMode && <span style={{ background: "#6c63ff22", color: "#a89dff", padding: "2px 8px", borderRadius: "100px", fontWeight: 600 }}>🇮🇳</span>}
+        </div>
+      </div>
+
+      {/* Question */}
+      {question ? (
+        <div style={{ background: "#111827", border: "1px solid #6c63ff44", borderLeft: "3px solid #6c63ff", borderRadius: "10px", padding: "10px 12px", marginBottom: "10px" }}>
+          <div style={{ fontSize: "9px", color: "#8888aa", textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: "5px" }}>🎙️ Question</div>
+          <div style={{ fontSize: "13px", lineHeight: 1.5 }}>{question}</div>
+        </div>
+      ) : null}
+
+      {/* AI Answer */}
+      <div style={{ background: "#111827", border: "1px solid #43e97b44", borderLeft: "3px solid #43e97b", borderRadius: "10px", padding: "12px", marginBottom: "10px", minHeight: "100px" }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "8px" }}>
+          <div style={{ fontSize: "9px", color: "#43e97b", textTransform: "uppercase", letterSpacing: "0.1em", fontWeight: 700 }}>🤖 AI Answer</div>
+          {isStreaming && (
+            <div style={{ display: "flex", gap: "3px" }}>
+              {[0, 1, 2].map(i => (
+                <div key={i} style={{ width: "5px", height: "5px", borderRadius: "50%", background: "#43e97b", animation: `pipPulse 1s ease-in-out ${i * 0.2}s infinite` }} />
+              ))}
+            </div>
+          )}
+        </div>
+        <div style={{ fontSize: "13px", lineHeight: 1.7, color: isStreaming ? "#43e97b" : "#f0f0f8" }}>
+          {answer || <span style={{ color: "#8888aa", fontStyle: "italic" }}>Waiting for question… speak naturally.</span>}
+        </div>
+      </div>
+
+      {/* Recent Q&A */}
+      {qaHistory?.length > 0 && (
+        <div>
+          <div style={{ fontSize: "9px", color: "#8888aa", textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: "6px" }}>Recent Q&A</div>
+          {qaHistory.slice(-3).reverse().map((qa: any, i: number) => (
+            <div key={i} style={{ background: "#111827", border: "1px solid rgba(255,255,255,0.06)", borderRadius: "8px", padding: "8px 10px", marginBottom: "6px", opacity: i === 0 ? 1 : 0.55 }}>
+              <div style={{ fontSize: "10px", color: "#8888aa", marginBottom: "3px" }}>Q: {qa.question?.slice(0, 60)}{qa.question?.length > 60 ? "…" : ""}</div>
+              <div style={{ fontSize: "11px", lineHeight: 1.5, color: "#d0d0e0" }}>A: {qa.answer?.slice(0, 120)}{qa.answer?.length > 120 ? "…" : ""}</div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {!question && !answer && qaHistory?.length === 0 && (
+        <div style={{ textAlign: "center", padding: "30px 20px", color: "#8888aa" }}>
+          <div style={{ fontSize: "40px", marginBottom: "12px" }}>👻</div>
+          <div style={{ fontWeight: 700, color: "#fff", marginBottom: "6px" }}>Stealth Mode Active</div>
+          <div style={{ fontSize: "12px", lineHeight: 1.6 }}>
+            This window is invisible to screen recorders.<br />
+            Start your session and speak — AI answers appear here.
+          </div>
+        </div>
       )}
     </div>
   )

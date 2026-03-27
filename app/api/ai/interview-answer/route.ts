@@ -2,9 +2,6 @@ import { groq } from '@/lib/anthropic'
 import { sanitizeReadableText } from '@/lib/sanitizeText'
 import type { SessionContext } from '@/types'
 
-const COACH_RULES =
-  'If the resume excerpt is missing, empty, or unclear, still give a strong, practical answer using the role and job description. Do not refuse or ask the user to reformat the resume unless there is truly no role or JD to work from. Never output role labels like "Assistant:" or "User:" — respond with the answer body only, in plain text.'
-
 export async function GET() {
   return Response.json({
     status: 'ok',
@@ -41,34 +38,61 @@ export async function POST(req: Request) {
     }
 
     const sc = sessionContext
-    let contextBlock = ''
-    if (sc?.jobRole) {
-      contextBlock += `The candidate is interviewing for: ${sc.jobRole}.\n`
-    }
+    const roleLabel = sc?.jobRole || 'this role'
+    const resume = sc?.resumeText ? sanitizeReadableText(sc.resumeText, 2500) : ''
     const jd = sc?.jobDescription ? sanitizeReadableText(sc.jobDescription, 1500) : ''
-    if (jd) {
-      contextBlock += `Job Description: ${jd}\n`
-    }
-    const resume = sc?.resumeText ? sanitizeReadableText(sc.resumeText, 2000) : ''
-    if (resume) {
-      contextBlock += `Candidate Resume Summary: ${resume}\n`
-    }
 
-    const roleLabel = sc?.jobRole || 'a job'
+    // Build a rich identity block so the AI truly answers AS the candidate
+    const identityLines: string[] = []
+    if (roleLabel !== 'this role') identityLines.push(`Target role: ${roleLabel}`)
+    if (jd) identityLines.push(`Job description:\n${jd}`)
+    if (resume) identityLines.push(`My resume / background:\n${resume}`)
+    const identityBlock = identityLines.join('\n\n')
+
+    // Classify question type to choose the right answer strategy
+    const questionLower = question.toLowerCase()
+    const isBehavioral = /tell me about|describe a time|give me an example|walk me through|situation where|how did you|what did you do|greatest (strength|weakness)|why should|why do you want|biggest challenge/.test(questionLower)
+    const isTechnical = /^(what is|explain|how does|difference between|when would you|implement|algorithm|complexity|debug|optimize)/.test(questionLower) || interviewType === 'technical' || interviewType === 'coding'
+
+    let strategyNote = ''
+    if (isBehavioral) {
+      strategyNote = 'This is a behavioral question. Use the STAR format (Situation → Task → Action → Result). Reference a specific project or experience from the resume above — mention real company names, tech, or outcomes.'
+    } else if (isTechnical) {
+      strategyNote = 'This is a technical question. Give a clear, confident explanation with the correct definition, then mention how you have personally applied this in your work if the resume shows relevant experience.'
+    } else {
+      strategyNote = 'Answer naturally and confidently. Reference specific experience from the resume where relevant.'
+    }
 
     const systemPrompt = isDesiMode
-      ? `You are an Indian interview coach helping a candidate prepare for ${roleLabel} interview.
-${contextBlock}
-${COACH_RULES}
-Answer interview questions the way young Indian professionals actually speak — conversational, direct, with relatable examples. Avoid corporate jargon. Sound natural. Keep answers under 150 words. Reference the job requirements and candidate background when relevant.`
-      : `You are an expert interview coach helping a candidate prepare for ${roleLabel} interview.
-${contextBlock}
-${COACH_RULES}
-Given an interview question, provide a concise structured answer tailored to this specific role and the candidate's background. Use STAR method for behavioral questions, clear technical explanation for technical questions. Keep answers under 150 words. Reference specific requirements from the job description when relevant.`
+      ? `You are a job candidate answering interview questions in your own voice.
 
-    const userContent = `Interview question: ${question}
+${identityBlock}
 
-Please give a targeted answer for the ${sc?.jobRole || 'role'} position.`
+RULES:
+- Answer in FIRST PERSON as "I" — you ARE the candidate, not a coach.
+- Speak the way Indian professionals naturally talk — confident, direct, conversational. Mix of professional and relatable.
+- ${strategyNote}
+- Use SPECIFIC details from the resume: company names, project names, technologies, numbers, and real outcomes.
+- Do NOT give generic textbook answers. Make it sound like YOUR real experience.
+- Do NOT add headers, bullet points, or labels. Just speak naturally.
+- Keep it under 160 words.
+- Never start with "Sure!", "Great question!", "Certainly!" or any filler opener.
+- Never output "Assistant:", "User:", or any role labels.`
+      : `You are a job candidate answering interview questions in your own voice.
+
+${identityBlock}
+
+RULES:
+- Answer in FIRST PERSON as "I" — you ARE the candidate, not a coach.
+- ${strategyNote}
+- Use SPECIFIC details from the resume: company names, project names, technologies, metrics, and real outcomes. Do not make up details not in the resume, but do reference what is there.
+- Sound confident and human — not like a textbook or a template.
+- Do NOT use bullet points or section headers. Speak in flowing sentences.
+- Keep it under 160 words.
+- Never start with "Sure!", "Great question!", "Certainly!" or any filler opener.
+- Never output "Assistant:", "User:", or any role labels.`
+
+    const userContent = `Interview question: "${question}"`
 
     const stream = await groq.chat.completions.create({
       model: 'llama-3.3-70b-versatile',
@@ -77,7 +101,8 @@ Please give a targeted answer for the ${sc?.jobRole || 'role'} position.`
         { role: 'user', content: userContent },
       ],
       stream: true,
-      max_tokens: 400,
+      max_tokens: 500,
+      temperature: 0.7,
     })
 
     const encoder = new TextEncoder()

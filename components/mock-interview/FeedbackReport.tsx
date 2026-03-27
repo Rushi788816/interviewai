@@ -36,7 +36,7 @@ export default function FeedbackReport({
         <div
           className="flex h-40 w-40 items-center justify-center rounded-full border-8 border-violet-500 text-3xl font-bold"
           style={{
-            background: `conic-gradient(#6c63ff ${overall * 3.6}deg, #1c1c27 0deg)`,
+            background: `conic-gradient(#F7931A ${overall * 3.6}deg, #1c1c27 0deg)`,
           }}
         >
           <span className="flex h-32 w-32 items-center justify-center rounded-full bg-[#0a0a0f] text-2xl">
@@ -114,7 +114,7 @@ export default function FeedbackReport({
         <button
           type="button"
           onClick={onTryAgain}
-          className="rounded-xl bg-gradient-to-r from-[#6c63ff] to-[#9b8fff] px-6 py-3 font-semibold text-white"
+          className="rounded-xl bg-gradient-to-r from-[#F7931A] to-[#FF6B2B] px-6 py-3 font-semibold text-white"
         >
           Try Again
         </button>

@@ -12,6 +12,7 @@ import {
   Settings,
   Coins,
   LogOut,
+  Zap,
 } from "lucide-react"
 
 const nav = [
@@ -27,65 +28,84 @@ export default function DashboardSidebar() {
   const { balance, isLoading } = useCredits()
 
   return (
-    <aside
-      className="hidden w-[240px] shrink-0 flex-col border-r border-white/10 bg-[#0D1424] lg:flex"
-      style={{ minHeight: '100vh' }}
-    >
-      <div className="p-6 border-b border-white/10">
+    <aside className="hidden lg:flex w-[240px] shrink-0 flex-col border-r border-white/8 bg-[#0A0F1E]" style={{ minHeight: '100vh' }}>
+
+      {/* Logo */}
+      <div className="px-5 py-5 border-b border-white/8">
         <Link
           href="/dashboard"
-          className="text-lg font-bold bg-clip-text text-transparent"
-          style={{ backgroundImage: 'linear-gradient(90deg, #2563EB, #0EA5E9)' }}
+          className="flex items-center gap-2 text-base font-bold"
         >
-          🐦 InterviewAI
+          <span className="text-xl">🐦</span>
+          <span
+            className="bg-clip-text text-transparent"
+            style={{ backgroundImage: 'linear-gradient(90deg, #F7931A, #FF6B2B)' }}
+          >
+            InterviewAI
+          </span>
         </Link>
       </div>
-      <nav className="flex flex-1 flex-col gap-1 px-3 py-6">
+
+      {/* Nav items */}
+      <nav className="flex flex-1 flex-col gap-1 px-3 py-5">
         {nav.map((item) => {
-          const active = pathname === item.href || pathname.startsWith(item.href + '/')
+          const active = pathname === item.href || (item.href !== '/dashboard' && pathname.startsWith(item.href + '/'))
           return (
             <Link
               key={item.href}
               href={item.href}
-              className={`flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition-all ${
-                active
-                  ? 'border-l-4 border-[#2563EB] bg-[#2563EB]/10 text-white shadow-inner'
-                  : 'text-[#94A3B8] hover:bg-[#111827] hover:text-white hover:border-l-4 hover:border-[#2563EB]/50'
-              }`}
-              style={{ borderLeft: '4px solid transparent' }}
+              className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm transition-all relative"
+              style={{
+                backgroundColor: active ? 'rgba(247,147,26,0.10)' : 'transparent',
+                color: active ? '#F7931A' : '#94A3B8',
+                fontWeight: active ? '600' : '400',
+              }}
             >
-              <item.icon size={18} />
+              {active && (
+                <span
+                  className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-5 rounded-r-full"
+                  style={{ backgroundColor: '#F7931A' }}
+                />
+              )}
+              <item.icon size={17} />
               <span>{item.label}</span>
             </Link>
           )
         })}
       </nav>
-      <div className="border-t border-white/10 p-4 bg-[#1E2A3A]">
-        <div className="mb-3 flex items-center justify-between rounded-xl border border-amber-500/30 bg-amber-500/10 px-3 py-2">
+
+      {/* Bottom credits + signout */}
+      <div className="border-t border-white/8 p-4 space-y-3">
+        {/* Credits pill */}
+        <div className="flex items-center justify-between rounded-xl border border-[#F7931A]/20 bg-[#F7931A]/8 px-3 py-2.5">
           <div className="flex items-center gap-2">
-            <Coins size={16} />
-            <span className="text-sm text-zinc-300">
+            <Coins size={15} className="text-amber-400" />
+            <span className="text-sm text-white font-semibold">
               {isLoading ? '…' : balance}
             </span>
+            <span className="text-xs text-[#94A3B8]">credits</span>
           </div>
         </div>
+
         {balance < 20 && (
           <Link
             href="/settings"
-            className="block w-full rounded-lg bg-gradient-to-r from-[#2563EB] to-[#0EA5E9] py-2.5 text-center text-sm font-semibold text-white hover:opacity-90 transition-all shadow-lg"
+            className="flex items-center justify-center gap-1.5 w-full rounded-xl py-2.5 text-xs font-bold text-white transition-all hover:opacity-90"
+            style={{ background: 'linear-gradient(135deg, #F7931A, #FF6B2B)' }}
           >
-            Upgrade Plan
+            <Zap size={13} />
+            Get More Credits
           </Link>
         )}
+
         <button
           onClick={() => signOut({ callbackUrl: '/' })}
-          className="mt-3 block w-full rounded-lg border border-white/20 py-2.5 text-left text-sm font-medium text-[#94A3B8] hover:bg-white/10 hover:text-white transition-all flex items-center gap-2"
+          className="flex items-center gap-2 w-full rounded-xl border border-white/8 py-2.5 px-3 text-sm text-[#94A3B8] hover:bg-white/5 hover:text-white transition-all"
         >
-          <LogOut size={18} />
+          <LogOut size={16} />
           Sign out
         </button>
       </div>
     </aside>
   )
 }
-

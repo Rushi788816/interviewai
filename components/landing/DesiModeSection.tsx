@@ -6,7 +6,7 @@ export default function DesiModeSection() {
           Sound like{' '}
           <span
             className="bg-clip-text text-transparent"
-            style={{ backgroundImage: 'linear-gradient(90deg, #6c63ff, #ff6584)' }}
+            style={{ backgroundImage: 'linear-gradient(90deg, #F7931A, #FF6B2B)' }}
           >
             you
           </span>
@@ -32,7 +32,7 @@ export default function DesiModeSection() {
               borderColor: 'rgba(255, 101, 132, 0.25)',
             }}
           >
-            <p className="text-xs font-semibold uppercase tracking-wider mb-4" style={{ color: '#ff6584' }}>
+            <p className="text-xs font-semibold uppercase tracking-wider mb-4" style={{ color: '#EF4444' }}>
               Generic AI
             </p>
             <p className="leading-relaxed text-sm md:text-base" style={{ color: '#c8c8dd' }}>

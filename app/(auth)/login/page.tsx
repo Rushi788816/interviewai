@@ -2,6 +2,7 @@
 import { useState, Suspense } from "react"
 import { signIn } from "next-auth/react"
 import { useRouter, useSearchParams } from "next/navigation"
+import Link from "next/link"
 
 function LoginForm() {
   const router = useRouter()
@@ -9,6 +10,7 @@ function LoginForm() {
   const callbackUrl = searchParams.get("callbackUrl") || "/dashboard"
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
+  const [showPassword, setShowPassword] = useState(false)
   const [error, setError] = useState("")
   const [loading, setLoading] = useState(false)
 
@@ -23,45 +25,131 @@ function LoginForm() {
     })
     setLoading(false)
     if (result?.error) {
-      setError("Invalid email or password")
+      setError("Invalid email or password. Please try again.")
     } else {
       router.push(callbackUrl)
     }
   }
 
   return (
-    <div style={{ minHeight: "100vh", background: "#0A0F1E", display: "flex", alignItems: "center", justifyContent: "center", padding: "20px" }}>
-      <div style={{ background: "#111827", border: "1px solid rgba(37,99,235,0.2)", borderRadius: "16px", padding: "40px", width: "100%", maxWidth: "420px" }}>
-        <div style={{ textAlign: "center", marginBottom: "32px" }}>
-          <div style={{ fontSize: "40px", marginBottom: "12px" }}>🐦</div>
-          <h1 style={{ color: "#fff", fontSize: "1.6rem", fontWeight: "800", marginBottom: "8px" }}>Welcome back</h1>
-          <p style={{ color: "#94A3B8", fontSize: "0.9rem" }}>Sign in to InterviewAI</p>
+    <div className="min-h-screen bg-[#0A0F1E] flex items-center justify-center px-4 py-12">
+      {/* Background glow */}
+      <div className="fixed inset-0 pointer-events-none overflow-hidden">
+        <div
+          className="absolute top-1/3 left-1/2 -translate-x-1/2 w-[700px] h-[400px] rounded-full blur-[130px] opacity-15"
+          style={{ background: "radial-gradient(ellipse, #F7931A, transparent 70%)" }}
+        />
+      </div>
+
+      <div className="relative w-full max-w-md">
+        {/* Logo */}
+        <div className="text-center mb-8">
+          <Link href="/" className="inline-flex items-center gap-2 mb-6">
+            <span className="text-3xl">🐦</span>
+            <span
+              className="text-2xl font-bold bg-clip-text text-transparent"
+              style={{ backgroundImage: "linear-gradient(90deg, #F7931A, #FF6B2B)" }}
+            >
+              InterviewAI
+            </span>
+          </Link>
+          <h1 className="text-3xl font-bold text-white mb-2">Welcome back</h1>
+          <p className="text-[#94A3B8] text-sm">Sign in to your account to continue</p>
         </div>
-        <form onSubmit={handleLogin}>
-          <div style={{ marginBottom: "16px" }}>
-            <label style={{ display: "block", color: "#94A3B8", fontSize: "0.85rem", marginBottom: "8px", fontWeight: "500" }}>Email</label>
-            <input type="email" value={email} onChange={e => setEmail(e.target.value)} required placeholder="you@example.com"
-              style={{ width: "100%", background: "#0A0F1E", border: "1px solid rgba(255,255,255,0.1)", borderRadius: "8px", padding: "12px 16px", color: "#fff", fontSize: "0.95rem", outline: "none", boxSizing: "border-box" }} />
-          </div>
-          <div style={{ marginBottom: "24px" }}>
-            <label style={{ display: "block", color: "#94A3B8", fontSize: "0.85rem", marginBottom: "8px", fontWeight: "500" }}>Password</label>
-            <input type="password" value={password} onChange={e => setPassword(e.target.value)} required placeholder="••••••••"
-              style={{ width: "100%", background: "#0A0F1E", border: "1px solid rgba(255,255,255,0.1)", borderRadius: "8px", padding: "12px 16px", color: "#fff", fontSize: "0.95rem", outline: "none", boxSizing: "border-box" }} />
-          </div>
-          {error && (
-            <div style={{ background: "rgba(239,68,68,0.1)", border: "1px solid rgba(239,68,68,0.3)", borderRadius: "8px", padding: "12px", color: "#FCA5A5", fontSize: "0.875rem", marginBottom: "16px" }}>
-              {error}
+
+        {/* Card */}
+        <div className="bg-[#111827] border border-white/8 rounded-2xl p-8 shadow-2xl">
+          <form onSubmit={handleLogin} className="space-y-5">
+            {/* Email */}
+            <div>
+              <label className="block text-sm font-medium text-[#94A3B8] mb-2">
+                Email address
+              </label>
+              <input
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+                placeholder="you@example.com"
+                className="w-full bg-[#0A0F1E] border border-white/10 rounded-xl px-4 py-3 text-white placeholder-[#4B5563] text-sm outline-none focus:border-[#F7931A]/50 focus:ring-1 focus:ring-[#F7931A]/30 transition-all"
+              />
             </div>
-          )}
-          <button type="submit" disabled={loading}
-            style={{ width: "100%", background: "linear-gradient(135deg, #2563EB, #0EA5E9)", border: "none", borderRadius: "10px", padding: "14px", color: "#fff", fontSize: "1rem", fontWeight: "700", cursor: loading ? "not-allowed" : "pointer", opacity: loading ? 0.7 : 1 }}>
-            {loading ? "Signing in..." : "Sign In to InterviewAI →"}
-          </button>
-        </form>
-        <p style={{ textAlign: "center", color: "#94A3B8", fontSize: "0.875rem", marginTop: "24px" }}>
-          No account? <a href="/signup" style={{ color: "#2563EB", textDecoration: "none", fontWeight: "600" }}>Create one free →</a>
-        </p>
-        <p style={{ textAlign: "center", color: "#64748B", fontSize: "0.75rem", marginTop: "12px" }}>
+
+            {/* Password */}
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <label className="text-sm font-medium text-[#94A3B8]">Password</label>
+                <Link
+                  href="/forgot-password"
+                  className="text-xs text-[#F7931A] hover:underline"
+                >
+                  Forgot password?
+                </Link>
+              </div>
+              <div className="relative">
+                <input
+                  type={showPassword ? "text" : "password"}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                  placeholder="••••••••"
+                  className="w-full bg-[#0A0F1E] border border-white/10 rounded-xl px-4 py-3 pr-12 text-white placeholder-[#4B5563] text-sm outline-none focus:border-[#F7931A]/50 focus:ring-1 focus:ring-[#F7931A]/30 transition-all"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-[#64748B] hover:text-[#94A3B8] transition-colors text-xs"
+                >
+                  {showPassword ? "Hide" : "Show"}
+                </button>
+              </div>
+            </div>
+
+            {/* Error */}
+            {error && (
+              <div className="bg-red-500/10 border border-red-500/30 rounded-xl px-4 py-3 text-red-300 text-sm">
+                {error}
+              </div>
+            )}
+
+            {/* Submit */}
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full py-3.5 rounded-xl font-bold text-white text-sm transition-all hover:opacity-90 disabled:opacity-60 disabled:cursor-not-allowed"
+              style={{ background: "linear-gradient(135deg, #F7931A, #FF6B2B)" }}
+            >
+              {loading ? (
+                <span className="flex items-center justify-center gap-2">
+                  <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                  Signing in…
+                </span>
+              ) : (
+                "Sign In to InterviewAI →"
+              )}
+            </button>
+          </form>
+
+          {/* Divider */}
+          <div className="relative my-6">
+            <div className="absolute inset-0 flex items-center">
+              <div className="w-full border-t border-white/8" />
+            </div>
+            <div className="relative flex justify-center text-xs text-[#64748B] bg-[#111827] px-3">
+              or
+            </div>
+          </div>
+
+          {/* Sign up link */}
+          <p className="text-center text-sm text-[#94A3B8]">
+            Don&apos;t have an account?{" "}
+            <Link href="/signup" className="text-[#F7931A] font-semibold hover:underline">
+              Create one free →
+            </Link>
+          </p>
+        </div>
+
+        <p className="text-center text-[#4B5563] text-xs mt-6">
           🔒 Your data is encrypted and secure
         </p>
       </div>
@@ -71,7 +159,7 @@ function LoginForm() {
 
 export default function LoginPage() {
   return (
-    <Suspense fallback={<div style={{ minHeight: "100vh", background: "#0A0F1E" }} />}>
+    <Suspense fallback={<div className="min-h-screen bg-[#0A0F1E]" />}>
       <LoginForm />
     </Suspense>
   )

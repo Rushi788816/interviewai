@@ -10,7 +10,7 @@ export default function Footer() {
               <span className="text-2xl">🐦</span>
               <span
                 className="text-lg font-bold bg-clip-text text-transparent"
-                style={{ backgroundImage: 'linear-gradient(90deg, #2563EB, #0EA5E9)' }}
+                style={{ backgroundImage: 'linear-gradient(90deg, #F7931A, #FF6B2B)' }}
               >
                 InterviewAI
               </span>

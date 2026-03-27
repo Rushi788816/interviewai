@@ -13,8 +13,8 @@ import {
   LogOut,
   Save,
   Check,
-  AlertTriangle,
   Clock,
+  Zap,
 } from "lucide-react"
 
 export default function SettingsPage() {
@@ -73,453 +73,296 @@ export default function SettingsPage() {
 
   if (status === 'loading') {
     return (
-      <div style={{ minHeight: '100vh', backgroundColor: '#0A0F1E', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <div style={{ width: '32px', height: '32px', border: '2px solid #2563EB', borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin 1s linear infinite' }}></div>
+      <div className="min-h-screen bg-[#0A0F1E] flex items-center justify-center">
+        <div className="w-8 h-8 border-2 border-[#F7931A] border-t-transparent rounded-full animate-spin" />
       </div>
     )
   }
 
-  if (!session?.user) {
-    return null
-  }
+  if (!session?.user) return null
 
   const initial = (session.user.name || session.user.email || '?')[0].toUpperCase()
 
+  const plans = [
+    {
+      id: 'starter',
+      title: 'Starter',
+      price: '₹499',
+      credits: '50 credits',
+      features: ['Real-time AI answers', 'All interview types', '52+ languages', 'Credits never expire'],
+    },
+    {
+      id: 'pro',
+      title: 'Pro',
+      price: '₹1,199',
+      credits: '150 credits',
+      mostPopular: true,
+      features: ['Everything in Starter', 'Desi Mode 🇮🇳', 'AI Mock Interview', 'Resume AI Enhancement', 'Priority support'],
+    },
+    {
+      id: 'power',
+      title: 'Power',
+      price: '₹2,499',
+      credits: '400 credits',
+      features: ['Everything in Pro', 'Unlimited Mock Interviews', 'Advanced analytics', 'Custom answer style', 'Dedicated support'],
+    },
+  ]
+
   return (
-    <div style={{ maxWidth: '900px', margin: '0 auto', padding: '40px 24px', color: 'white' }}>
-      {/* Header */}
-      <div style={{ borderBottom: '1px solid rgba(255,255,255,0.06)', paddingBottom: '32px', marginBottom: '32px' }}>
-        <h1 style={{ fontSize: '2rem', fontWeight: 'bold', color: 'white', margin: '0 0 8px 0' }}>Settings</h1>
-        <p style={{ color: '#94A3B8', margin: 0 }}>Manage your account and preferences</p>
+    <div className="max-w-4xl mx-auto px-4 sm:px-6 py-6 sm:py-8 space-y-6 text-white">
+
+      {/* Page title */}
+      <div className="border-b border-white/6 pb-6">
+        <h1 className="text-2xl sm:text-3xl font-bold text-white">Settings</h1>
+        <p className="text-[#94A3B8] text-sm mt-1">Manage your account and preferences</p>
       </div>
 
       {/* SECTION 1 — PROFILE */}
-      <section style={{ backgroundColor: '#111827', border: '1px solid rgba(255,255,255,0.06)', borderRadius: '24px', padding: '2rem', marginBottom: '24px' }}>
-        <div style={{ display: 'flex', alignItems: 'flex-start', gap: '24px', marginBottom: '32px' }}>
-          <div style={{
-            width: '72px',
-            height: '72px',
-            borderRadius: '50%',
-            background: 'linear-gradient(135deg, #1e3a5f, #2563EB)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            color: 'white',
-            fontSize: '2rem',
-            fontWeight: 'bold',
-          }}>
-            {initial}
+      <section className="bg-[#111827] border border-white/6 rounded-2xl p-6">
+        <div className="flex items-center gap-3 mb-6">
+          <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: 'rgba(247,147,26,0.12)', color: '#F7931A' }}>
+            <User size={18} />
           </div>
-          <div style={{ flex: 1 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '8px' }}>
-              <div style={{
-                width: '40px',
-                height: '40px',
-                borderRadius: '10px',
-                background: 'rgba(37,99,235,0.15)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                color: '#2563EB',
-              }}>
-                <User size={20} />
-              </div>
-              <h2 style={{ fontSize: '1.25rem', fontWeight: 'bold', color: 'white', margin: 0 }}>Profile Information</h2>
-            </div>
-            <p style={{ color: '#94A3B8', margin: 0 }}>Update your personal details</p>
+          <div>
+            <h2 className="text-base font-bold text-white">Profile Information</h2>
+            <p className="text-[#94A3B8] text-xs">Update your personal details</p>
           </div>
         </div>
 
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+        {/* Avatar + name */}
+        <div className="flex flex-col sm:flex-row sm:items-center gap-4 mb-6">
+          <div
+            className="w-16 h-16 rounded-full flex items-center justify-center text-white text-2xl font-bold flex-shrink-0"
+            style={{ background: 'linear-gradient(135deg, #F7931A, #FF6B2B)' }}
+          >
+            {initial}
+          </div>
+          <div className="flex-1 text-sm text-[#94A3B8]">
+            <p className="text-white font-medium">{session.user.name || 'No name set'}</p>
+            <p>{session.user.email}</p>
+          </div>
+        </div>
+
+        <div className="space-y-4">
+          {/* Full name input */}
           <div>
-            <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: '500', color: '#94A3B8', marginBottom: '8px' }}>
-              Full Name
-            </label>
+            <label className="block text-sm font-medium text-[#94A3B8] mb-2">Full Name</label>
             <input
-              style={{
-                width: '100%',
-                padding: '12px 16px',
-                backgroundColor: '#0A0F1E',
-                border: '1px solid rgba(255,255,255,0.1)',
-                borderRadius: '10px',
-                color: 'white',
-                fontSize: '0.95rem',
-              }}
+              className="w-full bg-[#0A0F1E] border border-white/10 rounded-xl px-4 py-3 text-white text-sm outline-none focus:border-[#F7931A]/40 focus:ring-1 focus:ring-[#F7931A]/20 transition-all"
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="Enter your name"
             />
           </div>
-          <div style={{ position: 'relative' }}>
-            <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: '500', color: '#94A3B8', marginBottom: '8px' }}>
-              Email Address
-            </label>
-            <input
-              style={{
-                width: '100%',
-                padding: '12px 16px',
-                backgroundColor: '#0A0F1E',
-                border: '1px solid rgba(255,255,255,0.1)',
-                borderRadius: '10px',
-                color: 'white',
-                paddingRight: '48px',
-              }}
-              value={session.user.email || ''}
-              disabled
-              placeholder="your@email.com"
-            />
-            <div style={{ position: 'absolute', inset: '0 12px 0 0', right: 0, paddingRight: '12px', display: 'flex', alignItems: 'center', pointerEvents: 'none' }}>
-              <Shield size={18} style={{ color: '#94A3B8' }} />
+
+          {/* Email (read-only) */}
+          <div>
+            <label className="block text-sm font-medium text-[#94A3B8] mb-2">Email Address</label>
+            <div className="relative">
+              <input
+                className="w-full bg-[#0A0F1E] border border-white/8 rounded-xl px-4 py-3 pr-12 text-[#64748B] text-sm cursor-not-allowed"
+                value={session.user.email || ''}
+                disabled
+                placeholder="your@email.com"
+              />
+              <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none">
+                <Shield size={15} className="text-[#4B5563]" />
+              </div>
             </div>
+            <p className="text-xs text-[#4B5563] mt-1">Email cannot be changed</p>
           </div>
-          <button
-            onClick={saveName}
-            disabled={saving}
-            style={{
-              alignSelf: 'flex-end',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px',
-              padding: '12px 24px',
-              background: 'linear-gradient(135deg, #2563EB, #0EA5E9)',
-              color: 'white',
-              fontSize: '0.95rem',
-              fontWeight: '600',
-              borderRadius: '10px',
-              border: 'none',
-              cursor: 'pointer',
-            }}
-          >
-            <Save size={16} />
-            {saving ? "Saving..." : "Save Changes"}
-          </button>
-          {success && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '12px 16px', backgroundColor: 'rgba(16,185,129,0.1)', border: '1px solid rgba(16,185,129,0.3)', borderRadius: '10px', color: '#10B981' }}>
-              <Check size={18} />
-              Profile updated successfully
-            </div>
-          )}
+
+          {/* Save button */}
+          <div className="flex items-center gap-3 flex-wrap">
+            <button
+              onClick={saveName}
+              disabled={saving}
+              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold text-white transition-all hover:opacity-90 disabled:opacity-60 disabled:cursor-not-allowed"
+              style={{ background: 'linear-gradient(135deg, #F7931A, #FF6B2B)' }}
+            >
+              <Save size={15} />
+              {saving ? "Saving…" : "Save Changes"}
+            </button>
+            {success && (
+              <div className="flex items-center gap-2 px-4 py-2 bg-green-500/10 border border-green-500/30 rounded-xl text-green-400 text-sm">
+                <Check size={15} />
+                Saved successfully
+              </div>
+            )}
+          </div>
         </div>
       </section>
 
-      {/* SECTION 2 — CREDITS AND PLANS */}
-      <section style={{ backgroundColor: '#111827', border: '1px solid rgba(255,255,255,0.06)', borderRadius: '24px', padding: '2rem', marginBottom: '24px' }}>
-        <div style={{ display: 'flex', alignItems: 'flex-start', gap: '24px', marginBottom: '32px' }}>
-          <div style={{
-            width: '40px',
-            height: '40px',
-            borderRadius: '10px',
-            background: 'rgba(245,158,11,0.15)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            color: '#F59E0B',
-          }}>
-            <Coins size={20} />
+      {/* SECTION 2 — CREDITS */}
+      <section className="bg-[#111827] border border-white/6 rounded-2xl p-6">
+        <div className="flex items-center gap-3 mb-6">
+          <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: 'rgba(245,158,11,0.12)', color: '#F59E0B' }}>
+            <Coins size={18} />
           </div>
           <div>
-            <h2 style={{ fontSize: '1.25rem', fontWeight: 'bold', color: 'white', margin: '0 0 4px 0' }}>Credits & Plans</h2>
-            <p style={{ color: '#94A3B8', margin: 0 }}>Purchase credits to continue using InterviewAI</p>
+            <h2 className="text-base font-bold text-white">Credits & Plans</h2>
+            <p className="text-[#94A3B8] text-xs">Payments launching soon — start with 30 free credits</p>
           </div>
         </div>
 
         {/* Balance banner */}
-        <div style={{
-          background: 'linear-gradient(135deg, rgba(37,99,235,0.15), rgba(6,182,212,0.1))',
-          border: '1px solid rgba(37,99,235,0.3)',
-          borderRadius: '12px',
-          padding: '24px',
-          marginBottom: '24px',
-        }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: 1 }}>
-              <Coins size={32} style={{ color: '#F59E0B' }} />
-              <div>
-                <p style={{ fontSize: '1.5rem', fontWeight: 'bold', color: 'white', margin: 0 }}>{balance}</p>
-                <p style={{ fontSize: '0.875rem', color: '#94A3B8', margin: '4px 0 0 0' }}>Credits Remaining</p>
-              </div>
+        <div className="rounded-2xl border border-[#F7931A]/20 p-5 mb-6" style={{ background: 'rgba(247,147,26,0.05)' }}>
+          <div className="flex items-center gap-4">
+            <Coins size={28} className="text-amber-400 flex-shrink-0" />
+            <div className="flex-1">
+              <p className="text-3xl font-bold text-white">{balance}</p>
+              <p className="text-[#94A3B8] text-sm">Credits Remaining</p>
             </div>
-            <p style={{ fontSize: '0.875rem', color: '#94A3B8' }}>Credits never expire</p>
+            <div className="text-right">
+              <span className="inline-flex items-center gap-1.5 text-xs text-[#94A3B8] bg-white/5 px-3 py-1.5 rounded-full">
+                <Zap size={11} className="text-[#F7931A]" />
+                Never expires
+              </span>
+            </div>
           </div>
         </div>
 
         {/* Plans */}
-        <div style={{ display: 'grid', gap: '24px', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))' }}>
-          {[
-            {
-              id: 'starter',
-              title: 'Starter',
-              price: '₹499',
-              credits: '50 credits',
-              features: ['Real-time AI answers', 'All interview types', '52+ languages', 'Credits never expire'],
-              buttonText: 'Get Starter'
-            },
-            {
-              id: 'pro',
-              title: 'Pro',
-              price: '₹1,199',
-              credits: '150 credits',
-              mostPopular: true,
-              features: ['Everything in Starter', 'Desi Mode 🇮🇳', 'AI Mock Interview (3 sessions)', 'Resume AI Enhancement', 'Priority support'],
-              buttonText: 'Get Pro →'
-            },
-            {
-              id: 'power',
-              title: 'Power',
-              price: '₹2,499',
-              credits: '400 credits',
-              features: ['Everything in Pro', 'Unlimited Mock Interviews', 'Advanced session analytics', 'Custom answer style', 'Dedicated support'],
-              buttonText: 'Get Power'
-            }
-          ].map((plan) => (
-            <div key={plan.id} style={{
-              position: 'relative',
-              borderRadius: '16px',
-              border: '1px solid rgba(255,255,255,0.08)',
-              padding: '24px',
-              transition: 'all 0.2s',
-              ...(plan.mostPopular ? {
-                borderColor: '#2563EB',
-                boxShadow: '0 0 0 4px rgba(37,99,235,0.2)',
-                background: 'linear-gradient(135deg, rgba(37,99,235,0.05), transparent)',
-                transform: 'scale(1.02)'
-              } : {})
-            }}>
+        <div className="grid sm:grid-cols-3 gap-4">
+          {plans.map((plan) => (
+            <div
+              key={plan.id}
+              className="relative rounded-2xl border p-5 flex flex-col"
+              style={{
+                backgroundColor: plan.mostPopular ? 'rgba(247,147,26,0.04)' : 'transparent',
+                borderColor: plan.mostPopular ? 'rgba(247,147,26,0.4)' : 'rgba(255,255,255,0.08)',
+              }}
+            >
               {plan.mostPopular && (
-                <div style={{
-                  position: 'absolute',
-                  top: '-12px',
-                  left: '50%',
-                  transform: 'translateX(-50%)',
-                  backgroundColor: '#2563EB',
-                  color: 'white',
-                  padding: '4px 12px',
-                  borderRadius: '9999px',
-                  fontSize: '0.65rem',
-                  fontWeight: 'bold',
-                  boxShadow: '0 4px 12px rgba(37,99,235,0.3)'
-                }}>
+                <div
+                  className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-0.5 rounded-full text-xs font-bold text-white whitespace-nowrap"
+                  style={{ background: 'linear-gradient(135deg, #F7931A, #FF6B2B)' }}
+                >
                   MOST POPULAR
                 </div>
               )}
-              <h3 style={{ fontSize: '0.75rem', fontWeight: '600', color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '8px' }}>
-                {plan.title}
-              </h3>
-              <div style={{ fontSize: '1.875rem', fontWeight: 'bold', color: 'white', marginBottom: '8px' }}>
-                {plan.price}
-                <span style={{ fontSize: '0.875rem', fontWeight: '400', color: '#94A3B8' }}>+ GST</span>
+              <div className="mb-3">
+                <p className="text-xs font-semibold uppercase tracking-wider text-[#94A3B8] mb-1">{plan.title}</p>
+                <div className="text-2xl font-bold text-white">
+                  {plan.price}
+                  <span className="text-sm font-normal text-[#94A3B8]"> + GST</span>
+                </div>
+                <p className="text-sm font-semibold mt-1" style={{ color: plan.mostPopular ? '#F7931A' : '#94A3B8' }}>
+                  🪙 {plan.credits}
+                </p>
               </div>
-              <div style={{ fontSize: '1.125rem', fontWeight: '600', color: '#2563EB', marginBottom: '24px' }}>
-                {plan.credits}
-              </div>
-              <p style={{ color: '#94A3B8', fontSize: '0.875rem', marginBottom: '24px' }}>
-                {plan.features.length === 4 ? '1-2 interviews' : plan.features.length === 5 ? '4-5 interviews' : '10+ interviews'}
-              </p>
-              <ul style={{ marginBottom: '32px' }}>
-                {plan.features.map((feature, i) => (
-                  <li key={i} style={{ display: 'flex', alignItems: 'center', gap: '12px', fontSize: '0.875rem', marginBottom: '12px' }}>
-                    <div style={{
-                      width: '20px',
-                      height: '20px',
-                      borderRadius: '4px',
-                      background: 'rgba(16,185,129,0.2)',
-                      border: '1px solid rgba(16,185,129,0.4)',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                    }}>
-                      <Check size={14} style={{ color: '#10B981' }} />
-                    </div>
-                    <span>{feature}</span>
+              <ul className="space-y-2 mb-5 flex-1">
+                {plan.features.map((f, i) => (
+                  <li key={i} className="flex items-start gap-2 text-xs text-[#94A3B8]">
+                    <Check size={12} className="text-green-400 mt-0.5 flex-shrink-0" />
+                    {f}
                   </li>
                 ))}
               </ul>
-              <button style={{
-                width: '100%',
-                padding: '12px 0',
-                borderRadius: '10px',
-                fontSize: '0.875rem',
-                fontWeight: '600',
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: '4px',
-                transition: 'all 0.2s',
-                border: 'none',
-                ...(plan.mostPopular ? {
-                  background: 'linear-gradient(135deg, #2563EB, #0EA5E9)',
-                  color: 'white',
-                  boxShadow: '0 8px 32px rgba(37,99,235,0.2)'
-                } : {
-                  background: 'transparent',
-                  border: '1px solid rgba(255,255,255,0.2)',
-                  color: '#94A3B8'
-                })
-              }}>
-                {plan.buttonText}
-              </button>
+              <div
+                className="w-full py-2.5 rounded-xl text-xs font-bold text-center cursor-not-allowed select-none"
+                style={
+                  plan.mostPopular
+                    ? { background: 'linear-gradient(135deg, #F7931A, #FF6B2B)', color: 'white', opacity: 0.65 }
+                    : { backgroundColor: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: '#64748B' }
+                }
+              >
+                Coming Soon
+              </div>
             </div>
           ))}
         </div>
-        <div style={{ textAlign: 'center', padding: '48px 0' }}>
-          <p style={{ fontSize: '0.875rem', color: '#94A3B8' }}>
-            🔒 Secure payments via Razorpay • Credits never expire • Instant delivery
-          </p>
-        </div>
+
+        <p className="text-center text-xs text-[#4B5563] mt-6">
+          🔒 Secure payments • Credits never expire • Instant delivery
+        </p>
       </section>
 
       {/* SECTION 3 — SESSION HISTORY */}
-      <section style={{ backgroundColor: '#111827', border: '1px solid rgba(255,255,255,0.06)', borderRadius: '24px', padding: '2rem', marginBottom: '24px' }}>
-        <div style={{ display: 'flex', alignItems: 'flex-start', gap: '24px', marginBottom: '32px' }}>
-          <div style={{
-            width: '40px',
-            height: '40px',
-            borderRadius: '10px',
-            background: 'rgba(139,92,246,0.15)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            color: '#8B5CF6',
-          }}>
-            <History size={20} />
+      <section className="bg-[#111827] border border-white/6 rounded-2xl p-6">
+        <div className="flex items-center gap-3 mb-6">
+          <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: 'rgba(139,92,246,0.12)', color: '#8B5CF6' }}>
+            <History size={18} />
           </div>
           <div>
-            <h2 style={{ fontSize: '1.25rem', fontWeight: 'bold', color: 'white', margin: '0 0 4px 0' }}>Session History</h2>
-            <p style={{ color: '#94A3B8', margin: 0 }}>Your recent interview sessions</p>
+            <h2 className="text-base font-bold text-white">Session History</h2>
+            <p className="text-[#94A3B8] text-xs">Your recent interview sessions</p>
           </div>
         </div>
 
-        <div style={{ overflowX: 'auto' }}>
-          <table style={{ width: '100%', backgroundColor: 'rgba(255,255,255,0.02)', backdropFilter: 'blur(8px)', borderRadius: '16px', border: '1px solid rgba(255,255,255,0.05)' }}>
-            <thead style={{ backgroundColor: 'rgba(255,255,255,0.03)' }}>
+        <div className="overflow-x-auto rounded-xl border border-white/5">
+          <table className="w-full">
+            <thead className="bg-white/3 border-b border-white/5">
               <tr>
-                <th style={{ padding: '12px 16px', fontWeight: '600', color: '#94A3B8', fontSize: '0.75rem', textTransform: 'uppercase' }}>Date</th>
-                <th style={{ padding: '12px 16px', fontWeight: '600', color: '#94A3B8', fontSize: '0.75rem', textTransform: 'uppercase' }}>Duration</th>
-                <th style={{ padding: '12px 16px', fontWeight: '600', color: '#94A3B8', fontSize: '0.75rem', textTransform: 'uppercase' }}>Type</th>
-                <th style={{ padding: '12px 16px', fontWeight: '600', color: '#94A3B8', fontSize: '0.75rem', textTransform: 'uppercase' }}>Credits</th>
+                {['Date', 'Duration', 'Type', 'Credits'].map((h) => (
+                  <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-[#94A3B8] uppercase tracking-wider">
+                    {h}
+                  </th>
+                ))}
               </tr>
             </thead>
             <tbody>
-              {sessions.map((s) => (
-                <tr key={s.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
-                  <td style={{ padding: '14px 16px', color: 'white', fontWeight: '500' }}>
-                    {new Date(s.createdAt).toLocaleDateString()}
-                  </td>
-                  <td style={{ padding: '14px 16px' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#94A3B8' }}>
-                      <Clock size={13} />
-                      {Math.round(s.duration / 60)} min
-                    </div>
-                  </td>
-                  <td style={{ padding: '14px 16px' }}>
-                    <span style={{ 
-                      display: 'inline-flex', 
-                      alignItems: 'center', 
-                      gap: '4px', 
-                      padding: '4px 8px', 
-                      borderRadius: '9999px', 
-                      fontSize: '0.75rem', 
-                      backgroundColor: 'rgba(37,99,235,0.1)', 
-                      color: 'rgb(96,165,250)', 
-                      border: '1px solid rgba(37,99,235,0.2)' 
-                    }}>
-                      {s.mode}
-                    </span>
-                  </td>
-                  <td style={{ padding: '14px 16px' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#F59E0B' }}>
-                      <Coins size={13} />
-                      {s.creditsUsed}
-                    </div>
-                  </td>
-                </tr>
-              ))}
-              {sessions.length === 0 && (
+              {sessions.length === 0 ? (
                 <tr>
-                  <td colSpan={4} style={{ padding: '64px 16px', textAlign: 'center' }}>
-                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '16px', maxWidth: '400px', margin: '0 auto' }}>
-                      <div style={{
-                        width: '72px',
-                        height: '72px',
-                        borderRadius: '18px',
-                        backgroundColor: 'rgba(30,58,90,0.5)',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        color: '#1E3A5F',
-                      }}>
-                        <History size={32} />
+                  <td colSpan={4} className="py-16 text-center">
+                    <div className="flex flex-col items-center gap-3">
+                      <div className="w-14 h-14 rounded-2xl bg-white/5 flex items-center justify-center text-[#4B5563]">
+                        <History size={24} />
                       </div>
-                      <h3 style={{ fontSize: '1.25rem', fontWeight: '600', color: '#D1D5DB' }}>No sessions yet</h3>
-                      <p style={{ color: '#94A3B8', fontSize: '0.875rem' }}>Start your first interview to see history here</p>
+                      <p className="text-[#64748B] text-sm">No sessions yet</p>
                     </div>
                   </td>
                 </tr>
+              ) : (
+                sessions.map((s, i) => (
+                  <tr key={s.id} className={`border-b border-white/4 hover:bg-white/2 transition-colors ${i === sessions.length - 1 ? 'border-b-0' : ''}`}>
+                    <td className="px-4 py-3 text-white text-sm font-medium">
+                      {new Date(s.createdAt).toLocaleDateString()}
+                    </td>
+                    <td className="px-4 py-3 text-[#94A3B8] text-sm">
+                      <span className="flex items-center gap-1.5">
+                        <Clock size={12} />
+                        {Math.round(s.duration / 60)} min
+                      </span>
+                    </td>
+                    <td className="px-4 py-3">
+                      <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-[#F7931A]/10 text-[#F7931A] border border-[#F7931A]/20">
+                        {s.mode}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3 text-[#94A3B8] text-sm">
+                      <span className="flex items-center gap-1.5">
+                        <Coins size={12} className="text-amber-400" />
+                        {s.creditsUsed}
+                      </span>
+                    </td>
+                  </tr>
+                ))
               )}
             </tbody>
           </table>
         </div>
       </section>
 
-      {/* SECTION 4 — DANGER ZONE */}
-      <section style={{ 
-        backgroundColor: 'rgba(239,68,68,0.03)', 
-        border: '1px solid rgba(239,68,68,0.2)', 
-        borderRadius: '24px', 
-        padding: '2rem', 
-        marginBottom: '24px' 
-      }}>
-        <div style={{ display: 'flex', alignItems: 'flex-start', gap: '24px', marginBottom: '32px' }}>
-          <div style={{
-            width: '40px',
-            height: '40px',
-            borderRadius: '10px',
-            background: 'rgba(239,68,68,0.15)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            color: '#EF4444',
-          }}>
-            <AlertTriangle size={20} />
+      {/* SECTION 4 — ACCOUNT */}
+      <section className="bg-red-500/3 border border-red-500/15 rounded-2xl p-6">
+        <div className="flex items-center gap-3 mb-5">
+          <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-red-500/10 text-red-400">
+            <LogOut size={18} />
           </div>
           <div>
-            <h2 style={{ fontSize: '1.25rem', fontWeight: 'bold', color: 'white', margin: '0 0 4px 0' }}>Account</h2>
-            <p style={{ color: '#94A3B8', margin: 0 }}>Manage your account access</p>
+            <h2 className="text-base font-bold text-white">Account</h2>
+            <p className="text-[#94A3B8] text-xs">Manage your session access</p>
           </div>
         </div>
         <button
           onClick={() => signOut({ callbackUrl: '/' })}
-          style={{
-            width: '100%',
-            background: 'transparent',
-            border: '1px solid rgba(239,68,68,0.4)',
-            borderRadius: '10px',
-            padding: '14px 20px',
-            color: '#EF4444',
-            fontSize: '0.95rem',
-            fontWeight: '500',
-            cursor: 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: '8px',
-            transition: 'all 0.2s',
-          }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.background = 'rgba(239,68,68,0.1)'
-            e.currentTarget.style.borderColor = '#EF4444'
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.background = 'transparent'
-            e.currentTarget.style.borderColor = 'rgba(239,68,68,0.4)'
-          }}
+          className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl border border-red-500/30 text-red-400 text-sm font-medium transition-all hover:bg-red-500/10 hover:border-red-500/60"
         >
-          <LogOut size={18} />
+          <LogOut size={16} />
           Sign Out of InterviewAI
         </button>
       </section>
     </div>
   )
 }
-

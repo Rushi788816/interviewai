@@ -29,13 +29,15 @@ export function useSpeechRecognition({
 
   const recognitionRef = useRef<any>(null)
   const silenceTimerRef = useRef<NodeJS.Timeout | null>(null)
+  const restartTimerRef = useRef<NodeJS.Timeout | null>(null)
   const finalTranscriptRef = useRef("")
   const onSilenceRef = useRef(onSilence)
   const isListeningRef = useRef(false)
+  const languageRef = useRef(isDesiMode ? "en-IN" : language)
 
-  useEffect(() => {
-    onSilenceRef.current = onSilence
-  }, [onSilence])
+  // Always keep refs up to date
+  useEffect(() => { onSilenceRef.current = onSilence }, [onSilence])
+  useEffect(() => { languageRef.current = isDesiMode ? "en-IN" : language }, [language, isDesiMode])
 
   const clearSilenceTimer = useCallback(() => {
     if (silenceTimerRef.current) {
@@ -44,132 +46,175 @@ export function useSpeechRecognition({
     }
   }, [])
 
+  const clearRestartTimer = useCallback(() => {
+    if (restartTimerRef.current) {
+      clearTimeout(restartTimerRef.current)
+      restartTimerRef.current = null
+    }
+  }, [])
+
   const startSilenceTimer = useCallback((text: string) => {
     clearSilenceTimer()
+
+    // Adaptive delay: fewer words = longer wait (user still forming the sentence)
+    const wordCount = text.trim().split(/\s+/).filter(Boolean).length
+    const delay = wordCount <= 2 ? 4000 : wordCount <= 5 ? 3000 : 2200
+
     silenceTimerRef.current = setTimeout(() => {
-      const textToSend = text.trim()
-      console.log("Silence timer fired, sending:", textToSend)
-      if (textToSend && onSilenceRef.current) {
+      const textToSend = finalTranscriptRef.current.trim()
+      const words = textToSend.split(/\s+/).filter(Boolean)
+
+      // Need at least 4 words — avoids sending noise, stray words, half-phrases
+      if (words.length < 4) {
+        // Extend the wait one more time before giving up
+        silenceTimerRef.current = setTimeout(() => {
+          const retryText = finalTranscriptRef.current.trim()
+          if (retryText.split(/\s+/).filter(Boolean).length >= 2 && onSilenceRef.current) {
+            console.log("Sending after extended wait:", retryText)
+            onSilenceRef.current({ finalTranscript: retryText })
+            finalTranscriptRef.current = ""
+            setTranscript("")
+          }
+        }, 3000)
+        return
+      }
+
+      console.log("Silence detected, sending:", textToSend)
+      if (onSilenceRef.current) {
         onSilenceRef.current({ finalTranscript: textToSend })
         finalTranscriptRef.current = ""
         setTranscript("")
       }
-    }, 1500)
+    }, delay)
   }, [clearSilenceTimer])
 
-  const initRecognition = useCallback(() => {
-    if (typeof window === "undefined") return null
+  // ── Core: build a fresh SpeechRecognition instance ──────────────────────────
+  // Stored in a ref so onend/onerror closures always call the latest version
+  const buildAndStartRecognition = useCallback(() => {
+    if (typeof window === "undefined") return
 
     const SpeechRecognition =
-      (window as any).SpeechRecognition ||
-      (window as any).webkitSpeechRecognition
-
+      (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition
     if (!SpeechRecognition) {
-      setError("Speech recognition not supported in this browser. Use Chrome.")
-      return null
+      setError("Speech recognition not supported. Use Chrome.")
+      return
     }
 
-    const recognition = new SpeechRecognition()
-    recognition.continuous = true
-    recognition.interimResults = true
-    recognition.lang = isDesiMode ? "en-IN" : language
-    recognition.maxAlternatives = 1
+    // Tear down previous instance cleanly before creating new one
+    if (recognitionRef.current) {
+      try { recognitionRef.current.onend = null; recognitionRef.current.stop() } catch {}
+      recognitionRef.current = null
+    }
 
-    recognition.onstart = () => {
-      console.log("Speech recognition started")
+    const rec = new SpeechRecognition()
+    rec.continuous = true
+    rec.interimResults = true
+    rec.lang = languageRef.current
+    rec.maxAlternatives = 1
+
+    rec.onstart = () => {
+      console.log("Recognition started")
       setIsListening(true)
       isListeningRef.current = true
       setError(null)
     }
 
-    recognition.onend = () => {
-      console.log("Speech recognition ended, isListening:", isListeningRef.current)
-      if (isListeningRef.current) {
-        // Auto restart if we want to keep listening
-        try {
-          recognition.start()
-        } catch (e) {
-          console.log("Restart failed:", e)
-          setIsListening(false)
-          isListeningRef.current = false
-        }
-      } else {
+    rec.onend = () => {
+      console.log("Recognition ended")
+      clearRestartTimer()
+
+      if (!isListeningRef.current) {
+        // Intentional stop — update state and quit
         setIsListening(false)
+        return
       }
+
+      // Unintentional end (browser timeout, tab switch, pause too long) — restart
+      console.log("Unintentional end, restarting in 300ms…")
+      restartTimerRef.current = setTimeout(() => {
+        if (!isListeningRef.current) return // Was stopped while waiting
+        console.log("Restarting recognition with fresh instance")
+        buildAndStartRecognition()
+      }, 300)
     }
 
-    recognition.onerror = (event: any) => {
-      console.error("Speech recognition error:", event.error)
-      if (event.error === "no-speech") return
-      if (event.error === "aborted") return
-      setError(`Mic error: ${event.error}`)
-      setIsListening(false)
+    rec.onerror = (event: any) => {
+      const { error: errCode } = event
+      console.warn("Recognition error:", errCode)
+
+      // These are non-fatal — browser will fire onend, which handles restart
+      if (errCode === "no-speech" || errCode === "aborted") return
+
+      // Fatal errors
+      console.error("Fatal recognition error:", errCode)
+      setError(`Microphone error: ${errCode}`)
       isListeningRef.current = false
+      setIsListening(false)
     }
 
-    recognition.onresult = (event: any) => {
+    rec.onresult = (event: any) => {
       let interim = ""
       let finalChunk = ""
 
       for (let i = event.resultIndex; i < event.results.length; i++) {
         const result = event.results[i]
-        if (result.isFinal) {
-          finalChunk += result[0].transcript
-        } else {
-          interim += result[0].transcript
-        }
+        if (result.isFinal) finalChunk += result[0].transcript
+        else interim += result[0].transcript
       }
 
       if (finalChunk) {
         finalTranscriptRef.current += finalChunk + " "
         setTranscript(finalTranscriptRef.current.trim())
-        console.log("Speech detected, starting silence timer. Final so far:", finalTranscriptRef.current)
         startSilenceTimer(finalTranscriptRef.current)
       }
 
       setInterimTranscript(interim)
     }
 
-    return recognition
-  }, [language, isDesiMode, startSilenceTimer])
+    recognitionRef.current = rec
+
+    try {
+      rec.start()
+    } catch (e) {
+      console.error("Failed to start recognition:", e)
+      setError("Failed to access microphone")
+      isListeningRef.current = false
+      setIsListening(false)
+    }
+  }, [startSilenceTimer, clearRestartTimer])
+
+  // Keep buildAndStartRecognition in a ref so onend closures always have latest version
+  const buildAndStartRef = useRef(buildAndStartRecognition)
+  useEffect(() => { buildAndStartRef.current = buildAndStartRecognition }, [buildAndStartRecognition])
+
+  // ── Public toggle ────────────────────────────────────────────────────────────
+  const lastStartRef = useRef(0)
 
   const toggleListening = useCallback(() => {
     if (isListeningRef.current) {
-      // Stop listening
-      console.log("Stopping speech recognition")
+      // ── STOP ──
+      console.log("Stopping recognition")
       isListeningRef.current = false
       setIsListening(false)
       clearSilenceTimer()
+      clearRestartTimer()
       if (recognitionRef.current) {
-        try {
-          recognitionRef.current.stop()
-        } catch (e) {
-          console.log("Stop error:", e)
-        }
+        try { recognitionRef.current.stop() } catch {}
       }
     } else {
-      // Start listening
-      console.log("Starting speech recognition")
+      // ── START ──
+      const now = Date.now()
+      if (now - lastStartRef.current < 500) return // debounce
+      lastStartRef.current = now
+
       finalTranscriptRef.current = ""
       setTranscript("")
       setInterimTranscript("")
+      isListeningRef.current = true // set before build so onend knows
 
-      const recognition = initRecognition()
-      if (!recognition) return
-
-      recognitionRef.current = recognition
-      isListeningRef.current = true
-
-      try {
-        recognition.start()
-      } catch (e) {
-        console.error("Failed to start recognition:", e)
-        setError("Failed to start microphone")
-        isListeningRef.current = false
-        setIsListening(false)
-      }
+      buildAndStartRef.current()
     }
-  }, [initRecognition, clearSilenceTimer])
+  }, [clearSilenceTimer, clearRestartTimer])
 
   const resetTranscript = useCallback(() => {
     finalTranscriptRef.current = ""
@@ -178,7 +223,7 @@ export function useSpeechRecognition({
     clearSilenceTimer()
   }, [clearSilenceTimer])
 
-  // Update language when it changes
+  // Update language on the active recognition without restarting
   useEffect(() => {
     if (recognitionRef.current && isListeningRef.current) {
       recognitionRef.current.lang = isDesiMode ? "en-IN" : language
@@ -190,13 +235,12 @@ export function useSpeechRecognition({
     return () => {
       isListeningRef.current = false
       clearSilenceTimer()
+      clearRestartTimer()
       if (recognitionRef.current) {
-        try {
-          recognitionRef.current.stop()
-        } catch (e) {}
+        try { recognitionRef.current.onend = null; recognitionRef.current.stop() } catch {}
       }
     }
-  }, [clearSilenceTimer])
+  }, [clearSilenceTimer, clearRestartTimer])
 
   return {
     transcript,

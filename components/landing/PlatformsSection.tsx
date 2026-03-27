@@ -15,7 +15,7 @@ export default function PlatformsSection() {
           Works where you{' '}
           <span
             className="bg-clip-text text-transparent"
-            style={{ backgroundImage: 'linear-gradient(90deg, #6c63ff, #ff6584)' }}
+            style={{ backgroundImage: 'linear-gradient(90deg, #F7931A, #FF6B2B)' }}
           >
             already interview
           </span>

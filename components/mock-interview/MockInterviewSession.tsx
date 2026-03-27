@@ -202,7 +202,7 @@ export default function MockInterviewSession({
           type="button"
           disabled={credits < 5}
           onClick={generate}
-          className="w-full rounded-xl bg-gradient-to-r from-[#6c63ff] to-[#9b8fff] py-4 font-semibold text-white disabled:opacity-40"
+          className="w-full rounded-xl bg-gradient-to-r from-[#F7931A] to-[#FF6B2B] py-4 font-semibold text-white disabled:opacity-40"
         >
           Start Mock Interview (5 credits)
         </button>
@@ -251,7 +251,7 @@ export default function MockInterviewSession({
           type="button"
           onClick={submitAnswer}
           disabled={!answer.trim() || !!scorePreview}
-          className="w-full rounded-xl bg-gradient-to-r from-[#6c63ff] to-[#9b8fff] py-3 font-semibold disabled:opacity-40"
+          className="w-full rounded-xl bg-gradient-to-r from-[#F7931A] to-[#FF6B2B] py-3 font-semibold disabled:opacity-40"
         >
           {last ? 'View Results' : 'Submit Answer'}
         </button>

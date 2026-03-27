@@ -21,7 +21,7 @@ export default function StatsRow() {
               <div key={label}>
                 <p
                   className="text-3xl md:text-4xl font-bold bg-clip-text text-transparent mb-2"
-                  style={{ backgroundImage: 'linear-gradient(90deg, #6c63ff, #ff6584)' }}
+                  style={{ backgroundImage: 'linear-gradient(90deg, #F7931A, #FF6B2B)' }}
                 >
                   {value}
                 </p>
