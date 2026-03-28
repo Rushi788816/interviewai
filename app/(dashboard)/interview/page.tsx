@@ -26,7 +26,7 @@ export default function InterviewPage() {
   if (!session) return null
 
   return (
-    <div style={{ minHeight: "100vh", background: "#030304", padding: "32px 24px" }}>
+    <div style={{ minHeight: "100vh", background: "#030304", padding: "clamp(16px, 4vw, 32px) clamp(12px, 4vw, 24px)" }}>
       <InterviewAssistant
         showFloatingLauncher={false}
         defaultOpen={true}

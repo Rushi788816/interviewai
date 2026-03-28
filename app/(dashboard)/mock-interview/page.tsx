@@ -25,7 +25,7 @@ export default function MockInterviewPage() {
   }
 
   // Block access — show friendly gate instead of letting them start and fail mid-session
-  if (!creditsLoading && balance < 5) {
+  if (!creditsLoading && balance < 10) {
     return (
       <div className="min-h-screen bg-[#0a0a0f] flex items-center justify-center px-4">
         <div className="max-w-md w-full text-center space-y-6 bg-[#111827] border border-white/10 rounded-2xl p-10">
@@ -34,7 +34,7 @@ export default function MockInterviewPage() {
           </div>
           <h2 className="text-2xl font-bold text-white">Not enough credits</h2>
           <p className="text-[#94A3B8]">
-            Mock Interview requires <span className="text-white font-semibold">at least 5 credits</span> to generate questions.
+            Mock Interview requires <span className="text-white font-semibold">at least 10 credits</span> to generate questions.
             You currently have <span className="text-amber-400 font-semibold">{balance} credit{balance !== 1 ? 's' : ''}</span>.
           </p>
           <div className="flex flex-col gap-3">
@@ -58,7 +58,7 @@ export default function MockInterviewPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#0a0a0f] p-2 md:p-0">
+    <div className="min-h-screen bg-[#0a0a0f] px-4 py-6 sm:px-6 md:px-8 md:py-8">
       <MockInterviewSession userId={session.user.id} credits={balance} />
     </div>
   )

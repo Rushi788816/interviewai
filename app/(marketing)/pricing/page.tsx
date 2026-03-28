@@ -77,7 +77,7 @@ export default function PricingPage() {
             <span className="w-2 h-2 rounded-full bg-[#F7931A] animate-pulse" />
             Simple, honest pricing
           </div>
-          <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-white mb-5 leading-tight">
+          <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold text-white mb-5 leading-tight">
             Pay once.{' '}
             <span className="bg-clip-text text-transparent" style={{ backgroundImage: 'linear-gradient(90deg, #F7931A, #FF6B2B)' }}>
               Ace forever.
@@ -89,8 +89,8 @@ export default function PricingPage() {
         </div>
 
         {/* Coming soon banner */}
-        <div className="mb-10 flex justify-center">
-          <div className="inline-flex items-center gap-3 px-6 py-3 rounded-2xl border border-[#F7931A]/20 bg-[#F7931A]/5">
+        <div className="mb-10 flex justify-center px-2">
+          <div className="flex flex-col sm:flex-row items-center gap-3 px-5 py-4 rounded-2xl border border-[#F7931A]/20 bg-[#F7931A]/5 w-full sm:w-auto text-center sm:text-left">
             <span className="text-xl">🚀</span>
             <div>
               <p className="text-white font-semibold text-sm">Payments launching soon</p>
@@ -98,7 +98,7 @@ export default function PricingPage() {
             </div>
             <Link
               href="/signup"
-              className="ml-4 px-4 py-1.5 rounded-xl text-sm font-semibold text-white transition-opacity hover:opacity-90"
+              className="sm:ml-4 px-4 py-2 rounded-xl text-sm font-semibold text-white transition-opacity hover:opacity-90 w-full sm:w-auto"
               style={{ background: 'linear-gradient(135deg, #F7931A, #FF6B2B)' }}
             >
               Get Free Credits →

@@ -75,14 +75,12 @@ export default function InterviewAssistant({ userId, credits: creditsProp, showF
     language: isDesiMode ? "en-IN" : language,
     isDesiMode,
     onSilence: async ({ finalTranscript }: { finalTranscript: string }) => {
-      console.log(`[AI] onSilence received: "${finalTranscript}"`)
       if (!finalTranscript) return
       const words = finalTranscript.trim().split(/\s+/).filter(Boolean)
       // Require at least 3 words — avoids firing on noise or single stray words
-      if (words.length < 3) { console.log(`[AI] skipped — only ${words.length} word(s)`); return }
-      if (sessionPhase !== "running") { console.log("[AI] skipped — session not running"); return }
+      if (words.length < 3) return
+      if (sessionPhase !== "running") return
 
-      console.log(`[AI] sending question to API: "${finalTranscript}"`)
       setLiveQuestion(finalTranscript)
       setStreamingAnswer("")
       setIsStreamingAnswer(true)
@@ -104,7 +102,6 @@ export default function InterviewAssistant({ userId, credits: creditsProp, showF
           }),
         })
 
-        console.log(`[AI] API response status=${response.status}`)
         if (!response.ok || !response.body) {
           console.error("[AI] bad response or no body")
           setIsStreamingAnswer(false)
@@ -189,7 +186,15 @@ export default function InterviewAssistant({ userId, credits: creditsProp, showF
     }
   }, [sessionPhase, isListening, toggleListening, resetTranscript, addToast])
 
-  const handleStop = () => {
+  const handleStop = async () => {
+    // Snapshot state before clearing
+    const duration = elapsedSeconds
+    const savedQa = qaHistory
+    const savedInterviewType = interviewType
+    const savedIsDesiMode = isDesiMode
+    const savedLanguage = isDesiMode ? "en-IN" : language
+    const savedJobRole = storeContext?.jobRole ?? sessionContext?.jobRole ?? ""
+
     setSessionPhase("idle")
     setElapsedSeconds(0)
     resetTranscript()
@@ -200,6 +205,29 @@ export default function InterviewAssistant({ userId, credits: creditsProp, showF
     eAPI()?.clearOverlay()
     // Destroy the overlay window when session fully stops
     eAPI()?.destroyOverlay()
+
+    // Persist session if any questions were answered
+    const creditsUsed = savedQa.length
+    if (creditsUsed > 0) {
+      try {
+        await fetch("/api/sessions/save", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            duration,
+            creditsUsed,
+            qaHistory: savedQa,
+            language: savedLanguage,
+            mode: savedInterviewType,
+            isDesiMode: savedIsDesiMode,
+            jobRole: savedJobRole,
+          }),
+        })
+        refetchCredits()
+      } catch {
+        // Session data lives in local Q&A history — silent fail is acceptable
+      }
+    }
   }
 
   const handleDesiToggle = () => {

@@ -32,7 +32,7 @@ export default function QuestionCard({
       <div className="inline-block rounded-full border border-violet-500/40 bg-violet-500/10 px-3 py-1 text-xs font-semibold text-violet-200">
         Question {index} of {total}
       </div>
-      <div className="border-l-4 border-violet-500 bg-[#16161f] p-6 text-lg leading-relaxed text-white">
+      <div className="border-l-4 border-violet-500 bg-[#16161f] p-4 sm:p-6 text-base sm:text-lg leading-relaxed text-white">
         {question}
       </div>
       {recording && (

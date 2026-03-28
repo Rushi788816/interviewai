@@ -182,7 +182,7 @@ export default function ResumeBuilder({
             className="mt-3 rounded-xl bg-gradient-to-r from-[#6c63ff] to-[#9b8fff] px-4 py-2 font-semibold"
             onClick={() => enhance('summary', data.summary, '', (t) => set({ summary: t }))}
           >
-            ✨ AI Enhance
+            ✨ AI Enhance (2 credits) (2 credits)
           </button>
         </div>
       )}
@@ -249,7 +249,7 @@ export default function ResumeBuilder({
                     })
                   }
                 >
-                  ✨ AI Enhance
+                  ✨ AI Enhance (2 credits)
                 </button>
                 <button
                   type="button"
@@ -365,7 +365,7 @@ export default function ResumeBuilder({
                   })
                 }
               >
-                ✨ AI Enhance
+                ✨ AI Enhance (2 credits)
               </button>
               <button
                 type="button"

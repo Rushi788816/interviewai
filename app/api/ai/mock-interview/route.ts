@@ -61,8 +61,8 @@ export async function POST(request: Request) {
         const m = cleaned.match(/\[[\s\S]*\]/)
         questions = m ? (JSON.parse(m[0]) as string[]) : []
       }
-      if (!Array.isArray(questions) || questions.length < 1) {
-        return Response.json({ error: 'Failed to parse questions' }, { status: 500 })
+      if (!Array.isArray(questions) || questions.length < 5) {
+        return Response.json({ error: 'Failed to generate all 5 questions. Please try again.' }, { status: 500 })
       }
 
       await prisma.$transaction([

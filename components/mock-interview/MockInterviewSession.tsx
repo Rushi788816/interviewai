@@ -135,16 +135,16 @@ export default function MockInterviewSession({
 
   if (step === 1) {
     return (
-      <div className="mx-auto max-w-4xl space-y-8 text-white">
+      <div className="mx-auto max-w-4xl space-y-6 text-white">
         <div>
-          <h1 className="text-3xl font-bold">🎯 AI Mock Interview</h1>
-          <p className="mt-2 text-zinc-400">
-            Pick your role, company type, and difficulty. We&apos;ll generate 5 tailored questions (5 credits).
+          <h1 className="text-2xl sm:text-3xl font-bold">🎯 AI Mock Interview</h1>
+          <p className="mt-2 text-sm sm:text-base text-zinc-400">
+            Pick your role, company type, and difficulty. We&apos;ll generate 5 tailored questions (10 credits).
           </p>
         </div>
-        {credits < 5 && (
+        {credits < 10 && (
           <p className="rounded-xl border border-red-500/40 bg-red-500/10 px-4 py-3 text-red-200">
-            You need at least 5 credits to start.
+            You need at least 10 credits to start.
           </p>
         )}
         <div>
@@ -200,11 +200,11 @@ export default function MockInterviewSession({
         </div>
         <button
           type="button"
-          disabled={credits < 5}
+          disabled={credits < 10}
           onClick={generate}
           className="w-full rounded-xl bg-gradient-to-r from-[#F7931A] to-[#FF6B2B] py-4 font-semibold text-white disabled:opacity-40"
         >
-          Start Mock Interview (5 credits)
+          Start Mock Interview (10 credits)
         </button>
       </div>
     )
@@ -226,7 +226,7 @@ export default function MockInterviewSession({
     const q = questions[qi]
     const last = qi === questions.length - 1
     return (
-      <div className="mx-auto max-w-3xl space-y-6 text-white">
+      <div className="mx-auto max-w-3xl space-y-4 sm:space-y-6 text-white">
         <div className="h-2 w-full overflow-hidden rounded-full bg-zinc-800">
           <div
             className="h-full bg-violet-500 transition-all"

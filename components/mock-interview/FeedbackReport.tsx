@@ -29,8 +29,8 @@ export default function FeedbackReport({
     Math.round((i.clarity + i.relevance + i.structure) / 3)
 
   return (
-    <div className="mx-auto max-w-3xl space-y-8 text-white">
-      <h2 className="text-center text-3xl font-bold">🎉 Interview Complete!</h2>
+    <div className="mx-auto max-w-3xl space-y-6 text-white">
+      <h2 className="text-center text-2xl sm:text-3xl font-bold">🎉 Interview Complete!</h2>
 
       <div className="flex justify-center">
         <div
@@ -110,18 +110,18 @@ export default function FeedbackReport({
         ))}
       </div>
 
-      <div className="flex flex-wrap gap-4">
+      <div className="flex flex-col sm:flex-row gap-3">
         <button
           type="button"
           onClick={onTryAgain}
-          className="rounded-xl bg-gradient-to-r from-[#F7931A] to-[#FF6B2B] px-6 py-3 font-semibold text-white"
+          className="w-full sm:w-auto rounded-xl bg-gradient-to-r from-[#F7931A] to-[#FF6B2B] px-6 py-3 font-semibold text-white text-center"
         >
           Try Again
         </button>
         <button
           type="button"
           onClick={onSave}
-          className="rounded-xl border border-white/20 bg-[#16161f] px-6 py-3 font-semibold text-white"
+          className="w-full sm:w-auto rounded-xl border border-white/20 bg-[#16161f] px-6 py-3 font-semibold text-white text-center"
         >
           Save Results
         </button>

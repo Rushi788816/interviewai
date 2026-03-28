@@ -48,7 +48,7 @@ export default function ResumePreview({
       addToast('PDF downloaded', 'success')
     } catch (e) {
       console.error(e)
-      addToast('Export failed', 'error')
+      addToast('PDF export failed. Make sure your resume has content and try again.', 'error')
     }
   }
 
@@ -93,7 +93,7 @@ export default function ResumePreview({
           disabled={loading}
           className="rounded-xl border border-white/20 bg-[#16161f] px-4 py-2 text-sm font-semibold text-white"
         >
-          {loading ? '…' : '📊 Check ATS Score'}
+          {loading ? '…' : '📊 Check ATS Score (3 credits)'}
         </button>
       </div>
       <div id="resume-preview" className="overflow-hidden rounded-xl border border-zinc-200 shadow-xl">

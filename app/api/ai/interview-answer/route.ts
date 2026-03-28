@@ -19,8 +19,6 @@ export async function POST(req: Request) {
       return Response.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    console.log('API called, GROQ_API_KEY present:', !!process.env.GROQ_API_KEY?.trim())
-
     const body = await req.json()
     const {
       question,
@@ -34,8 +32,6 @@ export async function POST(req: Request) {
       language?: string
       sessionContext?: SessionContext | null
     }
-
-    console.log('interview-answer called:', { question, isDesiMode, interviewType })
 
     if (!process.env.GROQ_API_KEY?.trim()) {
       return Response.json({ error: 'GROQ_API_KEY not configured' }, { status: 500 })

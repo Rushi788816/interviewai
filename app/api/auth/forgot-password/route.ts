@@ -23,11 +23,12 @@ export async function POST(req: NextRequest) {
     const token = crypto.randomBytes(32).toString('hex')
     const expires = new Date(Date.now() + 60 * 60 * 1000) // 1 hour
 
-    // Store token in Session table (reuse existing table as a lightweight reset token store)
-    await prisma.session.upsert({
-      where: { token: `reset_${normalizedEmail}` },
-      update: { token: `reset_${normalizedEmail}`, expiresAt: expires, userId: user.id },
-      create: { token: `reset_${normalizedEmail}`, expiresAt: expires, userId: user.id },
+    // Remove any existing reset tokens for this user, then store the new one
+    await prisma.session.deleteMany({
+      where: { userId: user.id, token: { startsWith: 'reset_' } },
+    })
+    await prisma.session.create({
+      data: { token: `reset_${token}`, expiresAt: expires, userId: user.id },
     })
 
     const resetUrl = `${process.env.NEXTAUTH_URL}/reset-password?token=${token}&email=${encodeURIComponent(normalizedEmail)}`
@@ -62,9 +63,6 @@ export async function POST(req: NextRequest) {
           </div>
         `,
       })
-    } else {
-      // Log for dev — remove in production
-      console.log('[FORGOT PASSWORD] Reset link (SMTP not configured):', resetUrl)
     }
 
     return NextResponse.json({ success: true })
