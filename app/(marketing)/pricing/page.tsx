@@ -114,7 +114,7 @@ export default function PricingPage() {
               className={`relative rounded-3xl border p-8 transition-all duration-300 flex flex-col ${
                 plan.mostPopular
                   ? 'border-[#F7931A]/60 shadow-[0_0_40px_rgba(247,147,26,0.15)] scale-[1.02]'
-                  : 'border-white/8 hover:border-[#F7931A]/30 hover:shadow-[0_0_24px_rgba(247,147,26,0.08)]'
+                  : 'border-white/10 hover:border-[#F7931A]/30 hover:shadow-[0_0_24px_rgba(247,147,26,0.08)]'
               }`}
               style={{ backgroundColor: '#111827' }}
             >
@@ -193,7 +193,7 @@ export default function PricingPage() {
         </div>
 
         {/* Feature comparison row */}
-        <div className="rounded-3xl border border-white/8 bg-[#111827] p-8 mb-20">
+        <div className="rounded-3xl border border-white/10 bg-[#111827] p-8 mb-20">
           <h2 className="text-2xl font-bold text-white text-center mb-8">Everything you get</h2>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-6 text-center">
             {[
@@ -241,7 +241,7 @@ export default function PricingPage() {
                 a: 'Payments are launching soon. Sign up now to get 30 free credits and be first in line when plans go live.',
               },
             ].map((faq, i) => (
-              <div key={i} className="border-b border-white/8 pb-6 last:border-b-0 last:pb-0">
+              <div key={i} className="border-b border-white/10 pb-6 last:border-b-0 last:pb-0">
                 <h4 className="text-white font-semibold mb-2">{faq.q}</h4>
                 <p className="text-[#94A3B8] text-sm leading-relaxed">{faq.a}</p>
               </div>

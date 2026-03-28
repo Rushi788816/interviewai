@@ -36,22 +36,33 @@
       {
         "from": ".next/standalone/node_modules",
         "to": "app/.next/standalone/node_modules",
-        "filter": ["**"]
+        "filter": [
+          "**"
+        ]
       },
       {
         "from": ".next/standalone",
         "to": "app/.next/standalone",
-        "filter": ["*", "!node_modules", ".next/**"]
+        "filter": [
+          "*",
+          "!node_modules",
+          ".next/**"
+        ]
       },
       {
         "from": ".next/static",
         "to": "app/.next/standalone/.next/static",
-        "filter": ["**"]
+        "filter": [
+          "**"
+        ]
       },
       {
         "from": "public",
         "to": "app/.next/standalone/public",
-        "filter": ["**/*", "!downloads/**"]
+        "filter": [
+          "**/*",
+          "!downloads/**"
+        ]
       }
     ],
     "win": {
@@ -87,6 +98,7 @@
     "@hookform/resolvers": "^3",
     "@prisma/client": "^5",
     "@types/bcryptjs": "^2.4.6",
+    "@types/nodemailer": "^7.0.11",
     "bcryptjs": "^3.0.3",
     "clsx": "^2",
     "framer-motion": "^11",
@@ -96,6 +108,7 @@
     "lucide-react": "^0.400.0",
     "next": "14.2.0",
     "next-auth": "^4",
+    "nodemailer": "^7.0.13",
     "pdf-parse": "^2.4.5",
     "razorpay": "^2",
     "react": "^18",

@@ -53,7 +53,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     <div className="min-h-screen bg-[#0A0F1E]">
 
       {/* Mobile top bar */}
-      <div className="lg:hidden flex items-center justify-between border-b border-white/8 bg-[#0A0F1E] px-4 py-3 sticky top-0 z-40">
+      <div className="lg:hidden flex items-center justify-between border-b border-white/10 bg-[#0A0F1E] px-4 py-3 sticky top-0 z-40">
         <Link
           href="/dashboard"
           className="flex items-center gap-2 text-base font-bold"
@@ -96,7 +96,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 </Link>
               )
             })}
-            <div className="mt-4 pt-4 border-t border-white/8">
+            <div className="mt-4 pt-4 border-t border-white/10">
               <button
                 onClick={() => signOut({ callbackUrl: '/' })}
                 className="w-full rounded-xl px-4 py-3.5 text-sm font-medium text-red-400 text-left border border-red-400/20 hover:bg-red-500/10 transition-all"

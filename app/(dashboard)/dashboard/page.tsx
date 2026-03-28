@@ -61,7 +61,7 @@ function StatCard({
   value: string | number
 }) {
   return (
-    <div className="rounded-2xl border border-white/8 bg-[#111827] p-5 flex flex-col gap-3 hover:border-[#F7931A]/20 transition-colors">
+    <div className="rounded-2xl border border-white/10 bg-[#111827] p-5 flex flex-col gap-3 hover:border-[#F7931A]/20 transition-colors">
       <div
         className="w-11 h-11 rounded-xl flex items-center justify-center"
         style={{ backgroundColor: bg, color }}
@@ -272,7 +272,7 @@ export default function DashboardPage() {
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {loading
           ? Array.from({ length: 4 }).map((_, i) => (
-              <div key={i} className="h-32 bg-[#111827] rounded-2xl border border-white/8 animate-pulse" />
+              <div key={i} className="h-32 bg-[#111827] rounded-2xl border border-white/10 animate-pulse" />
             ))
           : statCards.map((card) => (
               <StatCard key={card.label} {...card} />
@@ -324,7 +324,7 @@ export default function DashboardPage() {
           )}
         </div>
 
-        <div className="rounded-2xl border border-white/8 bg-[#111827] overflow-hidden">
+        <div className="rounded-2xl border border-white/10 bg-[#111827] overflow-hidden">
           {loading ? (
             <div className="p-6 space-y-3">
               {[1, 2, 3].map((i) => (

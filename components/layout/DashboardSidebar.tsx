@@ -28,10 +28,10 @@ export default function DashboardSidebar() {
   const { balance, isLoading } = useCredits()
 
   return (
-    <aside className="hidden lg:flex w-[240px] shrink-0 flex-col border-r border-white/8 bg-[#0A0F1E]" style={{ minHeight: '100vh' }}>
+    <aside aria-label="Sidebar navigation" className="hidden lg:flex w-[240px] shrink-0 flex-col border-r border-white/10 bg-[#0A0F1E]" style={{ minHeight: '100vh' }}>
 
       {/* Logo */}
-      <div className="px-5 py-5 border-b border-white/8">
+      <div className="px-5 py-5 border-b border-white/10">
         <Link
           href="/dashboard"
           className="flex items-center gap-2 text-base font-bold"
@@ -47,7 +47,7 @@ export default function DashboardSidebar() {
       </div>
 
       {/* Nav items */}
-      <nav className="flex flex-1 flex-col gap-1 px-3 py-5">
+      <nav aria-label="Dashboard navigation" className="flex flex-1 flex-col gap-1 px-3 py-5">
         {nav.map((item) => {
           const active = pathname === item.href || (item.href !== '/dashboard' && pathname.startsWith(item.href + '/'))
           return (
@@ -75,7 +75,7 @@ export default function DashboardSidebar() {
       </nav>
 
       {/* Bottom credits + signout */}
-      <div className="border-t border-white/8 p-4 space-y-3">
+      <div className="border-t border-white/10 p-4 space-y-3">
         {/* Credits pill */}
         <div className="flex items-center justify-between rounded-xl border border-[#F7931A]/20 bg-[#F7931A]/8 px-3 py-2.5">
           <div className="flex items-center gap-2">
@@ -100,7 +100,7 @@ export default function DashboardSidebar() {
 
         <button
           onClick={() => signOut({ callbackUrl: '/' })}
-          className="flex items-center gap-2 w-full rounded-xl border border-white/8 py-2.5 px-3 text-sm text-[#94A3B8] hover:bg-white/5 hover:text-white transition-all"
+          className="flex items-center gap-2 w-full rounded-xl border border-white/10 py-2.5 px-3 text-sm text-[#94A3B8] hover:bg-white/5 hover:text-white transition-all"
         >
           <LogOut size={16} />
           Sign out

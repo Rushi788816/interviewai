@@ -3,6 +3,7 @@ import { useState } from "react"
 import { signIn } from "next-auth/react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
+import { Button } from "@/components/ui/button"
 
 export default function SignupPage() {
   const router = useRouter()
@@ -76,7 +77,7 @@ export default function SignupPage() {
         </div>
 
         {/* Card */}
-        <div className="bg-[#111827] border border-white/8 rounded-2xl p-8 shadow-2xl">
+        <div className="bg-[#111827] border border-white/10 rounded-2xl p-8 shadow-2xl">
           <form onSubmit={handleSignup} className="space-y-5">
             {/* Name */}
             <div>
@@ -143,21 +144,9 @@ export default function SignupPage() {
             )}
 
             {/* Submit */}
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full py-3.5 rounded-xl font-bold text-white text-sm transition-all hover:opacity-90 disabled:opacity-60 disabled:cursor-not-allowed"
-              style={{ background: "linear-gradient(135deg, #F7931A, #FF6B2B)" }}
-            >
-              {loading ? (
-                <span className="flex items-center justify-center gap-2">
-                  <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                  Creating account…
-                </span>
-              ) : (
-                "Create Free Account →"
-              )}
-            </button>
+            <Button type="submit" size="lg" loading={loading} className="w-full font-bold">
+              Create Free Account →
+            </Button>
           </form>
 
           {/* Benefits */}

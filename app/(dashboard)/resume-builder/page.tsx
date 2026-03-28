@@ -110,7 +110,7 @@ export default function ResumeBuilderPage() {
           <button
             type="button"
             onClick={handleReset}
-            className="px-4 py-2 rounded-xl border border-white/8 text-[#94A3B8] text-sm hover:text-red-400 hover:border-red-400/30 transition-all"
+            className="px-4 py-2 rounded-xl border border-white/10 text-[#94A3B8] text-sm hover:text-red-400 hover:border-red-400/30 transition-all"
           >
             Reset
           </button>
@@ -133,7 +133,7 @@ export default function ResumeBuilderPage() {
 
         {/* Preview column — hidden on mobile when editing */}
         <div className={`lg:sticky lg:top-20 ${showPreview ? 'block' : 'hidden lg:block'}`}>
-          <div className="bg-[#111827] border border-white/8 rounded-2xl p-4 overflow-hidden">
+          <div className="bg-[#111827] border border-white/10 rounded-2xl p-4 overflow-hidden">
             <div className="flex items-center justify-between mb-3">
               <p className="text-sm font-semibold text-white">Preview</p>
               <span className="text-xs text-[#94A3B8]">Template: {template}</span>

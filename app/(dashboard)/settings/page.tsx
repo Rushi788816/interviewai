@@ -112,13 +112,13 @@ export default function SettingsPage() {
     <div className="max-w-4xl mx-auto px-4 sm:px-6 py-6 sm:py-8 space-y-6 text-white">
 
       {/* Page title */}
-      <div className="border-b border-white/6 pb-6">
+      <div className="border-b border-white/10 pb-6">
         <h1 className="text-2xl sm:text-3xl font-bold text-white">Settings</h1>
         <p className="text-[#94A3B8] text-sm mt-1">Manage your account and preferences</p>
       </div>
 
       {/* SECTION 1 — PROFILE */}
-      <section className="bg-[#111827] border border-white/6 rounded-2xl p-6">
+      <section className="bg-[#111827] border border-white/10 rounded-2xl p-6">
         <div className="flex items-center gap-3 mb-6">
           <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: 'rgba(247,147,26,0.12)', color: '#F7931A' }}>
             <User size={18} />
@@ -160,7 +160,7 @@ export default function SettingsPage() {
             <label className="block text-sm font-medium text-[#94A3B8] mb-2">Email Address</label>
             <div className="relative">
               <input
-                className="w-full bg-[#0A0F1E] border border-white/8 rounded-xl px-4 py-3 pr-12 text-[#64748B] text-sm cursor-not-allowed"
+                className="w-full bg-[#0A0F1E] border border-white/10 rounded-xl px-4 py-3 pr-12 text-[#64748B] text-sm cursor-not-allowed"
                 value={session.user.email || ''}
                 disabled
                 placeholder="your@email.com"
@@ -194,7 +194,7 @@ export default function SettingsPage() {
       </section>
 
       {/* SECTION 2 — CREDITS */}
-      <section className="bg-[#111827] border border-white/6 rounded-2xl p-6">
+      <section className="bg-[#111827] border border-white/10 rounded-2xl p-6">
         <div className="flex items-center gap-3 mb-6">
           <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: 'rgba(245,158,11,0.12)', color: '#F59E0B' }}>
             <Coins size={18} />
@@ -279,7 +279,7 @@ export default function SettingsPage() {
       </section>
 
       {/* SECTION 3 — SESSION HISTORY */}
-      <section className="bg-[#111827] border border-white/6 rounded-2xl p-6">
+      <section className="bg-[#111827] border border-white/10 rounded-2xl p-6">
         <div className="flex items-center gap-3 mb-6">
           <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: 'rgba(139,92,246,0.12)', color: '#8B5CF6' }}>
             <History size={18} />

@@ -66,7 +66,7 @@ export default function BlogPage() {
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
           {blogPosts.map((post, index) => (
             <article key={index} className="group">
-              <div className="rounded-2xl border border-white/8 p-8 hover:border-[#F7931A]/40 transition-colors group-hover:bg-[#111827] bg-[#0A0F1E]">
+              <div className="rounded-2xl border border-white/10 p-8 hover:border-[#F7931A]/40 transition-colors group-hover:bg-[#111827] bg-[#0A0F1E]">
                 <span className="inline-block px-3 py-1 rounded-full text-xs font-semibold mb-4 bg-[#F7931A]/10 text-[#F7931A] border border-[#F7931A]/30">
                   {post.category}
                 </span>
@@ -80,7 +80,7 @@ export default function BlogPage() {
                   <span>{post.readTime}</span>
                   <span>{post.date}</span>
                 </div>
-                <div className="mt-6 pt-6 border-t border-white/8">
+                <div className="mt-6 pt-6 border-t border-white/10">
                   <a href="#" className="font-semibold text-[#F7931A] hover:text-[#FF6B2B] transition-colors">
                     Read More →
                   </a>

@@ -46,7 +46,7 @@ export default function ForgotPasswordPage() {
 
       <div className="relative w-full max-w-md">
         {/* Card */}
-        <div className="bg-[#111827] border border-white/8 rounded-2xl p-8 shadow-2xl">
+        <div className="bg-[#111827] border border-white/10 rounded-2xl p-8 shadow-2xl">
           {/* Logo */}
           <div className="text-center mb-8">
             <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl mb-4"

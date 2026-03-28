@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(wc -l \"/c/Vibe Coading/interviewai/components/interview/\"*.tsx)",
+      "Bash(npm run:*)",
+      "Bash(ELECTRON_BUILD=1 npx next build)",
+      "Bash(npx electron-builder:*)",
+      "Bash(CSC_IDENTITY_AUTO_DISCOVERY=false npx electron-builder build --win --publish never)",
+      "Bash(dir /s 'c:/Vibe Coading/interviewai/dist-electron/win-unpacked')"
+    ]
+  }
+}

@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import Navbar from '@/components/landing/Navbar'
 import Footer from '@/components/landing/Footer'
+import { Button } from '@/components/ui/button'
 
 export default function ContactPage() {
   useEffect(() => { document.title = 'Contact Us — InterviewAI' }, [])
@@ -135,21 +136,9 @@ export default function ContactPage() {
                       {submitError}
                     </div>
                   )}
-                  <button
-                    type="submit"
-                    disabled={sending}
-                    className="w-full py-4 px-8 rounded-2xl font-bold text-lg text-white transition-all flex items-center justify-center gap-2 hover:opacity-90 disabled:opacity-60 disabled:cursor-not-allowed"
-                    style={{ background: 'linear-gradient(135deg, #F7931A, #FF6B2B)' }}
-                  >
-                    {sending ? (
-                      <>
-                        <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                        Sending…
-                      </>
-                    ) : (
-                      'Send Message →'
-                    )}
-                  </button>
+                  <Button type="submit" size="lg" loading={sending} className="w-full font-bold text-base">
+                    Send Message →
+                  </Button>
                 </form>
               )}
             </div>

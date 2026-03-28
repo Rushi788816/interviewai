@@ -14,6 +14,7 @@ export default function Navbar() {
 
   return (
     <nav
+      aria-label="Main navigation"
       className="fixed top-0 left-0 right-0 z-50 h-16 border-b backdrop-blur-xl"
       style={{
         backgroundColor: 'rgba(10, 10, 15, 0.80)',

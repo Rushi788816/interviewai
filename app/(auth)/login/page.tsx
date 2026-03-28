@@ -3,6 +3,7 @@ import { useState, Suspense } from "react"
 import { signIn } from "next-auth/react"
 import { useRouter, useSearchParams } from "next/navigation"
 import Link from "next/link"
+import { Button } from "@/components/ui/button"
 
 function LoginForm() {
   const router = useRouter()
@@ -58,7 +59,7 @@ function LoginForm() {
         </div>
 
         {/* Card */}
-        <div className="bg-[#111827] border border-white/8 rounded-2xl p-8 shadow-2xl">
+        <div className="bg-[#111827] border border-white/10 rounded-2xl p-8 shadow-2xl">
           <form onSubmit={handleLogin} className="space-y-5">
             {/* Email */}
             <div>
@@ -115,27 +116,15 @@ function LoginForm() {
             )}
 
             {/* Submit */}
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full py-3.5 rounded-xl font-bold text-white text-sm transition-all hover:opacity-90 disabled:opacity-60 disabled:cursor-not-allowed"
-              style={{ background: "linear-gradient(135deg, #F7931A, #FF6B2B)" }}
-            >
-              {loading ? (
-                <span className="flex items-center justify-center gap-2">
-                  <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                  Signing in…
-                </span>
-              ) : (
-                "Sign In to InterviewAI →"
-              )}
-            </button>
+            <Button type="submit" size="lg" loading={loading} className="w-full font-bold">
+              Sign In to InterviewAI →
+            </Button>
           </form>
 
           {/* Divider */}
           <div className="relative my-6">
             <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t border-white/8" />
+              <div className="w-full border-t border-white/10" />
             </div>
             <div className="relative flex justify-center text-xs text-[#64748B] bg-[#111827] px-3">
               or
