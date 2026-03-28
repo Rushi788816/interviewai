@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
-import type { Prisma } from '@prisma/client'
 import { InputJsonValue } from '@prisma/client/runtime/library'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
@@ -25,11 +24,7 @@ export async function POST(request: Request) {
       overallScore: number
     }
 
-    const user = await prisma.user.findUnique({ where: { id: session.user.id } })
-    if (!user || user.credits < 5) {
-      return NextResponse.json({ error: 'Insufficient credits' }, { status: 402 })
-    }
-
+    // Credits were already deducted during generate + evaluate steps — just save the record
     await prisma.mockSession.create({
       data: {
         userId: session.user.id,
@@ -42,11 +37,6 @@ export async function POST(request: Request) {
         overallScore: overallScore ?? 0,
         completed: true,
       },
-    })
-
-    await prisma.user.update({
-      where: { id: session.user.id },
-      data: { credits: user.credits - 5 },
     })
 
     return NextResponse.json({ success: true })

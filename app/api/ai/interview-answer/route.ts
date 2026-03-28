@@ -1,3 +1,5 @@
+import { getServerSession } from 'next-auth'
+import { authOptions } from '@/lib/auth'
 import { groq } from '@/lib/anthropic'
 import { sanitizeReadableText } from '@/lib/sanitizeText'
 import type { SessionContext } from '@/types'
@@ -11,6 +13,12 @@ export async function GET() {
 
 export async function POST(req: Request) {
   try {
+    // Auth guard — prevent unauthenticated API abuse
+    const session = await getServerSession(authOptions)
+    if (!session?.user?.id) {
+      return Response.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
     console.log('API called, GROQ_API_KEY present:', !!process.env.GROQ_API_KEY?.trim())
 
     const body = await req.json()

@@ -65,10 +65,12 @@ export async function POST(request: Request) {
         return Response.json({ error: 'Failed to parse questions' }, { status: 500 })
       }
 
-      await prisma.user.update({
-        where: { id: user.id },
-        data: { credits: user.credits - 5 },
-      })
+      await prisma.$transaction([
+        prisma.user.update({
+          where: { id: user.id },
+          data: { credits: user.credits - 5 },
+        }),
+      ])
 
       return Response.json({ questions: questions.slice(0, 5) })
     }

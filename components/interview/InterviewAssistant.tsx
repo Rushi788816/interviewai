@@ -105,7 +105,12 @@ export default function InterviewAssistant({ userId, credits: creditsProp, showF
         })
 
         console.log(`[AI] API response status=${response.status}`)
-        if (!response.ok || !response.body) { console.error("[AI] bad response or no body"); setIsStreamingAnswer(false); return }
+        if (!response.ok || !response.body) {
+          console.error("[AI] bad response or no body")
+          setIsStreamingAnswer(false)
+          addToast("Couldn't get AI answer. Check your connection and try again.", "error")
+          return
+        }
 
         const reader = response.body.getReader()
         const decoder = new TextDecoder()
@@ -143,7 +148,11 @@ export default function InterviewAssistant({ userId, credits: creditsProp, showF
           }
         }
         setIsStreamingAnswer(false)
-      } catch (err: any) { console.error("[AI] fetch error:", err?.message); setIsStreamingAnswer(false) }
+      } catch (err: any) {
+        console.error("[AI] fetch error:", err?.message)
+        setIsStreamingAnswer(false)
+        addToast("Connection error. Please check your internet and try again.", "error")
+      }
     }
   })
 
@@ -155,6 +164,11 @@ export default function InterviewAssistant({ userId, credits: creditsProp, showF
       if (isListening) toggleListening()
       eAPI()?.setStatus("idle")
     } else {
+      // Warn if user has no credits before they start a new session
+      if (sessionPhase === "idle" && displayCredits === 0) {
+        addToast("You have 0 credits. Go to Settings to get more before starting a session.", "error")
+        return
+      }
       // Starting or resuming — check mic permission first
       const api = eAPI()
       if (api?.isElectron && sessionPhase === "idle") {
