@@ -1,5 +1,8 @@
 import Navbar from '@/components/landing/Navbar'
 import Footer from '@/components/landing/Footer'
+import { Metadata } from 'next'
+
+export const metadata: Metadata = { title: 'Terms of Service — InterviewAI' }
 
 export default function TermsPage() {
   return (

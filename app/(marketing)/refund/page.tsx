@@ -1,5 +1,8 @@
 import Navbar from '@/components/landing/Navbar'
 import Footer from '@/components/landing/Footer'
+import { Metadata } from 'next'
+
+export const metadata: Metadata = { title: 'Refund Policy — InterviewAI' }
 
 export default function RefundPage() {
   return (

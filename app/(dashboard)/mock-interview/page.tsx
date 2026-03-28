@@ -16,7 +16,11 @@ export default function MockInterviewPage() {
   }, [status, router])
 
   if (status !== 'authenticated' || !session?.user) {
-    return <div className="text-zinc-500">Loading…</div>
+    return (
+      <div className="min-h-screen bg-[#0a0a0f] flex items-center justify-center">
+        <div className="w-8 h-8 border-2 border-[#F7931A] border-t-transparent rounded-full animate-spin" />
+      </div>
+    )
   }
 
   return (

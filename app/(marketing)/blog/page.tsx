@@ -54,7 +54,7 @@ export default function BlogPage() {
       <Navbar />
       <main className="max-w-6xl mx-auto px-4 py-16">
         <div className="text-center mb-20">
-          <h1 className="text-4xl md:text-5xl font-bold mb-6 bg-gradient-to-r from-[#2563EB] to-[#0EA5E9] bg-clip-text text-transparent">
+          <h1 className="text-4xl md:text-5xl font-bold mb-6 bg-gradient-to-r from-[#F7931A] to-[#FF6B2B] bg-clip-text text-transparent">
             InterviewAI Blog
           </h1>
           <p className="text-xl text-[#94A3B8] max-w-2xl mx-auto">
@@ -64,11 +64,11 @@ export default function BlogPage() {
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
           {blogPosts.map((post, index) => (
             <article key={index} className="group">
-              <div className="rounded-2xl border border-[#111827] p-8 hover:border-[#2563EB]/50 transition-colors group-hover:bg-[#111827] bg-[#0A0F1E]">
-                <span className="inline-block px-3 py-1 rounded-full text-xs font-semibold mb-4 bg-[#2563EB]/10 text-[#2563EB] border border-[#2563EB]/30">
+              <div className="rounded-2xl border border-white/8 p-8 hover:border-[#F7931A]/40 transition-colors group-hover:bg-[#111827] bg-[#0A0F1E]">
+                <span className="inline-block px-3 py-1 rounded-full text-xs font-semibold mb-4 bg-[#F7931A]/10 text-[#F7931A] border border-[#F7931A]/30">
                   {post.category}
                 </span>
-                <h3 className="text-xl font-bold mb-3 leading-tight group-hover:text-[#2563EB] transition-colors">
+                <h3 className="text-xl font-bold mb-3 leading-tight group-hover:text-[#F7931A] transition-colors">
                   {post.title}
                 </h3>
                 <p className="text-[#94A3B8] mb-6 leading-relaxed">
@@ -78,8 +78,8 @@ export default function BlogPage() {
                   <span>{post.readTime}</span>
                   <span>{post.date}</span>
                 </div>
-                <div className="mt-6 pt-6 border-t border-[#111827]">
-                  <a href="#" className="font-semibold text-[#2563EB] hover:text-[#0EA5E9] transition-colors">
+                <div className="mt-6 pt-6 border-t border-white/8">
+                  <a href="#" className="font-semibold text-[#F7931A] hover:text-[#FF6B2B] transition-colors">
                     Read More →
                   </a>
                 </div>
@@ -92,4 +92,3 @@ export default function BlogPage() {
     </div>
   )
 }
-

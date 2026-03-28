@@ -12,6 +12,7 @@ export default function ContactPage() {
     message: ''
   })
   const [submitted, setSubmitted] = useState(false)
+  const [sending, setSending] = useState(false)
 
   const subjects = [
     'General Inquiry',
@@ -21,10 +22,13 @@ export default function ContactPage() {
     'Partnership'
   ]
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    setSending(true)
+    // Simulate sending (replace with real API call when email service is added)
+    await new Promise(r => setTimeout(r, 1000))
+    setSending(false)
     setSubmitted(true)
-    // Reset form after 3 seconds
     setTimeout(() => {
       setFormData({ name: '', email: '', subject: 'General Inquiry', message: '' })
       setSubmitted(false)
@@ -32,10 +36,7 @@ export default function ContactPage() {
   }
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
-    setFormData({
-      ...formData,
-      [e.target.name]: e.target.value
-    })
+    setFormData({ ...formData, [e.target.name]: e.target.value })
   }
 
   return (
@@ -43,7 +44,7 @@ export default function ContactPage() {
       <Navbar />
       <main className="max-w-6xl mx-auto px-4 py-16">
         <div className="text-center mb-20">
-          <h1 className="text-4xl md:text-5xl font-bold mb-6 bg-gradient-to-r from-[#2563EB] to-[#0EA5E9] bg-clip-text text-transparent">
+          <h1 className="text-4xl md:text-5xl font-bold mb-6 bg-gradient-to-r from-[#F7931A] to-[#FF6B2B] bg-clip-text text-transparent">
             Contact Us
           </h1>
           <p className="text-xl text-[#94A3B8] max-w-2xl mx-auto">
@@ -54,103 +55,112 @@ export default function ContactPage() {
         <div className="grid lg:grid-cols-2 gap-12 mb-20">
           {/* Contact Form */}
           <div className="space-y-6">
-            <div className="bg-[#111827] p-8 rounded-3xl border border-rgba(37,99,235,0.2)">
+            <div className="bg-[#111827] p-8 rounded-3xl border border-white/10">
               <h2 className="text-2xl font-bold mb-6 text-white">Send us a message</h2>
-              <form onSubmit={handleSubmit} className="space-y-6">
-                <div>
-                  <label className="block text-sm font-medium text-[#94A3B8] mb-2">Name</label>
-                  <input
-                    name="name"
-                    value={formData.name}
-                    onChange={handleChange}
-                    required
-                    className="w-full px-4 py-3 bg-[#0A0F1E] border border-[#94A3B8]/30 rounded-2xl text-white placeholder-[#94A3B8]/70 focus:border-[#2563EB]/50 focus:outline-none focus:ring-2 focus:ring-[#2563EB]/20 transition-all"
-                    placeholder="Your name"
-                  />
+              {submitted ? (
+                <div className="flex flex-col items-center justify-center py-12 text-center">
+                  <div className="w-16 h-16 rounded-full bg-green-500/20 border-2 border-green-500/50 flex items-center justify-center text-3xl mb-4">✅</div>
+                  <h3 className="text-xl font-bold mb-2">Message Sent!</h3>
+                  <p className="text-[#94A3B8]">We'll get back to you within 24 hours.</p>
                 </div>
-                <div>
-                  <label className="block text-sm font-medium text-[#94A3B8] mb-2">Email</label>
-                  <input
-                    type="email"
-                    name="email"
-                    value={formData.email}
-                    onChange={handleChange}
-                    required
-                    className="w-full px-4 py-3 bg-[#0A0F1E] border border-[#94A3B8]/30 rounded-2xl text-white placeholder-[#94A3B8]/70 focus:border-[#2563EB]/50 focus:outline-none focus:ring-2 focus:ring-[#2563EB]/20 transition-all"
-                    placeholder="your@email.com"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-[#94A3B8] mb-2">Subject</label>
-                  <select
-                    name="subject"
-                    value={formData.subject}
-                    onChange={handleChange}
-                    className="w-full px-4 py-3 bg-[#0A0F1E] border border-[#94A3B8]/30 rounded-2xl text-white focus:border-[#2563EB]/50 focus:outline-none focus:ring-2 focus:ring-[#2563EB]/20 transition-all"
+              ) : (
+                <form onSubmit={handleSubmit} className="space-y-6">
+                  <div>
+                    <label htmlFor="contact-name" className="block text-sm font-medium text-[#94A3B8] mb-2">Name</label>
+                    <input
+                      id="contact-name"
+                      name="name"
+                      value={formData.name}
+                      onChange={handleChange}
+                      required
+                      className="w-full px-4 py-3 bg-[#0A0F1E] border border-[#94A3B8]/30 rounded-2xl text-white placeholder-[#94A3B8]/70 focus:border-[#F7931A]/50 focus:outline-none focus:ring-2 focus:ring-[#F7931A]/20 transition-all"
+                      placeholder="Your name"
+                    />
+                  </div>
+                  <div>
+                    <label htmlFor="contact-email" className="block text-sm font-medium text-[#94A3B8] mb-2">Email</label>
+                    <input
+                      id="contact-email"
+                      type="email"
+                      name="email"
+                      value={formData.email}
+                      onChange={handleChange}
+                      required
+                      className="w-full px-4 py-3 bg-[#0A0F1E] border border-[#94A3B8]/30 rounded-2xl text-white placeholder-[#94A3B8]/70 focus:border-[#F7931A]/50 focus:outline-none focus:ring-2 focus:ring-[#F7931A]/20 transition-all"
+                      placeholder="your@email.com"
+                    />
+                  </div>
+                  <div>
+                    <label htmlFor="contact-subject" className="block text-sm font-medium text-[#94A3B8] mb-2">Subject</label>
+                    <select
+                      id="contact-subject"
+                      name="subject"
+                      value={formData.subject}
+                      onChange={handleChange}
+                      className="w-full px-4 py-3 bg-[#0A0F1E] border border-[#94A3B8]/30 rounded-2xl text-white focus:border-[#F7931A]/50 focus:outline-none focus:ring-2 focus:ring-[#F7931A]/20 transition-all"
+                    >
+                      {subjects.map((subject) => (
+                        <option key={subject} value={subject}>{subject}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label htmlFor="contact-message" className="block text-sm font-medium text-[#94A3B8] mb-2">Message</label>
+                    <textarea
+                      id="contact-message"
+                      name="message"
+                      value={formData.message}
+                      onChange={handleChange}
+                      required
+                      rows={6}
+                      className="w-full px-4 py-3 bg-[#0A0F1E] border border-[#94A3B8]/30 rounded-2xl text-white placeholder-[#94A3B8]/70 focus:border-[#F7931A]/50 focus:outline-none focus:ring-2 focus:ring-[#F7931A]/20 transition-all resize-vertical"
+                      placeholder="Tell us how we can help you..."
+                    />
+                  </div>
+                  <button
+                    type="submit"
+                    disabled={sending}
+                    className="w-full py-4 px-8 rounded-2xl font-bold text-lg text-white transition-all flex items-center justify-center gap-2 hover:opacity-90 disabled:opacity-60 disabled:cursor-not-allowed"
+                    style={{ background: 'linear-gradient(135deg, #F7931A, #FF6B2B)' }}
                   >
-                    {subjects.map((subject) => (
-                      <option key={subject} value={subject}>{subject}</option>
-                    ))}
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-[#94A3B8] mb-2">Message</label>
-                  <textarea
-                    name="message"
-                    value={formData.message}
-                    onChange={handleChange}
-                    required
-                    rows={6}
-                    className="w-full px-4 py-3 bg-[#0A0F1E] border border-[#94A3B8]/30 rounded-2xl text-white placeholder-[#94A3B8]/70 focus:border-[#2563EB]/50 focus:outline-none focus:ring-2 focus:ring-[#2563EB]/20 transition-all resize-vertical"
-                    placeholder="Tell us how we can help you..."
-                  />
-                </div>
-                <button
-                  type="submit"
-                  disabled={submitted}
-                  className={`w-full py-4 px-8 rounded-2xl font-bold text-lg transition-all flex items-center justify-center gap-2 ${
-                    submitted
-                      ? 'bg-[#94A3B8]/30 text-[#94A3B8]/70 cursor-not-allowed'
-                      : 'bg-gradient-to-r from-[#2563EB] to-[#0EA5E9] text-white hover:shadow-lg hover:shadow-[#2563EB]/25 hover:scale-[1.02]'
-                  }`}
-                >
-                  {submitted ? (
-                    <>
-                      <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                      Message Sent!
-                    </>
-                  ) : (
-                    'Send Message →'
-                  )}
-                </button>
-              </form>
+                    {sending ? (
+                      <>
+                        <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                        Sending…
+                      </>
+                    ) : (
+                      'Send Message →'
+                    )}
+                  </button>
+                </form>
+              )}
             </div>
           </div>
 
           {/* Contact Info */}
           <div className="space-y-8 lg:self-start">
-            <div className="bg-gradient-to-br from-[#2563EB]/10 to-[#0EA5E9]/10 p-8 rounded-3xl border border-[#2563EB]/20">
+            <div className="bg-gradient-to-br from-[#F7931A]/10 to-[#FF6B2B]/10 p-8 rounded-3xl border border-[#F7931A]/20">
               <h3 className="text-2xl font-bold mb-6">Get in touch</h3>
               <div className="space-y-6">
-                <div className="flex items-center gap-4 p-4 rounded-xl bg-[#111827]/50 border border-white/10 hover:bg-[#111827]">
-                  <div className="w-12 h-12 rounded-2xl bg-[#2563EB] flex items-center justify-center text-white font-bold text-xl">
+                <div className="flex items-center gap-4 p-4 rounded-xl bg-[#111827]/50 border border-white/10 hover:bg-[#111827] transition-colors">
+                  <div className="w-12 h-12 rounded-2xl flex items-center justify-center text-xl" style={{ background: 'linear-gradient(135deg, #F7931A, #FF6B2B)' }}>
                     📧
                   </div>
                   <div>
                     <p className="font-semibold text-white">Email</p>
-                    <a href="mailto:support@interviewai.app" className="text-[#94A3B8] hover:text-[#2563EB] transition-colors">
+                    <a href="mailto:support@interviewai.app" className="text-[#94A3B8] hover:text-[#F7931A] transition-colors">
                       support@interviewai.app
                     </a>
                   </div>
                 </div>
 
-                <div className="flex items-center gap-4 p-4 rounded-xl bg-[#111827]/50 border border-white/10 hover:bg-[#111827]">
-                  <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-rose-500 to-pink-500 flex items-center justify-center text-white font-bold text-xl">
+                <div className="flex items-center gap-4 p-4 rounded-xl bg-[#111827]/50 border border-white/10 hover:bg-[#111827] transition-colors">
+                  <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-rose-500 to-pink-500 flex items-center justify-center text-xl">
                     📸
                   </div>
                   <div>
                     <p className="font-semibold text-white">Instagram</p>
-                    <a href="https://instagram.com/interviewai.official" target="_blank" rel="noopener noreferrer" className="text-[#94A3B8] hover:text-[#2563EB] transition-colors">
+                    <a href="https://instagram.com/interviewai.official" target="_blank" rel="noopener noreferrer" className="text-[#94A3B8] hover:text-[#F7931A] transition-colors">
                       @interviewai.official
                     </a>
                   </div>

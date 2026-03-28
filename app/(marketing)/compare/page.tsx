@@ -15,20 +15,20 @@ export default function ComparePage() {
           <p className="text-xl text-[#94A3B8] max-w-3xl mx-auto mb-8">
             See why thousands of candidates choose InterviewAI over expensive alternatives
           </p>
-          <div className="text-3xl font-bold text-[#2563EB] mb-4">
-            Save up to <span className="text-[#0EA5E9]">85%</span> compared to other AI interview tools
+          <div className="text-3xl font-bold bg-gradient-to-r from-[#F7931A] to-[#FF6B2B] bg-clip-text text-transparent mb-4">
+            Save up to <span>85%</span> compared to other AI interview tools
           </div>
         </div>
 
         <div className="overflow-x-auto mb-20">
           <table className="w-full text-left text-sm border-collapse">
             <thead>
-              <tr className="border-b border-[#111827]">
+              <tr className="border-b border-white/10">
                 <th className="py-4 px-4 font-semibold text-white w-56">Feature</th>
-                <th className="py-4 px-4 font-semibold text-[#2563EB] border-l border-[#2563EB]/20 bg-[#111827] relative">
-                  <div className="inline-flex items-center gap-1 bg-[#2563EB]/10 px-3 py-1 rounded-full text-xs font-bold border border-[#2563EB]/30">
+                <th className="py-4 px-4 font-semibold text-[#F7931A] border-l border-[#F7931A]/20 bg-[#111827] relative">
+                  <div className="inline-flex items-center gap-1 bg-[#F7931A]/10 px-3 py-1 rounded-full text-xs font-bold border border-[#F7931A]/30">
                     InterviewAI
-                    <span className="text-xs font-bold text-white bg-[#2563EB] rounded-full px-2 py-0.5">Most Affordable</span>
+                    <span className="text-xs font-bold text-white bg-[#F7931A] rounded-full px-2 py-0.5">Most Affordable</span>
                   </div>
                 </th>
                 <th className="py-4 px-4 font-semibold text-zinc-400">Parakeet AI</th>
@@ -36,7 +36,7 @@ export default function ComparePage() {
                 <th className="py-4 px-4 font-semibold text-zinc-400">LockedIn AI</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-[#111827]">
+            <tbody className="divide-y divide-white/8">
               {[
                 ['Price per month', '₹1,199 (one-time)', '₹2,650/mo', '₹8,188/mo', '₹6,213/mo'],
                 ['Credits expire', 'Never', 'Monthly', 'Monthly', 'Monthly'],
@@ -51,7 +51,7 @@ export default function ComparePage() {
               ].map((row, index) => (
                 <tr key={index}>
                   <td className="py-4 px-4 text-[#94A3B8] font-medium">{row[0]}</td>
-                  <td className="py-4 px-4 border-l border-[#2563EB]/20 bg-[#111827]/50">{row[1]}</td>
+                  <td className="py-4 px-4 border-l border-[#F7931A]/20 bg-[#111827]/50">{row[1]}</td>
                   <td className="py-4 px-4">{row[2]}</td>
                   <td className="py-4 px-4">{row[3]}</td>
                   <td className="py-4 px-4">{row[4]}</td>
@@ -62,30 +62,19 @@ export default function ComparePage() {
         </div>
 
         <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 mb-20">
-          <div className="rounded-2xl border border-white/10 p-8 text-center group hover:border-[#2563EB]/50 transition-all">
-            <div className="text-3xl mb-4 font-bold text-[#2563EB]">55%</div>
-            <h3 className="text-xl font-bold mb-2">vs Parakeet AI</h3>
-            <p className="text-[#94A3B8] mb-6">Same features, <span className="text-[#2563EB]">55% cheaper</span></p>
-            <div className="w-full h-px bg-gradient-to-r from-transparent via-[#2563EB]/50 to-transparent group-hover:w-full transition-all" />
-          </div>
-          <div className="rounded-2xl border border-white/10 p-8 text-center group hover:border-[#2563EB]/50 transition-all">
-            <div className="text-3xl mb-4 font-bold text-[#2563EB]">85%</div>
-            <h3 className="text-xl font-bold mb-2">vs Final Round AI</h3>
-            <p className="text-[#94A3B8] mb-6">More features, <span className="text-[#2563EB]">85% cheaper</span></p>
-            <div className="w-full h-px bg-gradient-to-r from-transparent via-[#2563EB]/50 to-transparent group-hover:w-full transition-all" />
-          </div>
-          <div className="rounded-2xl border border-white/10 p-8 text-center group hover:border-[#2563EB]/50 transition-all">
-            <div className="text-3xl mb-4 font-bold text-[#2563EB]">81%</div>
-            <h3 className="text-xl font-bold mb-2">vs LockedIn AI</h3>
-            <p className="text-[#94A3B8] mb-6">India pricing, <span className="text-[#2563EB]">81% cheaper</span></p>
-            <div className="w-full h-px bg-gradient-to-r from-transparent via-[#2563EB]/50 to-transparent group-hover:w-full transition-all" />
-          </div>
-          <div className="rounded-2xl border border-white/10 p-8 text-center group hover:border-[#2563EB]/50 transition-all">
-            <div className="text-3xl mb-4 font-bold text-[#2563EB]">75%</div>
-            <h3 className="text-xl font-bold mb-2">vs Interview Warmup</h3>
-            <p className="text-[#94A3B8] mb-6">More features, <span className="text-[#2563EB]">75% cheaper</span></p>
-            <div className="w-full h-px bg-gradient-to-r from-transparent via-[#2563EB]/50 to-transparent group-hover:w-full transition-all" />
-          </div>
+          {[
+            { pct: '55%', vs: 'Parakeet AI', desc: 'Same features' },
+            { pct: '85%', vs: 'Final Round AI', desc: 'More features' },
+            { pct: '81%', vs: 'LockedIn AI', desc: 'India pricing' },
+            { pct: '75%', vs: 'Interview Warmup', desc: 'More features' },
+          ].map(({ pct, vs, desc }) => (
+            <div key={vs} className="rounded-2xl border border-white/10 p-8 text-center group hover:border-[#F7931A]/50 transition-all">
+              <div className="text-3xl mb-4 font-bold text-[#F7931A]">{pct}</div>
+              <h3 className="text-xl font-bold mb-2">vs {vs}</h3>
+              <p className="text-[#94A3B8] mb-6">{desc}, <span className="text-[#F7931A]">{pct} cheaper</span></p>
+              <div className="w-full h-px bg-gradient-to-r from-transparent via-[#F7931A]/50 to-transparent" />
+            </div>
+          ))}
         </div>
 
         <div className="text-center">
@@ -93,8 +82,10 @@ export default function ComparePage() {
           <p className="text-xl text-[#94A3B8] mb-8 max-w-2xl mx-auto">
             Get started with 30 free credits. No credit card required.
           </p>
-          <a href="/login"
-            className="inline-flex items-center gap-3 px-8 py-4 rounded-2xl bg-gradient-to-r from-[#2563EB] to-[#0EA5E9] text-xl font-bold text-white shadow-2xl hover:shadow-blue-500/25 transition-all"
+          <a
+            href="/signup"
+            className="inline-flex items-center gap-3 px-8 py-4 rounded-2xl text-xl font-bold text-white shadow-2xl hover:opacity-90 transition-all"
+            style={{ background: 'linear-gradient(135deg, #F7931A, #FF6B2B)', boxShadow: '0 0 40px rgba(247,147,26,0.25)' }}
           >
             Start Free →
           </a>

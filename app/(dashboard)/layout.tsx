@@ -26,9 +26,17 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     if (status === 'unauthenticated') router.push('/login')
   }, [status, router])
 
-  // Close mobile menu on route change
+  // Close mobile menu on route change + update page title
   useEffect(() => {
     setMenuOpen(false)
+    const titles: Record<string, string> = {
+      '/dashboard': 'Dashboard — InterviewAI',
+      '/interview': 'Interview Assistant — InterviewAI',
+      '/mock-interview': 'Mock Interview — InterviewAI',
+      '/resume-builder': 'Resume Builder — InterviewAI',
+      '/settings': 'Settings — InterviewAI',
+    }
+    document.title = titles[pathname] ?? 'InterviewAI'
   }, [pathname])
 
   if (status === 'loading') {
