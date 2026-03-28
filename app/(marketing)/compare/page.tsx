@@ -1,9 +1,11 @@
 "use client"
 
+import { useEffect } from 'react'
 import Navbar from '@/components/landing/Navbar'
 import Footer from '@/components/landing/Footer'
 
 export default function ComparePage() {
+  useEffect(() => { document.title = 'Compare — InterviewAI' }, [])
   return (
     <div className="min-h-screen bg-[#0A0F1E] text-white">
       <Navbar />

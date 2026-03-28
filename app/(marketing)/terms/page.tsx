@@ -9,7 +9,7 @@ export default function TermsPage() {
     <div className="min-h-screen bg-[#0A0F1E] text-white">
       <Navbar />
       <main className="max-w-4xl mx-auto px-4 py-16">
-        <div className="bg-[#111827] rounded-3xl p-12 mb-12 border border-rgba(37,99,235,0.2)">
+        <div className="bg-[#111827] rounded-3xl p-12 mb-12 border border-white/10">
           <h1 className="text-4xl md:text-5xl font-bold mb-6 text-white">
             Terms of Service
           </h1>
@@ -19,7 +19,7 @@ export default function TermsPage() {
         <div className="space-y-12">
           <section>
             <h2 className="text-2xl font-bold mb-6 flex items-center gap-3">
-              <span className="w-8 h-8 rounded-lg bg-[#2563EB]/20 border-2 border-[#2563EB]/50 flex items-center justify-center text-sm font-bold text-[#2563EB]">1</span>
+              <span className="w-8 h-8 rounded-lg bg-[#F7931A]/20 border-2 border-[#F7931A]/50 flex items-center justify-center text-sm font-bold text-[#F7931A]">1</span>
               Acceptance of Terms
             </h2>
             <p className="text-[#94A3B8] leading-relaxed">
@@ -29,7 +29,7 @@ export default function TermsPage() {
 
           <section>
             <h2 className="text-2xl font-bold mb-6 flex items-center gap-3">
-              <span className="w-8 h-8 rounded-lg bg-[#2563EB]/20 border-2 border-[#2563EB]/50 flex items-center justify-center text-sm font-bold text-[#2563EB]">2</span>
+              <span className="w-8 h-8 rounded-lg bg-[#F7931A]/20 border-2 border-[#F7931A]/50 flex items-center justify-center text-sm font-bold text-[#F7931A]">2</span>
               Description of Service
             </h2>
             <p className="text-[#94A3B8] leading-relaxed mb-6">
@@ -42,7 +42,7 @@ export default function TermsPage() {
 
           <section>
             <h2 className="text-2xl font-bold mb-6 flex items-center gap-3">
-              <span className="w-8 h-8 rounded-lg bg-[#2563EB]/20 border-2 border-[#2563EB]/50 flex items-center justify-center text-sm font-bold text-[#2563EB]">3</span>
+              <span className="w-8 h-8 rounded-lg bg-[#F7931A]/20 border-2 border-[#F7931A]/50 flex items-center justify-center text-sm font-bold text-[#F7931A]">3</span>
               User Accounts
             </h2>
             <p className="text-[#94A3B8] leading-relaxed">
@@ -52,11 +52,11 @@ export default function TermsPage() {
 
           <section>
             <h2 className="text-2xl font-bold mb-6 flex items-center gap-3">
-              <span className="w-8 h-8 rounded-lg bg-[#2563EB]/20 border-2 border-[#2563EB]/50 flex items-center justify-center text-sm font-bold text-[#2563EB]">4</span>
+              <span className="w-8 h-8 rounded-lg bg-[#F7931A]/20 border-2 border-[#F7931A]/50 flex items-center justify-center text-sm font-bold text-[#F7931A]">4</span>
               Credits and Payments
             </h2>
             <p className="text-[#94A3B8] leading-relaxed mb-6">
-              Credits are non-refundable and non-transferable. See our <a href="/refund" className="text-[#2563EB] hover:text-[#0EA5E9] underline">Refund Policy</a> for details.
+              Credits are non-refundable and non-transferable. See our <a href="/refund" className="text-[#F7931A] hover:text-[#FF6B2B] underline">Refund Policy</a> for details.
             </p>
             <ul className="space-y-2 text-[#94A3B8] ml-6">
               <li>• Credits do not expire</li>
@@ -67,7 +67,7 @@ export default function TermsPage() {
 
           <section>
             <h2 className="text-2xl font-bold mb-6 flex items-center gap-3">
-              <span className="w-8 h-8 rounded-lg bg-[#2563EB]/20 border-2 border-[#2563EB]/50 flex items-center justify-center text-sm font-bold text-[#2563EB]">5</span>
+              <span className="w-8 h-8 rounded-lg bg-[#F7931A]/20 border-2 border-[#F7931A]/50 flex items-center justify-center text-sm font-bold text-[#F7931A]">5</span>
               Acceptable Use
             </h2>
             <p className="text-[#94A3B8] leading-relaxed mb-6">
@@ -84,7 +84,7 @@ export default function TermsPage() {
 
           <section>
             <h2 className="text-2xl font-bold mb-6 flex items-center gap-3">
-              <span className="w-8 h-8 rounded-lg bg-[#2563EB]/20 border-2 border-[#2563EB]/50 flex items-center justify-center text-sm font-bold text-[#2563EB]">6</span>
+              <span className="w-8 h-8 rounded-lg bg-[#F7931A]/20 border-2 border-[#F7931A]/50 flex items-center justify-center text-sm font-bold text-[#F7931A]">6</span>
               Intellectual Property
             </h2>
             <p className="text-[#94A3B8] leading-relaxed">
@@ -94,7 +94,7 @@ export default function TermsPage() {
 
           <section>
             <h2 className="text-2xl font-bold mb-6 flex items-center gap-3">
-              <span className="w-8 h-8 rounded-lg bg-[#2563EB]/20 border-2 border-[#2563EB]/50 flex items-center justify-center text-sm font-bold text-[#2563EB]">7</span>
+              <span className="w-8 h-8 rounded-lg bg-[#F7931A]/20 border-2 border-[#F7931A]/50 flex items-center justify-center text-sm font-bold text-[#F7931A]">7</span>
               Disclaimer
             </h2>
             <p className="text-[#94A3B8] leading-relaxed mb-6">
@@ -104,7 +104,7 @@ export default function TermsPage() {
 
           <section>
             <h2 className="text-2xl font-bold mb-6 flex items-center gap-3">
-              <span className="w-8 h-8 rounded-lg bg-[#2563EB]/20 border-2 border-[#2563EB]/50 flex items-center justify-center text-sm font-bold text-[#2563EB]">8</span>
+              <span className="w-8 h-8 rounded-lg bg-[#F7931A]/20 border-2 border-[#F7931A]/50 flex items-center justify-center text-sm font-bold text-[#F7931A]">8</span>
               Limitation of Liability
             </h2>
             <p className="text-[#94A3B8] leading-relaxed">
@@ -114,7 +114,7 @@ export default function TermsPage() {
 
           <section>
             <h2 className="text-2xl font-bold mb-6 flex items-center gap-3">
-              <span className="w-8 h-8 rounded-lg bg-[#2563EB]/20 border-2 border-[#2563EB]/50 flex items-center justify-center text-sm font-bold text-[#2563EB]">9</span>
+              <span className="w-8 h-8 rounded-lg bg-[#F7931A]/20 border-2 border-[#F7931A]/50 flex items-center justify-center text-sm font-bold text-[#F7931A]">9</span>
               Changes to Terms
             </h2>
             <p className="text-[#94A3B8] leading-relaxed">
@@ -122,18 +122,19 @@ export default function TermsPage() {
             </p>
           </section>
 
-          <section className="pt-12 mt-12 border-t border-[#2563EB]/20">
+          <section className="pt-12 mt-12 border-t border-[#F7931A]/20">
             <h2 className="text-2xl font-bold mb-6 flex items-center gap-3">
-              <span className="w-8 h-8 rounded-lg bg-[#2563EB]/20 border-2 border-[#2563EB]/50 flex items-center justify-center text-sm font-bold text-[#2563EB]">10</span>
+              <span className="w-8 h-8 rounded-lg bg-[#F7931A]/20 border-2 border-[#F7931A]/50 flex items-center justify-center text-sm font-bold text-[#F7931A]">10</span>
               Contact
             </h2>
-            <div className="bg-gradient-to-r from-[#2563EB]/10 to-[#0EA5E9]/10 p-8 rounded-2xl border border-[#2563EB]/20">
+            <div className="bg-gradient-to-r from-[#F7931A]/10 to-[#FF6B2B]/10 p-8 rounded-2xl border border-[#F7931A]/20">
               <p className="text-lg mb-4">
                 Questions about our Terms of Service? Email us at:
               </p>
-              <a 
-                href="mailto:legal@interviewai.app" 
-                className="inline-flex items-center gap-2 px-6 py-3 bg-[#2563EB] text-white rounded-xl font-semibold hover:bg-[#0EA5E9] transition-all"
+              <a
+                href="mailto:legal@interviewai.app"
+                className="inline-flex items-center gap-2 px-6 py-3 text-white rounded-xl font-semibold hover:opacity-90 transition-all"
+                style={{ background: 'linear-gradient(135deg, #F7931A, #FF6B2B)' }}
               >
                 legal@interviewai.app
               </a>

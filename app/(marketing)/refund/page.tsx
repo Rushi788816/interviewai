@@ -9,7 +9,7 @@ export default function RefundPage() {
     <div className="min-h-screen bg-[#0A0F1E] text-white">
       <Navbar />
       <main className="max-w-4xl mx-auto px-4 py-16">
-        <div className="bg-[#111827] rounded-3xl p-12 mb-12 border border-rgba(37,99,235,0.2)">
+        <div className="bg-[#111827] rounded-3xl p-12 mb-12 border border-white/10">
           <h1 className="text-4xl md:text-5xl font-bold mb-6 text-white">
             Refund Policy
           </h1>
@@ -18,9 +18,9 @@ export default function RefundPage() {
 
         <div className="grid md:grid-cols-2 gap-12 mb-16">
           <div className="space-y-6">
-            <div className="bg-gradient-to-r from-[#2563EB]/10 to-[#0EA5E9]/10 p-8 rounded-2xl border border-[#2563EB]/20">
+            <div className="bg-gradient-to-r from-[#F7931A]/10 to-[#FF6B2B]/10 p-8 rounded-2xl border border-[#F7931A]/20">
               <h2 className="text-2xl font-bold mb-4 flex items-center gap-3">
-                <span className="w-8 h-8 rounded-lg bg-[#2563EB]/30 border-2 border-[#2563EB]/50 flex items-center justify-center text-white text-sm font-bold">✓</span>
+                <span className="w-8 h-8 rounded-lg bg-[#F7931A]/30 border-2 border-[#F7931A]/50 flex items-center justify-center text-white text-sm font-bold">✓</span>
                 When you're eligible
               </h2>
               <ul className="space-y-3 text-[#94A3B8] ml-6">
@@ -48,7 +48,7 @@ export default function RefundPage() {
               <h3 className="text-xl font-bold mb-4">How to request a refund</h3>
               <ol className="space-y-2 text-[#94A3B8] list-decimal list-inside ml-4">
                 <li>Check your <strong>credit balance</strong> in Settings</li>
-                <li>Email <a href="mailto:support@interviewai.app" className="text-[#2563EB] hover:text-[#0EA5E9]">support@interviewai.app</a></li>
+                <li>Email <a href="mailto:support@interviewai.app" className="text-[#F7931A] hover:text-[#FF6B2B]">support@interviewai.app</a></li>
                 <li>Include your <strong>order ID</strong> and <strong>email address</strong></li>
                 <li>Explain reason (optional)</li>
                 <li>Wait 1-2 business days for review</li>
@@ -66,22 +66,23 @@ export default function RefundPage() {
           </div>
         </div>
 
-        <div className="bg-gradient-to-r from-[#2563EB]/5 to-[#0EA5E9]/5 p-10 rounded-3xl border border-[#2563EB]/20">
+        <div className="bg-gradient-to-r from-[#F7931A]/5 to-[#FF6B2B]/5 p-10 rounded-3xl border border-[#F7931A]/20">
           <div className="max-w-2xl mx-auto text-center">
             <h2 className="text-2xl font-bold mb-6">Need Help?</h2>
             <p className="text-[#94A3B8] mb-8 text-lg">
               Questions about refunds or credits? Our support team is here to help.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
-              <a 
+              <a
                 href="mailto:support@interviewai.app"
-                className="flex-1 max-w-md inline-flex items-center justify-center gap-3 px-8 py-4 bg-[#2563EB] text-white rounded-2xl font-semibold hover:bg-[#0EA5E9] shadow-lg hover:shadow-[#2563EB]/25 transition-all"
+                className="flex-1 max-w-md inline-flex items-center justify-center gap-3 px-8 py-4 text-white rounded-2xl font-semibold hover:opacity-90 transition-all"
+                style={{ background: 'linear-gradient(135deg, #F7931A, #FF6B2B)' }}
               >
                 📧 Email Support
               </a>
-              <a 
+              <a
                 href="/contact"
-                className="flex-1 max-w-md px-8 py-4 border border-[#94A3B8]/50 rounded-2xl text-[#94A3B8] font-semibold hover:bg-[#111827] hover:border-[#2563EB]/50 hover:text-[#2563EB] transition-all"
+                className="flex-1 max-w-md px-8 py-4 border border-[#94A3B8]/50 rounded-2xl text-[#94A3B8] font-semibold hover:bg-[#111827] hover:border-[#F7931A]/50 hover:text-[#F7931A] transition-all"
               >
                 Contact Form
               </a>

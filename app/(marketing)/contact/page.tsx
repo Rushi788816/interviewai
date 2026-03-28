@@ -1,10 +1,11 @@
 "use client"
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Navbar from '@/components/landing/Navbar'
 import Footer from '@/components/landing/Footer'
 
 export default function ContactPage() {
+  useEffect(() => { document.title = 'Contact Us — InterviewAI' }, [])
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -22,17 +23,29 @@ export default function ContactPage() {
     'Partnership'
   ]
 
+  const [submitError, setSubmitError] = useState('')
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setSending(true)
-    // Simulate sending (replace with real API call when email service is added)
-    await new Promise(r => setTimeout(r, 1000))
-    setSending(false)
-    setSubmitted(true)
-    setTimeout(() => {
-      setFormData({ name: '', email: '', subject: 'General Inquiry', message: '' })
-      setSubmitted(false)
-    }, 3000)
+    setSubmitError('')
+    try {
+      const res = await fetch('/api/contact', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(formData),
+      })
+      if (!res.ok) throw new Error('Failed to send')
+      setSubmitted(true)
+      setTimeout(() => {
+        setFormData({ name: '', email: '', subject: 'General Inquiry', message: '' })
+        setSubmitted(false)
+      }, 4000)
+    } catch {
+      setSubmitError('Something went wrong. Please email us directly at support@interviewai.app')
+    } finally {
+      setSending(false)
+    }
   }
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
@@ -117,6 +130,11 @@ export default function ContactPage() {
                       placeholder="Tell us how we can help you..."
                     />
                   </div>
+                  {submitError && (
+                    <div className="bg-red-500/10 border border-red-500/30 rounded-xl px-4 py-3 text-red-300 text-sm">
+                      {submitError}
+                    </div>
+                  )}
                   <button
                     type="submit"
                     disabled={sending}

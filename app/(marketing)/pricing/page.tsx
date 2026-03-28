@@ -1,5 +1,6 @@
 "use client"
 
+import { useEffect } from 'react'
 import Navbar from '@/components/landing/Navbar'
 import Footer from '@/components/landing/Footer'
 import Link from 'next/link'
@@ -56,6 +57,7 @@ const plans = [
 ]
 
 export default function PricingPage() {
+  useEffect(() => { document.title = 'Pricing — InterviewAI' }, [])
   return (
     <div className="min-h-screen bg-[#0A0F1E] text-white">
       <Navbar />

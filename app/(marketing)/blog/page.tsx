@@ -1,5 +1,6 @@
 "use client"
 
+import { useEffect } from 'react'
 import Navbar from '@/components/landing/Navbar'
 import Footer from '@/components/landing/Footer'
 
@@ -49,6 +50,7 @@ const blogPosts = [
 ]
 
 export default function BlogPage() {
+  useEffect(() => { document.title = 'Blog — InterviewAI' }, [])
   return (
     <div className="min-h-screen bg-[#0A0F1E] text-white">
       <Navbar />
