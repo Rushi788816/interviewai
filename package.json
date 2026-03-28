@@ -2,6 +2,7 @@
   "name": "interviewai",
   "version": "1.0.0",
   "description": "Real-time AI interview assistant — invisible to screen share",
+  "author": "InterviewAI",
   "private": true,
   "main": "electron/main.js",
   "scripts": {
@@ -27,31 +28,30 @@
     },
     "files": [
       "electron/**",
-      "public/**",
-      ".next/standalone/**",
-      ".next/static/**"
+      "public/icon.png",
+      "public/icon.ico",
+      "!node_modules/**"
     ],
     "extraResources": [
       {
+        "from": ".next/standalone/node_modules",
+        "to": "app/.next/standalone/node_modules",
+        "filter": ["**"]
+      },
+      {
         "from": ".next/standalone",
         "to": "app/.next/standalone",
-        "filter": [
-          "**/*"
-        ]
+        "filter": ["*", "!node_modules", ".next/**"]
       },
       {
         "from": ".next/static",
         "to": "app/.next/standalone/.next/static",
-        "filter": [
-          "**/*"
-        ]
+        "filter": ["**"]
       },
       {
         "from": "public",
-        "to": "app/public",
-        "filter": [
-          "**/*"
-        ]
+        "to": "app/.next/standalone/public",
+        "filter": ["**/*", "!downloads/**"]
       }
     ],
     "win": {
@@ -78,7 +78,10 @@
       "createStartMenuShortcut": true,
       "shortcutName": "InterviewAI"
     },
-    "publish": null
+    "publish": null,
+    "toolsets": {
+      "winCodeSign": "1.1.0"
+    }
   },
   "dependencies": {
     "@hookform/resolvers": "^3",

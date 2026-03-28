@@ -19,6 +19,10 @@ import {
   Sunset,
   Moon,
   Zap,
+  Download,
+  Monitor,
+  ShieldCheck,
+  EyeOff,
 } from "lucide-react"
 
 interface SessionRow {
@@ -67,6 +71,67 @@ function StatCard({
       <div>
         <p className="text-sm text-[#94A3B8] mb-1">{label}</p>
         <p className="text-2xl font-bold text-white">{value}</p>
+      </div>
+    </div>
+  )
+}
+
+function DownloadBanner() {
+  return (
+    <div
+      className="rounded-2xl border border-[#F7931A]/25 overflow-hidden relative"
+      style={{ background: 'linear-gradient(135deg, rgba(247,147,26,0.08) 0%, rgba(17,24,39,1) 60%)' }}
+    >
+      {/* Decorative glow */}
+      <div
+        className="absolute -top-10 -right-10 w-48 h-48 rounded-full blur-3xl pointer-events-none"
+        style={{ background: 'rgba(247,147,26,0.12)' }}
+      />
+
+      <div className="relative p-6 flex flex-col sm:flex-row sm:items-center gap-6">
+        {/* Icon */}
+        <div
+          className="w-16 h-16 rounded-2xl flex items-center justify-center flex-shrink-0"
+          style={{ background: 'linear-gradient(135deg, #F7931A, #FF6B2B)', boxShadow: '0 8px 24px rgba(247,147,26,0.35)' }}
+        >
+          <Monitor size={28} className="text-white" />
+        </div>
+
+        {/* Text */}
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 mb-1">
+            <h3 className="text-lg font-bold text-white">Download Desktop App</h3>
+            <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-[#F7931A]/15 text-[#F7931A] border border-[#F7931A]/30 uppercase tracking-wide">
+              Windows
+            </span>
+          </div>
+          <p className="text-[#94A3B8] text-sm mb-3">
+            Get the full desktop experience — completely invisible to Zoom, Google Meet, and all screen recorders.
+          </p>
+          <div className="flex flex-wrap gap-x-5 gap-y-1">
+            {[
+              { icon: EyeOff, label: 'Invisible to screen share' },
+              { icon: ShieldCheck, label: 'OS-level screen protection' },
+              { icon: Zap, label: 'Always-on-top overlay' },
+            ].map(({ icon: Icon, label }) => (
+              <span key={label} className="flex items-center gap-1.5 text-xs text-[#94A3B8]">
+                <Icon size={12} className="text-[#F7931A]" />
+                {label}
+              </span>
+            ))}
+          </div>
+        </div>
+
+        {/* Download button */}
+        <a
+          href="/downloads/InterviewAI-Setup.exe"
+          download
+          className="inline-flex items-center gap-2 px-5 py-3 rounded-xl text-sm font-bold text-white flex-shrink-0 transition-all hover:scale-[1.03] hover:shadow-[0_0_24px_rgba(247,147,26,0.4)] active:scale-[0.98]"
+          style={{ background: 'linear-gradient(135deg, #F7931A, #FF6B2B)' }}
+        >
+          <Download size={16} />
+          Download .exe
+        </a>
       </div>
     </div>
   )
@@ -241,6 +306,9 @@ export default function DashboardPage() {
           ))}
         </div>
       </div>
+
+      {/* Download Desktop App */}
+      <DownloadBanner />
 
       {/* Recent sessions */}
       <div>

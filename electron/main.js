@@ -1,17 +1,52 @@
-const { app, BrowserWindow, ipcMain, screen, globalShortcut, shell, Menu } = require('electron')
+const { app, BrowserWindow, ipcMain, screen, globalShortcut, shell, Menu, session, dialog } = require('electron')
 const path = require('path')
 const { spawn } = require('child_process')
 const http = require('http')
+const fs = require('fs')
 
 const isDev = !app.isPackaged
 
 let mainWindow = null
 let overlayWindow = null
 let nextServerProcess = null
+let speechRecProcess = null
 const PORT = 3000
 
-// ─── Wait for Next.js to be ready ─────────────────────────────────────────────
-function waitForServer(url, retries = 30) {
+// ─── File-based logging ────────────────────────────────────────────────────────
+let logStream = null
+
+function initLogger() {
+  try {
+    const logDir = path.join(app.getPath('userData'), 'logs')
+    if (!fs.existsSync(logDir)) fs.mkdirSync(logDir, { recursive: true })
+    const logFile = path.join(logDir, 'app.log')
+    logStream = fs.createWriteStream(logFile, { flags: 'a' })
+    const ts = () => new Date().toISOString()
+    const orig = { log: console.log, error: console.error, warn: console.warn }
+    console.log   = (...a) => { orig.log(...a);   logStream.write(`[${ts()}] INFO  ${a.join(' ')}\n`) }
+    console.error = (...a) => { orig.error(...a); logStream.write(`[${ts()}] ERROR ${a.join(' ')}\n`) }
+    console.warn  = (...a) => { orig.warn(...a);  logStream.write(`[${ts()}] WARN  ${a.join(' ')}\n`) }
+    console.log(`=== InterviewAI started (v${app.getVersion()}) isDev=${isDev} ===`)
+    console.log(`Log file: ${logFile}`)
+  } catch (e) {
+    // Non-fatal — logging is best-effort
+  }
+}
+
+app.on('ready', initLogger)
+
+// ─── Single-instance lock ─────────────────────────────────────────────────────
+const gotLock = app.requestSingleInstanceLock()
+if (!gotLock) { app.quit() }
+app.on('second-instance', () => {
+  if (mainWindow) {
+    if (mainWindow.isMinimized()) mainWindow.restore()
+    mainWindow.focus()
+  }
+})
+
+// ─── Wait for Next.js ─────────────────────────────────────────────────────────
+function waitForServer(url, retries = 40) {
   return new Promise((resolve, reject) => {
     const attempt = () => {
       http.get(url, (res) => {
@@ -27,33 +62,42 @@ function waitForServer(url, retries = 30) {
   })
 }
 
-// ─── Start the Next.js server (production only) ───────────────────────────────
+// ─── Start Next.js server (production only) ───────────────────────────────────
 function startNextServer() {
   return new Promise((resolve, reject) => {
-    if (isDev) {
-      // In dev, assume `npm run dev` is already running
-      resolve(`http://localhost:${PORT}`)
-      return
-    }
+    if (isDev) { resolve(`http://localhost:${PORT}`); return }
 
-    // Production: spawn next start from the standalone build
-    const appRoot = path.join(process.resourcesPath, 'app')
-    const serverScript = path.join(appRoot, '.next', 'standalone', 'server.js')
+    const standaloneDir = path.join(process.resourcesPath, 'app', '.next', 'standalone')
+    const serverScript = path.join(standaloneDir, 'server.js')
 
     nextServerProcess = spawn(process.execPath, [serverScript], {
-      cwd: path.join(appRoot, '.next', 'standalone'),
+      cwd: standaloneDir,
       env: {
         ...process.env,
+        ELECTRON_RUN_AS_NODE: '1',
+        ELECTRON_NO_ASAR: '1',
         PORT: String(PORT),
         NODE_ENV: 'production',
         NEXTAUTH_URL: `http://localhost:${PORT}`,
+        HOSTNAME: '127.0.0.1',
       },
-      stdio: 'inherit',
+      stdio: 'pipe',
     })
 
+    nextServerProcess.stdout.on('data', (d) => {
+      process.stdout.write(d)
+      logStream?.write(`[SERVER] ${d}`)
+    })
+    nextServerProcess.stderr.on('data', (d) => {
+      process.stderr.write(d)
+      logStream?.write(`[SERVER:ERR] ${d}`)
+    })
     nextServerProcess.on('error', (err) => {
-      console.error('Failed to start Next.js server:', err)
+      console.error('Next.js server spawn error:', err)
       reject(err)
+    })
+    nextServerProcess.on('exit', (code) => {
+      if (code !== 0 && code !== null) console.error('Next.js server exited with code', code)
     })
 
     waitForServer(`http://localhost:${PORT}`)
@@ -81,29 +125,36 @@ function createMainWindow(url) {
     show: false,
   })
 
-  mainWindow.loadURL(url)
-
+  const startUrl = isDev ? url : `${url}/dashboard`
+  console.log('Loading URL:', startUrl)
+  mainWindow.loadURL(startUrl)
   mainWindow.once('ready-to-show', () => {
     mainWindow.show()
     if (isDev) mainWindow.webContents.openDevTools({ mode: 'detach' })
   })
-
-  mainWindow.webContents.setWindowOpenHandler(({ url: openUrl }) => {
-    shell.openExternal(openUrl)
+  mainWindow.webContents.on('did-fail-load', (_e, errCode, errDesc, validatedUrl) => {
+    console.error(`Page failed to load: ${errCode} ${errDesc} — ${validatedUrl}`)
+  })
+  // Forward all renderer console output to app.log
+  mainWindow.webContents.on('console-message', (_e, level, message) => {
+    const prefix = ['VERBOSE', 'INFO', 'WARN', 'ERROR'][level] ?? 'INFO'
+    logStream?.write(`[RENDERER:${prefix}] ${message}\n`)
+  })
+  mainWindow.webContents.setWindowOpenHandler(({ url: u }) => {
+    shell.openExternal(u)
     return { action: 'deny' }
   })
-
-  mainWindow.on('closed', () => {
-    mainWindow = null
-    app.quit()
-  })
-
-  // Remove default menu in production
+  mainWindow.on('closed', () => { mainWindow = null; app.quit() })
   if (!isDev) Menu.setApplicationMenu(null)
 }
 
-// ─── Overlay Window (THE SCREEN-INVISIBLE PANEL) ─────────────────────────────
+// ─── Overlay Window — created on demand when session starts ───────────────────
 function createOverlayWindow() {
+  if (overlayWindow) {
+    overlayWindow.show()
+    return
+  }
+
   const { width } = screen.getPrimaryDisplay().workAreaSize
 
   overlayWindow = new BrowserWindow({
@@ -111,10 +162,10 @@ function createOverlayWindow() {
     height: 520,
     x: width - 460,
     y: 80,
-    frame: false,          // No window chrome
-    transparent: true,     // Transparent background
-    alwaysOnTop: true,     // Stays above everything
-    skipTaskbar: true,     // Hidden from taskbar
+    frame: false,
+    transparent: true,
+    alwaysOnTop: true,
+    skipTaskbar: true,
     resizable: true,
     hasShadow: false,
     webPreferences: {
@@ -125,87 +176,178 @@ function createOverlayWindow() {
     show: false,
   })
 
-  // ══════════════════════════════════════════════════════════════════════════
-  // THE MAGIC LINE — tells Windows: exclude this window from ALL screen capture
-  // This calls SetWindowDisplayAffinity(WDA_EXCLUDEFROMCAPTURE) under the hood
-  // Result: invisible to Zoom, Google Meet, OBS, screenshots, everything
-  // ══════════════════════════════════════════════════════════════════════════
+  // OS-level screen capture exclusion
   overlayWindow.setContentProtection(true)
-
-  // Stay on top of absolutely everything — screen-saver level
   overlayWindow.setAlwaysOnTop(true, 'screen-saver', 1)
   overlayWindow.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true })
 
   overlayWindow.loadFile(path.join(__dirname, 'overlay.html'))
+  overlayWindow.once('ready-to-show', () => overlayWindow.show())
+  overlayWindow.on('closed', () => { overlayWindow = null })
+}
 
-  overlayWindow.once('ready-to-show', () => {
-    overlayWindow.show()
-  })
-
-  overlayWindow.on('closed', () => {
+function destroyOverlayWindow() {
+  if (overlayWindow) {
+    overlayWindow.destroy()
     overlayWindow = null
-  })
+  }
 }
 
 // ─── IPC Handlers ─────────────────────────────────────────────────────────────
-// From main window → overlay
-ipcMain.on('overlay:set-answer', (_e, data) => {
-  overlayWindow?.webContents.send('overlay:answer', data)
-})
 
-ipcMain.on('overlay:set-question', (_e, data) => {
-  overlayWindow?.webContents.send('overlay:question', data)
-})
+// Overlay lifecycle — called by renderer when session starts/stops
+ipcMain.on('overlay:create', () => createOverlayWindow())
+ipcMain.on('overlay:destroy', () => destroyOverlayWindow())
 
-ipcMain.on('overlay:set-status', (_e, status) => {
-  overlayWindow?.webContents.send('overlay:status', status)
-})
-
-ipcMain.on('overlay:clear', () => {
-  overlayWindow?.webContents.send('overlay:clear')
-})
-
-// From overlay → opacity control
-ipcMain.on('overlay:set-opacity', (_e, value) => {
-  overlayWindow?.setOpacity(Math.max(0.1, Math.min(1, value)))
-})
-
-// Toggle overlay visibility (from either window or shortcut)
+// Data forwarding to overlay
+ipcMain.on('overlay:set-answer', (_e, data) => overlayWindow?.webContents.send('overlay:answer', data))
+ipcMain.on('overlay:set-question', (_e, data) => overlayWindow?.webContents.send('overlay:question', data))
+ipcMain.on('overlay:set-status', (_e, status) => overlayWindow?.webContents.send('overlay:status', status))
+ipcMain.on('overlay:clear', () => overlayWindow?.webContents.send('overlay:clear'))
+ipcMain.on('overlay:set-opacity', (_e, value) => overlayWindow?.setOpacity(Math.max(0.1, Math.min(1, value))))
 ipcMain.on('overlay:toggle', () => {
   if (!overlayWindow) return
-  if (overlayWindow.isVisible()) overlayWindow.hide()
-  else overlayWindow.show()
+  overlayWindow.isVisible() ? overlayWindow.hide() : overlayWindow.show()
 })
-
 ipcMain.on('overlay:hide', () => overlayWindow?.hide())
 ipcMain.on('overlay:show', () => overlayWindow?.show())
 
-// Check if running in Electron (renderer can call this)
 ipcMain.handle('app:is-electron', () => true)
 ipcMain.handle('app:platform', () => process.platform)
 
+// ── Windows Speech Recognition via PowerShell ─────────────────────────────
+ipcMain.on('speech:start', () => {
+  if (speechRecProcess) {
+    try { speechRecProcess.kill() } catch {}
+    speechRecProcess = null
+  }
+
+  const psScript = `
+[Console]::OutputEncoding = [System.Text.Encoding]::UTF8
+Add-Type -AssemblyName System.Speech
+try {
+  $r = New-Object System.Speech.Recognition.SpeechRecognitionEngine
+  $grammar = New-Object System.Speech.Recognition.DictationGrammar
+  $r.LoadGrammar($grammar)
+  $r.SetInputToDefaultAudioDevice()
+  $r.add_SpeechHypothesized({
+    param($s, $e)
+    [Console]::WriteLine('I:' + $e.Result.Text)
+    [Console]::Out.Flush()
+  })
+  $r.add_SpeechRecognized({
+    param($s, $e)
+    [Console]::WriteLine('F:' + $e.Result.Text)
+    [Console]::Out.Flush()
+  })
+  $r.RecognizeAsync([System.Speech.Recognition.RecognizeMode]::Multiple)
+  [Console]::WriteLine('READY')
+  [Console]::Out.Flush()
+  while ($true) { Start-Sleep -Milliseconds 100 }
+} catch {
+  [Console]::WriteLine('ERROR:' + $_.Exception.Message)
+  [Console]::Out.Flush()
+}
+`
+
+  speechRecProcess = spawn('powershell', [
+    '-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass', '-Command', psScript
+  ], { stdio: 'pipe', windowsHide: true })
+
+  let buf = ''
+  speechRecProcess.stdout.on('data', (chunk) => {
+    buf += chunk.toString('utf8')
+    const lines = buf.split('\n')
+    buf = lines.pop() ?? ''
+    for (const raw of lines) {
+      const line = raw.trim()
+      if (!line) continue
+      console.log('[SR] stdout:', line)
+      if (line === 'READY') {
+        mainWindow?.webContents.send('speech:ready')
+      } else if (line.startsWith('I:')) {
+        mainWindow?.webContents.send('speech:interim', line.slice(2))
+      } else if (line.startsWith('F:')) {
+        mainWindow?.webContents.send('speech:final', line.slice(2))
+      } else if (line.startsWith('ERROR:')) {
+        console.error('[SR] error:', line.slice(6))
+        mainWindow?.webContents.send('speech:error', line.slice(6))
+      }
+    }
+  })
+
+  speechRecProcess.stderr.on('data', (d) => {
+    console.error('[SR] stderr:', d.toString())
+  })
+
+  speechRecProcess.on('exit', (code) => {
+    console.log('[SR] process exited code', code)
+    speechRecProcess = null
+  })
+
+  speechRecProcess.on('error', (err) => {
+    console.error('[SR] spawn error:', err.message)
+    mainWindow?.webContents.send('speech:error', err.message)
+    speechRecProcess = null
+  })
+})
+
+ipcMain.on('speech:stop', () => {
+  if (speechRecProcess) {
+    try { speechRecProcess.kill() } catch {}
+    speechRecProcess = null
+  }
+})
+
+// Mic permission check — asks the OS for microphone access via getUserMedia
+ipcMain.handle('mic:check-permission', async () => {
+  try {
+    // systemPreferences.askForMediaAccess works on macOS; on Windows the
+    // setPermissionRequestHandler below handles the browser-level grant.
+    if (process.platform === 'darwin') {
+      const { systemPreferences } = require('electron')
+      const status = await systemPreferences.askForMediaAccess('microphone')
+      return status ? 'granted' : 'denied'
+    }
+    // On Windows: permission is controlled by the Chromium permission handler.
+    // We return 'granted' here — if it's actually blocked the renderer will
+    // catch the getUserMedia error and report back.
+    return 'granted'
+  } catch {
+    return 'error'
+  }
+})
+
 // ─── App lifecycle ────────────────────────────────────────────────────────────
 app.whenReady().then(async () => {
+  // Grant microphone / media permission to the renderer page
+  session.defaultSession.setPermissionRequestHandler((_webContents, permission, callback) => {
+    const allowed = ['media', 'mediaKeySystem', 'notifications', 'fullscreen', 'openExternal']
+    callback(allowed.includes(permission))
+  })
+  session.defaultSession.setPermissionCheckHandler((_webContents, permission) => {
+    const allowed = ['media', 'mediaKeySystem', 'notifications', 'fullscreen']
+    return allowed.includes(permission)
+  })
+
   let url
   try {
+    console.log('Starting Next.js server...')
     url = await startNextServer()
+    console.log('Next.js server ready at', url)
   } catch (err) {
     console.error('Could not start server:', err)
-    // Fallback for dev: try localhost anyway
     url = `http://localhost:${PORT}`
   }
 
   createMainWindow(url)
-  createOverlayWindow()
+  // NOTE: overlay is NOT created here — it is created on demand via IPC
+  // when the user actually starts an interview session.
 
-  // Global shortcut: Ctrl+Shift+Space = toggle overlay
   globalShortcut.register('CommandOrControl+Shift+Space', () => {
     if (!overlayWindow) return
-    if (overlayWindow.isVisible()) overlayWindow.hide()
-    else overlayWindow.show()
+    overlayWindow.isVisible() ? overlayWindow.hide() : overlayWindow.show()
   })
-
-  // Ctrl+Shift+C = copy last answer (forwards to overlay)
   globalShortcut.register('CommandOrControl+Shift+C', () => {
     overlayWindow?.webContents.send('overlay:copy-answer')
   })
@@ -213,16 +355,7 @@ app.whenReady().then(async () => {
 
 app.on('will-quit', () => {
   globalShortcut.unregisterAll()
-  if (nextServerProcess) {
-    nextServerProcess.kill()
-    nextServerProcess = null
-  }
+  if (nextServerProcess) { nextServerProcess.kill(); nextServerProcess = null }
 })
-
-app.on('window-all-closed', () => {
-  if (process.platform !== 'darwin') app.quit()
-})
-
-app.on('activate', () => {
-  if (!mainWindow) createMainWindow(`http://localhost:${PORT}`)
-})
+app.on('window-all-closed', () => { if (process.platform !== 'darwin') app.quit() })
+app.on('activate', () => { if (!mainWindow) createMainWindow(`http://localhost:${PORT}`) })

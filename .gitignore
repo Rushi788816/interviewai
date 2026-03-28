@@ -33,3 +33,10 @@ Thumbs.db
 
 # Vercel
 .vercel
+
+# Electron build output
+dist-electron/
+
+# Installer binaries (too large for git)
+public/downloads/*.exe
+public/downloads/*.dmg

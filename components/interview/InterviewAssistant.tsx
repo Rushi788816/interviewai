@@ -19,6 +19,9 @@ declare global {
   interface Window {
     electronAPI?: {
       isElectron: boolean
+      createOverlay: () => void
+      destroyOverlay: () => void
+      checkMicPermission: () => Promise<"granted" | "denied" | "error">
       sendAnswer: (data: { text?: string; done?: boolean }) => void
       sendQuestion: (text: string) => void
       setStatus: (status: "idle" | "listening" | "thinking" | "ready") => void
@@ -72,12 +75,14 @@ export default function InterviewAssistant({ userId, credits: creditsProp, showF
     language: isDesiMode ? "en-IN" : language,
     isDesiMode,
     onSilence: async ({ finalTranscript }: { finalTranscript: string }) => {
+      console.log(`[AI] onSilence received: "${finalTranscript}"`)
       if (!finalTranscript) return
       const words = finalTranscript.trim().split(/\s+/).filter(Boolean)
-      // Require at least 4 words — avoids firing on noise, single words, or partial phrases
-      if (words.length < 4) return
-      if (sessionPhase !== "running") return
+      // Require at least 3 words — avoids firing on noise or single stray words
+      if (words.length < 3) { console.log(`[AI] skipped — only ${words.length} word(s)`); return }
+      if (sessionPhase !== "running") { console.log("[AI] skipped — session not running"); return }
 
+      console.log(`[AI] sending question to API: "${finalTranscript}"`)
       setLiveQuestion(finalTranscript)
       setStreamingAnswer("")
       setIsStreamingAnswer(true)
@@ -99,7 +104,8 @@ export default function InterviewAssistant({ userId, credits: creditsProp, showF
           }),
         })
 
-        if (!response.ok || !response.body) { setIsStreamingAnswer(false); return }
+        console.log(`[AI] API response status=${response.status}`)
+        if (!response.ok || !response.body) { console.error("[AI] bad response or no body"); setIsStreamingAnswer(false); return }
 
         const reader = response.body.getReader()
         const decoder = new TextDecoder()
@@ -137,23 +143,37 @@ export default function InterviewAssistant({ userId, credits: creditsProp, showF
           }
         }
         setIsStreamingAnswer(false)
-      } catch { setIsStreamingAnswer(false) }
+      } catch (err: any) { console.error("[AI] fetch error:", err?.message); setIsStreamingAnswer(false) }
     }
   })
 
-  const handleToggleSession = useCallback(() => {
+  const handleToggleSession = useCallback(async () => {
     if (sessionPhase === "running") {
+      // Pausing
       setSessionPhase("paused")
       resetTranscript()
       if (isListening) toggleListening()
       eAPI()?.setStatus("idle")
     } else {
+      // Starting or resuming — check mic permission first
+      const api = eAPI()
+      if (api?.isElectron && sessionPhase === "idle") {
+        // Ask OS/browser for mic permission before starting
+        try {
+          await navigator.mediaDevices.getUserMedia({ audio: true })
+        } catch {
+          addToast("Microphone access denied. Please allow mic access and try again.", "error")
+          return
+        }
+        // Create the invisible overlay now that session is starting
+        api.createOverlay()
+      }
       setSessionPhase("running")
       resetTranscript()
       if (!isListening) toggleListening()
       eAPI()?.setStatus("listening")
     }
-  }, [sessionPhase, isListening, toggleListening, resetTranscript])
+  }, [sessionPhase, isListening, toggleListening, resetTranscript, addToast])
 
   const handleStop = () => {
     setSessionPhase("idle")
@@ -164,6 +184,8 @@ export default function InterviewAssistant({ userId, credits: creditsProp, showF
     setLiveQuestion("")
     eAPI()?.setStatus("idle")
     eAPI()?.clearOverlay()
+    // Destroy the overlay window when session fully stops
+    eAPI()?.destroyOverlay()
   }
 
   const handleDesiToggle = () => {
