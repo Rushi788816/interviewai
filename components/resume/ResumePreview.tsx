@@ -5,6 +5,7 @@ import type { ResumeData, ResumeTemplateId } from '@/lib/resumeTypes'
 import ClassicTemplate from '@/components/resume/templates/ClassicTemplate'
 import ModernTemplate from '@/components/resume/templates/ModernTemplate'
 import MinimalTemplate from '@/components/resume/templates/MinimalTemplate'
+import ProfessionalTemplate from '@/components/resume/templates/ProfessionalTemplate'
 import { useToast } from '@/hooks/useToast'
 
 export default function ResumePreview({
@@ -28,6 +29,8 @@ export default function ResumePreview({
       <ModernTemplate data={data} />
     ) : template === 'minimal' ? (
       <MinimalTemplate data={data} />
+    ) : template === 'professional' ? (
+      <ProfessionalTemplate data={data} />
     ) : (
       <ClassicTemplate data={data} />
     )
