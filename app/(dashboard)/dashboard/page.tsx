@@ -118,8 +118,9 @@ function DownloadBanner() {
           </div>
         </div>
         <a
-          href="/downloads/InterviewAI-Setup.exe"
-          download
+          href="https://github.com/Rushi788816/interviewai/releases/download/v1.0.0/InterviewAI-Setup.exe"
+          target="_blank"
+          rel="noopener noreferrer"
           className="inline-flex items-center justify-center gap-2 px-4 sm:px-5 py-2.5 sm:py-3 rounded-xl text-xs sm:text-sm font-bold text-white flex-shrink-0 transition-all hover:scale-[1.03] hover:shadow-[0_0_20px_rgba(247,147,26,0.35)] active:scale-[0.98] w-full sm:w-auto"
           style={{ background: 'linear-gradient(135deg, #F7931A, #FF6B2B)' }}
         >
