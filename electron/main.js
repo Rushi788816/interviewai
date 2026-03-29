@@ -64,6 +64,28 @@ function waitForServer(url, retries = 40) {
   })
 }
 
+// ─── Load .env.local bundled with the packaged app ───────────────────────────
+function loadEnv() {
+  try {
+    const envFile = path.join(process.resourcesPath, 'app', '.env.local')
+    if (!fs.existsSync(envFile)) return {}
+    const lines = fs.readFileSync(envFile, 'utf-8').split('\n')
+    const env = {}
+    for (const line of lines) {
+      const trimmed = line.trim()
+      if (!trimmed || trimmed.startsWith('#')) continue
+      const idx = trimmed.indexOf('=')
+      if (idx === -1) continue
+      const key = trimmed.slice(0, idx).trim()
+      let val = trimmed.slice(idx + 1).trim()
+      if ((val.startsWith('"') && val.endsWith('"')) || (val.startsWith("'") && val.endsWith("'")))
+        val = val.slice(1, -1)
+      env[key] = val
+    }
+    return env
+  } catch { return {} }
+}
+
 // ─── Start Next.js server (production only) ───────────────────────────────────
 function startNextServer() {
   return new Promise((resolve, reject) => {
@@ -71,11 +93,13 @@ function startNextServer() {
 
     const standaloneDir = path.join(process.resourcesPath, 'app', '.next', 'standalone')
     const serverScript = path.join(standaloneDir, 'server.js')
+    const bundledEnv = loadEnv()
 
     nextServerProcess = spawn(process.execPath, [serverScript], {
       cwd: standaloneDir,
       env: {
         ...process.env,
+        ...bundledEnv,
         ELECTRON_RUN_AS_NODE: '1',
         ELECTRON_NO_ASAR: '1',
         PORT: String(PORT),

@@ -63,6 +63,10 @@
           "**/*",
           "!downloads/**"
         ]
+      },
+      {
+        "from": ".env.local",
+        "to": "app/.env.local"
       }
     ],
     "win": {
