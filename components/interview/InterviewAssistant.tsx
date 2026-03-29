@@ -113,6 +113,7 @@ export default function InterviewAssistant({ userId, credits: creditsProp, showF
             interviewType,
             language: isDesiMode ? "en-IN" : language,
             sessionContext: storeContext,
+            qaHistory: qaHistory?.slice(-4) ?? [],
           }),
         })
 
@@ -440,9 +441,13 @@ export default function InterviewAssistant({ userId, credits: creditsProp, showF
                   <span style={{ background: "rgba(34,197,94,0.1)", border: "1px solid rgba(34,197,94,0.3)", borderRadius: "10px", padding: "2px 8px", fontSize: "11px", color: "#4ade80" }}>streaming...</span>
                 )}
               </div>
-              <p style={{ color: isStreamingAnswer ? "#4ade80" : "#fff", fontSize: "14px", lineHeight: "1.7", margin: 0, fontStyle: streamingAnswer ? "normal" : "italic", opacity: streamingAnswer ? 1 : 0.4 }}>
-                {streamingAnswer || "Speak a question... AI answer appears here after ~1.5s silence."}
-              </p>
+              {streamingAnswer ? (
+                <StructuredAnswer text={streamingAnswer} isStreaming={isStreamingAnswer} />
+              ) : (
+                <p style={{ color: "#64748B", fontSize: "14px", lineHeight: "1.7", margin: 0, fontStyle: "italic" }}>
+                  Speak a question... AI answer appears here after 2s silence.
+                </p>
+              )}
             </div>
           </div>
 
@@ -547,6 +552,38 @@ export default function InterviewAssistant({ userId, credits: creditsProp, showF
           )}
         </>
       )}
+    </div>
+  )
+}
+
+// ── Structured answer — splits on " | " into Key / Detail / Example panels ──
+function StructuredAnswer({ text, isStreaming }: { text: string; isStreaming: boolean }) {
+  const parts = text.split(" | ")
+  const [keyPoint, detail, example] = [parts[0] ?? "", parts[1] ?? "", parts[2] ?? ""]
+
+  // While streaming the first part hasn't been split yet — show as plain text
+  if (parts.length === 1) {
+    return (
+      <p style={{ color: isStreaming ? "#4ade80" : "#fff", fontSize: "14px", lineHeight: "1.7", margin: 0 }}>
+        {text}
+      </p>
+    )
+  }
+
+  const panels = [
+    { label: "SAY THIS", content: keyPoint, accent: "#4ade80", bg: "rgba(34,197,94,0.07)" },
+    { label: "DETAIL", content: detail, accent: "#60a5fa", bg: "rgba(96,165,250,0.07)" },
+    { label: "EXAMPLE", content: example, accent: "#F7931A", bg: "rgba(247,147,26,0.07)" },
+  ]
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+      {panels.map(({ label, content, accent, bg }) => content ? (
+        <div key={label} style={{ background: bg, borderLeft: `3px solid ${accent}`, borderRadius: "0 8px 8px 0", padding: "8px 12px" }}>
+          <span style={{ fontSize: "9px", color: accent, fontWeight: "700", letterSpacing: "0.1em", display: "block", marginBottom: "3px" }}>{label}</span>
+          <p style={{ color: "#fff", fontSize: "13px", lineHeight: "1.65", margin: 0 }}>{content}</p>
+        </div>
+      ) : null)}
     </div>
   )
 }

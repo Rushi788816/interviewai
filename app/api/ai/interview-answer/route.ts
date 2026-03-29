@@ -13,7 +13,6 @@ export async function GET() {
 
 export async function POST(req: Request) {
   try {
-    // Auth guard — prevent unauthenticated API abuse
     const session = await getServerSession(authOptions)
     if (!session?.user?.id) {
       return Response.json({ error: 'Unauthorized' }, { status: 401 })
@@ -25,12 +24,14 @@ export async function POST(req: Request) {
       isDesiMode,
       interviewType,
       sessionContext,
+      qaHistory,
     } = body as {
       question?: string
       isDesiMode?: boolean
       interviewType?: string
       language?: string
       sessionContext?: SessionContext | null
+      qaHistory?: { question: string; answer: string }[]
     }
 
     if (!process.env.GROQ_API_KEY?.trim()) {
@@ -46,67 +47,74 @@ export async function POST(req: Request) {
     const resume = sc?.resumeText ? sanitizeReadableText(sc.resumeText, 2500) : ''
     const jd = sc?.jobDescription ? sanitizeReadableText(sc.jobDescription, 1500) : ''
 
-    // Build a rich identity block so the AI truly answers AS the candidate
+    // Identity block — who the candidate is
     const identityLines: string[] = []
     if (roleLabel !== 'this role') identityLines.push(`Target role: ${roleLabel}`)
     if (jd) identityLines.push(`Job description:\n${jd}`)
     if (resume) identityLines.push(`My resume / background:\n${resume}`)
     const identityBlock = identityLines.join('\n\n')
 
-    // Classify question type to choose the right answer strategy
+    // Conversation history — last 4 Q&A pairs so AI handles follow-ups
+    const recentHistory = (qaHistory ?? []).slice(-4)
+    const historyBlock = recentHistory.length > 0
+      ? '\n\nCONVERSATION SO FAR:\n' + recentHistory
+          .map((qa, i) => `Q${i + 1}: ${qa.question}\nA${i + 1}: ${qa.answer}`)
+          .join('\n\n')
+      : ''
+
+    // Classify question type
     const questionLower = question.toLowerCase()
     const isBehavioral = /tell me about|describe a time|give me an example|walk me through|situation where|how did you|what did you do|greatest (strength|weakness)|why should|why do you want|biggest challenge/.test(questionLower)
     const isTechnical = /^(what is|explain|how does|difference between|when would you|implement|algorithm|complexity|debug|optimize)/.test(questionLower) || interviewType === 'technical' || interviewType === 'coding'
+    const isFollowUp = /tell me more|elaborate|can you explain|go deeper|expand on|what do you mean|give me an example of that|say more/.test(questionLower)
 
     let strategyNote = ''
-    if (isBehavioral) {
-      strategyNote = 'This is a behavioral question. Use the STAR format (Situation → Task → Action → Result). Reference a specific project or experience from the resume above — mention real company names, tech, or outcomes.'
+    if (isFollowUp) {
+      strategyNote = 'This is a follow-up to the previous answer. Expand with more specific detail, a concrete example, or a metric/outcome not yet mentioned. Do NOT repeat what was already said.'
+    } else if (isBehavioral) {
+      strategyNote = 'Use the STAR format (Situation → Task → Action → Result). Reference a specific project or experience from the resume — mention real company names, tech, and outcomes.'
     } else if (isTechnical) {
-      strategyNote = 'This is a technical question. Give a clear, confident explanation with the correct definition, then mention how you have personally applied this in your work if the resume shows relevant experience.'
+      strategyNote = 'Give a clear, confident explanation with the correct definition, then mention how you have personally applied this in your work using details from the resume.'
     } else {
       strategyNote = 'Answer naturally and confidently. Reference specific experience from the resume where relevant.'
     }
 
+    const baseRules = `
+RULES:
+- Answer in FIRST PERSON as "I" — you ARE the candidate, not a coach.
+- ${strategyNote}
+- Use SPECIFIC details from the resume: company names, project names, technologies, numbers, and real outcomes.
+- Do NOT make up details not in the resume.
+- Sound confident and human — not like a textbook or template.
+- Structure your answer in exactly 3 short parts separated by " | ":
+  PART 1 (1 sentence): The direct answer / key point — say this immediately.
+  PART 2 (2-3 sentences): Elaboration with specific details from experience.
+  PART 3 (1 sentence): Concrete result, outcome, or example that proves it.
+- Keep the full answer under 150 words total.
+- Never start with "Sure!", "Great question!", "Certainly!" or filler.
+- Never output role labels like "Assistant:" or "User:".`
+
     const systemPrompt = isDesiMode
       ? `You are a job candidate answering interview questions in your own voice.
 
-${identityBlock}
+${identityBlock}${historyBlock}
 
-RULES:
-- Answer in FIRST PERSON as "I" — you ARE the candidate, not a coach.
-- Speak the way Indian professionals naturally talk — confident, direct, conversational. Mix of professional and relatable.
-- ${strategyNote}
-- Use SPECIFIC details from the resume: company names, project names, technologies, numbers, and real outcomes.
-- Do NOT give generic textbook answers. Make it sound like YOUR real experience.
-- Do NOT add headers, bullet points, or labels. Just speak naturally.
-- Keep it under 160 words.
-- Never start with "Sure!", "Great question!", "Certainly!" or any filler opener.
-- Never output "Assistant:", "User:", or any role labels.`
+Speak the way Indian professionals naturally talk — confident, direct, conversational.
+${baseRules}`
       : `You are a job candidate answering interview questions in your own voice.
 
-${identityBlock}
-
-RULES:
-- Answer in FIRST PERSON as "I" — you ARE the candidate, not a coach.
-- ${strategyNote}
-- Use SPECIFIC details from the resume: company names, project names, technologies, metrics, and real outcomes. Do not make up details not in the resume, but do reference what is there.
-- Sound confident and human — not like a textbook or a template.
-- Do NOT use bullet points or section headers. Speak in flowing sentences.
-- Keep it under 160 words.
-- Never start with "Sure!", "Great question!", "Certainly!" or any filler opener.
-- Never output "Assistant:", "User:", or any role labels.`
-
-    const userContent = `Interview question: "${question}"`
+${identityBlock}${historyBlock}
+${baseRules}`
 
     const stream = await groq.chat.completions.create({
       model: 'llama-3.3-70b-versatile',
       messages: [
         { role: 'system', content: systemPrompt },
-        { role: 'user', content: userContent },
+        { role: 'user', content: `Interview question: "${question}"` },
       ],
       stream: true,
-      max_tokens: 500,
-      temperature: 0.7,
+      max_tokens: 650,
+      temperature: 0.55,
     })
 
     const encoder = new TextEncoder()

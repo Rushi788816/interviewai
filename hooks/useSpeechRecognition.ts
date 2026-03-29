@@ -60,30 +60,27 @@ export function useSpeechRecognition({
 
   const startSilenceTimer = useCallback((text: string) => {
     clearSilenceTimer()
+    // Always wait at least 2s — interviewers pause mid-sentence frequently
     const wordCount = text.trim().split(/\s+/).filter(Boolean).length
-    const delay = wordCount <= 2 ? 2000 : wordCount <= 5 ? 1500 : 1200
+    const delay = wordCount <= 3 ? 2500 : wordCount <= 8 ? 2000 : 1800
 
     silenceTimerRef.current = setTimeout(() => {
       const textToSend = finalTranscriptRef.current.trim()
       const words = textToSend.split(/\s+/).filter(Boolean)
-      console.log(`[STT] silence detected text="${textToSend}" wordCount=${words.length}`)
 
       if (words.length < 3) {
-        console.log("[STT] too few words, extending wait 1500ms")
+        // Still short — wait one more second before firing
         silenceTimerRef.current = setTimeout(() => {
           const retryText = finalTranscriptRef.current.trim()
-          console.log(`[STT] extended wait done text="${retryText}"`)
           if (retryText.split(/\s+/).filter(Boolean).length >= 1 && onSilenceRef.current) {
-            console.log("[STT] firing onSilence after extended wait")
             onSilenceRef.current({ finalTranscript: retryText })
             finalTranscriptRef.current = ""
             setTranscript("")
           }
-        }, 1500)
+        }, 1000)
         return
       }
 
-      console.log("[STT] firing onSilence")
       if (onSilenceRef.current) {
         onSilenceRef.current({ finalTranscript: textToSend })
         finalTranscriptRef.current = ""
@@ -116,8 +113,11 @@ export function useSpeechRecognition({
     }
   }, [clearSilenceTimer, clearRestartTimer])
 
-  // Each call records 3 seconds then restarts — every cycle is a complete valid WebM file
+  // Records 5-second chunks — longer windows capture full sentences without splits.
+  // Passes prior transcript as Whisper prompt for context continuity across chunks.
+  // Skips silent chunks using Web Audio amplitude check (VAD) to save API calls.
   const runCycleRef = useRef<(() => void) | null>(null)
+  const analyserRef = useRef<AnalyserNode | null>(null)
 
   const runRecordingCycle = useCallback(() => {
     const stream = mediaStreamRef.current
@@ -134,23 +134,37 @@ export function useSpeechRecognition({
       if (!isListeningRef.current) return
 
       const blob = new Blob(chunks, { type: mimeType || "audio/webm" })
-      console.log(`[STT] cycle blob.size=${blob.size}`)
 
-      if (blob.size > 2000) {
+      // Amplitude VAD — check if chunk has actual speech before calling API
+      // Skip chunks that are pure silence (saves Groq quota + avoids noise triggers)
+      const isSpeech = await (async () => {
+        try {
+          const arr = await blob.arrayBuffer()
+          const ctx = new AudioContext()
+          const buf = await ctx.decodeAudioData(arr)
+          const data = buf.getChannelData(0)
+          let sum = 0
+          for (let i = 0; i < data.length; i++) sum += Math.abs(data[i])
+          ctx.close()
+          return (sum / data.length) > 0.005  // RMS threshold — below this is background noise
+        } catch { return blob.size > 5000 }   // fallback: trust size if decode fails
+      })()
+
+      if (isSpeech && blob.size > 3000) {
         try {
           const ext = mimeType.includes("webm") ? "webm" : "ogg"
           const formData = new FormData()
           formData.append("audio", new File([blob], `chunk.${ext}`, { type: mimeType || "audio/webm" }))
-          console.log("[STT] sending to /api/ai/transcribe...")
-          const t0 = Date.now()
+          // Pass prior transcript as Whisper prompt — it uses this as context to
+          // continue the sentence accurately rather than starting from scratch
+          if (finalTranscriptRef.current.trim()) {
+            formData.append("prompt", finalTranscriptRef.current.trim())
+          }
           const res = await fetch("/api/ai/transcribe", { method: "POST", body: formData })
-          console.log(`[STT] status=${res.status} in ${Date.now() - t0}ms`)
           if (res.ok && isListeningRef.current) {
-            const { text, error: apiErr } = await res.json()
-            console.log(`[STT] text="${text}" err=${apiErr ?? "none"}`)
+            const { text } = await res.json()
             if (text?.trim()) {
               finalTranscriptRef.current += (finalTranscriptRef.current ? " " : "") + text.trim()
-              console.log(`[STT] accumulated="${finalTranscriptRef.current}"`)
               setTranscript(finalTranscriptRef.current)
               startSilenceTimer(finalTranscriptRef.current)
             }
@@ -160,17 +174,15 @@ export function useSpeechRecognition({
         }
       }
 
-      // Restart cycle immediately
       if (isListeningRef.current) runCycleRef.current?.()
     }
 
     recorder.start()
-    console.log("[STT] recording cycle started (3s)")
 
-    // Stop after 3 seconds → triggers onstop → transcribe → restart
+    // 5-second chunks — long enough to capture full questions, short enough to feel responsive
     cycleTimeoutRef.current = setTimeout(() => {
       if (recorder.state === "recording") recorder.stop()
-    }, 3000)
+    }, 5000)
   }, [startSilenceTimer])
 
   useEffect(() => { runCycleRef.current = runRecordingCycle }, [runRecordingCycle])
