@@ -10,6 +10,7 @@ let mainWindow = null
 let overlayWindow = null
 let nextServerProcess = null
 let speechRecProcess = null
+let isMicActive = false        // track mic state for overlay toggle
 const PORT = 3000
 
 // ─── File-based logging ────────────────────────────────────────────────────────
@@ -41,6 +42,7 @@ if (!gotLock) { app.quit() }
 app.on('second-instance', () => {
   if (mainWindow) {
     if (mainWindow.isMinimized()) mainWindow.restore()
+    mainWindow.show()
     mainWindow.focus()
   }
 })
@@ -135,7 +137,6 @@ function createMainWindow(url) {
   mainWindow.webContents.on('did-fail-load', (_e, errCode, errDesc, validatedUrl) => {
     console.error(`Page failed to load: ${errCode} ${errDesc} — ${validatedUrl}`)
   })
-  // Forward all renderer console output to app.log
   mainWindow.webContents.on('console-message', (_e, level, message) => {
     const prefix = ['VERBOSE', 'INFO', 'WARN', 'ERROR'][level] ?? 'INFO'
     logStream?.write(`[RENDERER:${prefix}] ${message}\n`)
@@ -159,7 +160,7 @@ function createOverlayWindow() {
 
   overlayWindow = new BrowserWindow({
     width: 440,
-    height: 520,
+    height: 560,
     x: width - 460,
     y: 80,
     frame: false,
@@ -176,14 +177,21 @@ function createOverlayWindow() {
     show: false,
   })
 
-  // OS-level screen capture exclusion
+  // OS-level screen capture exclusion — invisible to Zoom, Meet, OBS, etc.
   overlayWindow.setContentProtection(true)
   overlayWindow.setAlwaysOnTop(true, 'screen-saver', 1)
   overlayWindow.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true })
 
   overlayWindow.loadFile(path.join(__dirname, 'overlay.html'))
   overlayWindow.once('ready-to-show', () => overlayWindow.show())
-  overlayWindow.on('closed', () => { overlayWindow = null })
+  overlayWindow.on('closed', () => {
+    overlayWindow = null
+    // When overlay is closed, make sure main window is visible
+    if (mainWindow && !mainWindow.isVisible()) {
+      mainWindow.show()
+      mainWindow.focus()
+    }
+  })
 }
 
 function destroyOverlayWindow() {
@@ -193,30 +201,8 @@ function destroyOverlayWindow() {
   }
 }
 
-// ─── IPC Handlers ─────────────────────────────────────────────────────────────
-
-// Overlay lifecycle — called by renderer when session starts/stops
-ipcMain.on('overlay:create', () => createOverlayWindow())
-ipcMain.on('overlay:destroy', () => destroyOverlayWindow())
-
-// Data forwarding to overlay
-ipcMain.on('overlay:set-answer', (_e, data) => overlayWindow?.webContents.send('overlay:answer', data))
-ipcMain.on('overlay:set-question', (_e, data) => overlayWindow?.webContents.send('overlay:question', data))
-ipcMain.on('overlay:set-status', (_e, status) => overlayWindow?.webContents.send('overlay:status', status))
-ipcMain.on('overlay:clear', () => overlayWindow?.webContents.send('overlay:clear'))
-ipcMain.on('overlay:set-opacity', (_e, value) => overlayWindow?.setOpacity(Math.max(0.1, Math.min(1, value))))
-ipcMain.on('overlay:toggle', () => {
-  if (!overlayWindow) return
-  overlayWindow.isVisible() ? overlayWindow.hide() : overlayWindow.show()
-})
-ipcMain.on('overlay:hide', () => overlayWindow?.hide())
-ipcMain.on('overlay:show', () => overlayWindow?.show())
-
-ipcMain.handle('app:is-electron', () => true)
-ipcMain.handle('app:platform', () => process.platform)
-
-// ── Windows Speech Recognition via PowerShell ─────────────────────────────
-ipcMain.on('speech:start', () => {
+// ─── Speech Recognition helpers ───────────────────────────────────────────────
+function startSpeechRec() {
   if (speechRecProcess) {
     try { speechRecProcess.kill() } catch {}
     speechRecProcess = null
@@ -265,6 +251,8 @@ try {
       console.log('[SR] stdout:', line)
       if (line === 'READY') {
         mainWindow?.webContents.send('speech:ready')
+        isMicActive = true
+        overlayWindow?.webContents.send('mic:state', { active: true })
       } else if (line.startsWith('I:')) {
         mainWindow?.webContents.send('speech:interim', line.slice(2))
       } else if (line.startsWith('F:')) {
@@ -272,6 +260,8 @@ try {
       } else if (line.startsWith('ERROR:')) {
         console.error('[SR] error:', line.slice(6))
         mainWindow?.webContents.send('speech:error', line.slice(6))
+        isMicActive = false
+        overlayWindow?.webContents.send('mic:state', { active: false })
       }
     }
   })
@@ -283,35 +273,94 @@ try {
   speechRecProcess.on('exit', (code) => {
     console.log('[SR] process exited code', code)
     speechRecProcess = null
+    isMicActive = false
+    overlayWindow?.webContents.send('mic:state', { active: false })
   })
 
   speechRecProcess.on('error', (err) => {
     console.error('[SR] spawn error:', err.message)
     mainWindow?.webContents.send('speech:error', err.message)
     speechRecProcess = null
+    isMicActive = false
+    overlayWindow?.webContents.send('mic:state', { active: false })
   })
-})
+}
 
-ipcMain.on('speech:stop', () => {
+function stopSpeechRec() {
   if (speechRecProcess) {
     try { speechRecProcess.kill() } catch {}
     speechRecProcess = null
   }
+  isMicActive = false
+  overlayWindow?.webContents.send('mic:state', { active: false })
+}
+
+// ─── IPC Handlers ─────────────────────────────────────────────────────────────
+
+// Overlay lifecycle
+ipcMain.on('overlay:create', () => createOverlayWindow())
+ipcMain.on('overlay:destroy', () => destroyOverlayWindow())
+
+// Data forwarding to overlay
+ipcMain.on('overlay:set-answer',   (_e, data)   => overlayWindow?.webContents.send('overlay:answer', data))
+ipcMain.on('overlay:set-question', (_e, data)   => overlayWindow?.webContents.send('overlay:question', data))
+ipcMain.on('overlay:set-status',   (_e, status) => overlayWindow?.webContents.send('overlay:status', status))
+ipcMain.on('overlay:clear',                ()   => overlayWindow?.webContents.send('overlay:clear'))
+ipcMain.on('overlay:set-opacity',  (_e, value)  => overlayWindow?.setOpacity(Math.max(0.1, Math.min(1, value))))
+ipcMain.on('overlay:toggle', () => {
+  if (!overlayWindow) return
+  overlayWindow.isVisible() ? overlayWindow.hide() : overlayWindow.show()
+})
+ipcMain.on('overlay:hide', () => overlayWindow?.hide())
+ipcMain.on('overlay:show', () => overlayWindow?.show())
+
+// ── Main window visibility — called when user "goes invisible" ─────────────────
+ipcMain.on('main:hide', () => {
+  if (mainWindow) mainWindow.hide()
+})
+ipcMain.on('main:show', () => {
+  if (mainWindow) {
+    mainWindow.show()
+    mainWindow.focus()
+  }
 })
 
-// Mic permission check — asks the OS for microphone access via getUserMedia
+// ── Mic toggle from overlay — mirrors start/stop logic ────────────────────────
+ipcMain.on('overlay:mic-toggle', () => {
+  if (isMicActive) {
+    stopSpeechRec()
+    overlayWindow?.webContents.send('mic:state', { active: false })
+  } else {
+    startSpeechRec()
+    // mic:state is sent once SR sends READY
+  }
+})
+
+// ── Mode change from overlay → sync to hidden main window's React state ────────
+// payload: { isDesiMode: boolean, language: string }
+ipcMain.on('overlay:set-mode', (_e, data) => {
+  mainWindow?.webContents.send('mode:set', data)
+  overlayWindow?.webContents.send('mode:confirmed', data)
+})
+
+// ── Query current mic state (overlay asks on open) ────────────────────────────
+ipcMain.handle('overlay:get-mic-state', () => ({ active: isMicActive }))
+
+ipcMain.handle('app:is-electron', () => true)
+ipcMain.handle('app:platform', () => process.platform)
+
+// ── Windows Speech Recognition via PowerShell ─────────────────────────────────
+ipcMain.on('speech:start', () => startSpeechRec())
+ipcMain.on('speech:stop',  () => stopSpeechRec())
+
+// Mic permission check
 ipcMain.handle('mic:check-permission', async () => {
   try {
-    // systemPreferences.askForMediaAccess works on macOS; on Windows the
-    // setPermissionRequestHandler below handles the browser-level grant.
     if (process.platform === 'darwin') {
       const { systemPreferences } = require('electron')
       const status = await systemPreferences.askForMediaAccess('microphone')
       return status ? 'granted' : 'denied'
     }
-    // On Windows: permission is controlled by the Chromium permission handler.
-    // We return 'granted' here — if it's actually blocked the renderer will
-    // catch the getUserMedia error and report back.
     return 'granted'
   } catch {
     return 'error'
@@ -320,7 +369,6 @@ ipcMain.handle('mic:check-permission', async () => {
 
 // ─── App lifecycle ────────────────────────────────────────────────────────────
 app.whenReady().then(async () => {
-  // Grant microphone / media permission to the renderer page
   session.defaultSession.setPermissionRequestHandler((_webContents, permission, callback) => {
     const allowed = ['media', 'mediaKeySystem', 'notifications', 'fullscreen', 'openExternal']
     callback(allowed.includes(permission))
@@ -341,21 +389,30 @@ app.whenReady().then(async () => {
   }
 
   createMainWindow(url)
-  // NOTE: overlay is NOT created here — it is created on demand via IPC
-  // when the user actually starts an interview session.
 
+  // Ctrl+Shift+Space → toggle overlay visibility
   globalShortcut.register('CommandOrControl+Shift+Space', () => {
     if (!overlayWindow) return
     overlayWindow.isVisible() ? overlayWindow.hide() : overlayWindow.show()
   })
+  // Ctrl+Shift+C → copy answer in overlay
   globalShortcut.register('CommandOrControl+Shift+C', () => {
     overlayWindow?.webContents.send('overlay:copy-answer')
+  })
+  // Ctrl+Shift+M → toggle mic from anywhere
+  globalShortcut.register('CommandOrControl+Shift+M', () => {
+    if (isMicActive) {
+      stopSpeechRec()
+    } else {
+      startSpeechRec()
+    }
   })
 })
 
 app.on('will-quit', () => {
   globalShortcut.unregisterAll()
   if (nextServerProcess) { nextServerProcess.kill(); nextServerProcess = null }
+  stopSpeechRec()
 })
 app.on('window-all-closed', () => { if (process.platform !== 'darwin') app.quit() })
 app.on('activate', () => { if (!mainWindow) createMainWindow(`http://localhost:${PORT}`) })

@@ -27,6 +27,10 @@ declare global {
       setStatus: (status: "idle" | "listening" | "thinking" | "ready") => void
       clearOverlay: () => void
       toggleOverlay: () => void
+      showOverlay: () => void
+      hideMainWindow: () => void
+      showMainWindow: () => void
+      onModeSet: (cb: (data: { isDesiMode: boolean; language?: string }) => void) => void
     }
   }
 }
@@ -60,6 +64,16 @@ export default function InterviewAssistant({ userId, credits: creditsProp, showF
     check()
     window.addEventListener("resize", check)
     return () => window.removeEventListener("resize", check)
+  }, [])
+
+  // Sync mode/language changes pushed from the Electron overlay
+  useEffect(() => {
+    const api = eAPI()
+    if (!api?.onModeSet) return
+    api.onModeSet((data) => {
+      setIsDesiMode(data.isDesiMode)
+      if (data.language) setLanguage(data.language)
+    })
   }, [])
 
   // Session timer
@@ -453,7 +467,10 @@ export default function InterviewAssistant({ userId, credits: creditsProp, showF
               {eAPI()?.isElectron ? (
                 <>
                   <button
-                    onClick={() => eAPI()?.toggleOverlay()}
+                    onClick={() => {
+                      eAPI()?.showOverlay()
+                      eAPI()?.hideMainWindow()
+                    }}
                     style={{
                       background: "rgba(34,197,94,0.12)",
                       border: "1px solid rgba(34,197,94,0.4)",
@@ -463,7 +480,7 @@ export default function InterviewAssistant({ userId, credits: creditsProp, showF
                       width: "100%", justifyContent: "center", fontWeight: "600",
                     }}>
                     <Ghost size={12} />
-                    Toggle Overlay
+                    Go Invisible
                   </button>
                   <span style={{ fontSize: "9px", color: "#4ade80", textAlign: "center", letterSpacing: "0.05em" }}>
                     🛡 OS-level invisible
