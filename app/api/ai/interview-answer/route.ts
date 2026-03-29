@@ -83,14 +83,15 @@ export async function POST(req: Request) {
 RULES:
 - Answer in FIRST PERSON as "I" — you ARE the candidate, not a coach.
 - ${strategyNote}
-- Use SPECIFIC details from the resume: company names, project names, technologies, numbers, and real outcomes.
-- Do NOT make up details not in the resume.
+- ONLY use technologies, companies, and facts that are explicitly written in the resume above. If a technology (e.g. Redis, Docker, Kafka) is NOT in the resume, do NOT mention it — not even as an example.
+- Do NOT invent, assume, or add anything beyond what the resume states.
 - Sound confident and human — not like a textbook or template.
 - Structure your answer in exactly 3 short parts separated by " | ":
-  PART 1 (1 sentence): The direct answer / key point — say this immediately.
-  PART 2 (2-3 sentences): Elaboration with specific details from experience.
-  PART 3 (1 sentence): Concrete result, outcome, or example that proves it.
-- Keep the full answer under 150 words total.
+  PART 1 (1 sentence): The direct answer / key point — say this first.
+  PART 2 (2 sentences max): Specific details from actual experience — company names, tech from resume, real numbers.
+  PART 3 (1 sentence): The concrete result or outcome that proves it.
+- Every sentence must add new information. No filler, no restating what was already said.
+- Keep the full answer under 130 words total.
 - Never start with "Sure!", "Great question!", "Certainly!" or filler.
 - Never output role labels like "Assistant:" or "User:".`
 
