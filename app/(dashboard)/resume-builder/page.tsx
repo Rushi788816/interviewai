@@ -7,7 +7,7 @@ import { emptyResume, type ResumeData, type ResumeTemplateId } from '@/lib/resum
 import ResumeBuilder from '@/components/resume/ResumeBuilder'
 import TemplateSelector from '@/components/resume/TemplateSelector'
 import ResumePreview from '@/components/resume/ResumePreview'
-import { Save, Eye, EyeOff } from 'lucide-react'
+import { Save, Eye, EyeOff, Upload } from 'lucide-react'
 
 const STORAGE_KEY = 'interviewai_resume_data'
 const TEMPLATE_KEY = 'interviewai_resume_template'
@@ -35,6 +35,8 @@ export default function ResumeBuilderPage() {
   const [showPreview, setShowPreview] = useState(false)
   const [saveIndicator, setSaveIndicator] = useState(false)
   const [hydrated, setHydrated] = useState(false)
+  const [importing, setImporting] = useState(false)
+  const [importError, setImportError] = useState('')
 
   useEffect(() => {
     if (status === 'unauthenticated') router.replace('/login')
@@ -73,6 +75,27 @@ export default function ResumeBuilderPage() {
     }
   }
 
+  const handleImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    e.target.value = ''
+    setImporting(true)
+    setImportError('')
+    try {
+      const formData = new FormData()
+      formData.append('file', file)
+      const res = await fetch('/api/ai/parse-resume', { method: 'POST', body: formData })
+      const json = await res.json()
+      if (!res.ok) { setImportError(json.error || 'Import failed'); return }
+      setResumeData(json.data)
+      setStep(1)
+    } catch {
+      setImportError('Upload failed. Please try again.')
+    } finally {
+      setImporting(false)
+    }
+  }
+
   if (status !== 'authenticated') {
     return (
       <div className="flex items-center justify-center min-h-[40vh]">
@@ -89,14 +112,34 @@ export default function ResumeBuilderPage() {
           <h1 className="text-2xl sm:text-3xl font-bold text-white">Resume Builder</h1>
           <p className="text-[#94A3B8] text-sm mt-1">Build an ATS-optimized resume — auto-saved locally</p>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 flex-wrap">
           {/* Save indicator */}
           {saveIndicator && (
-            <span className="flex items-center gap-1.5 text-green-400 text-xs font-medium animate-fade-in">
-              <Save size={12} />
-              Saved
+            <span className="flex items-center gap-1.5 text-green-400 text-xs font-medium">
+              <Save size={12} /> Saved
             </span>
           )}
+          {/* Upload existing resume */}
+          <label className={`inline-flex items-center gap-2 px-4 py-2 rounded-xl border text-sm font-semibold cursor-pointer transition-all ${importing ? 'opacity-60 cursor-not-allowed border-[#F7931A]/30 text-[#F7931A]' : 'border-[#F7931A]/40 text-[#F7931A] hover:bg-[#F7931A]/10'}`}>
+            {importing ? (
+              <>
+                <span className="w-3.5 h-3.5 border-2 border-[#F7931A] border-t-transparent rounded-full animate-spin" />
+                Parsing...
+              </>
+            ) : (
+              <>
+                <Upload size={14} />
+                Import Resume
+              </>
+            )}
+            <input
+              type="file"
+              accept=".pdf,.docx,.txt"
+              className="hidden"
+              disabled={importing}
+              onChange={handleImport}
+            />
+          </label>
           {/* Mobile preview toggle */}
           <button
             type="button"
@@ -116,6 +159,14 @@ export default function ResumeBuilderPage() {
           </button>
         </div>
       </div>
+
+      {/* Import error */}
+      {importError && (
+        <div className="mb-4 flex items-center justify-between gap-3 rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-400">
+          <span>{importError}</span>
+          <button onClick={() => setImportError('')} className="text-red-400 hover:text-white">✕</button>
+        </div>
+      )}
 
       {/* Two-column layout: editor left, preview right */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
