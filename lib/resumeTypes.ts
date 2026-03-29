@@ -1,4 +1,4 @@
-export type ResumeTemplateId = 'classic' | 'modern' | 'minimal' | 'professional'
+export type ResumeTemplateId = 'classic' | 'modern' | 'minimal' | 'professional' | 'executive' | 'creative' | 'compact' | 'bold'
 
 export interface ExperienceEntry {
   id: string

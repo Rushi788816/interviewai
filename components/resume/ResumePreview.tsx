@@ -6,6 +6,10 @@ import ClassicTemplate from '@/components/resume/templates/ClassicTemplate'
 import ModernTemplate from '@/components/resume/templates/ModernTemplate'
 import MinimalTemplate from '@/components/resume/templates/MinimalTemplate'
 import ProfessionalTemplate from '@/components/resume/templates/ProfessionalTemplate'
+import ExecutiveTemplate from '@/components/resume/templates/ExecutiveTemplate'
+import CreativeTemplate from '@/components/resume/templates/CreativeTemplate'
+import CompactTemplate from '@/components/resume/templates/CompactTemplate'
+import BoldTemplate from '@/components/resume/templates/BoldTemplate'
 import { useToast } from '@/hooks/useToast'
 
 export default function ResumePreview({
@@ -25,15 +29,14 @@ export default function ResumePreview({
   const [loading, setLoading] = useState(false)
 
   const body =
-    template === 'modern' ? (
-      <ModernTemplate data={data} />
-    ) : template === 'minimal' ? (
-      <MinimalTemplate data={data} />
-    ) : template === 'professional' ? (
-      <ProfessionalTemplate data={data} />
-    ) : (
-      <ClassicTemplate data={data} />
-    )
+    template === 'modern'       ? <ModernTemplate data={data} />       :
+    template === 'minimal'      ? <MinimalTemplate data={data} />      :
+    template === 'professional' ? <ProfessionalTemplate data={data} /> :
+    template === 'executive'    ? <ExecutiveTemplate data={data} />    :
+    template === 'creative'     ? <CreativeTemplate data={data} />     :
+    template === 'compact'      ? <CompactTemplate data={data} />      :
+    template === 'bold'         ? <BoldTemplate data={data} />         :
+    <ClassicTemplate data={data} />
 
   const exportPdf = async () => {
     try {
