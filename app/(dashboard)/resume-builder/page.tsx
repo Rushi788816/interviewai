@@ -42,21 +42,44 @@ export default function ResumeBuilderPage() {
     if (status === 'unauthenticated') router.replace('/login')
   }, [status, router])
 
-  // Hydrate from localStorage once on mount
+  // Hydrate: try DB first, fall back to localStorage
   useEffect(() => {
-    const saved = loadFromStorage()
-    setResumeData(saved.data)
-    setTemplate(saved.template)
-    setHydrated(true)
+    async function load() {
+      try {
+        const res = await fetch('/api/resume/load')
+        const json = await res.json() as { data: { resumeData?: ResumeData; template?: ResumeTemplateId } | null }
+        if (json.data?.resumeData) {
+          setResumeData(json.data.resumeData)
+          setTemplate(json.data.template || 'classic')
+          setHydrated(true)
+          return
+        }
+      } catch {}
+      // Fall back to localStorage
+      const saved = loadFromStorage()
+      setResumeData(saved.data)
+      setTemplate(saved.template)
+      setHydrated(true)
+    }
+    void load()
   }, [])
 
-  // Persist to localStorage whenever resumeData or template changes
+  // Persist to localStorage + DB whenever resumeData or template changes
   useEffect(() => {
     if (!hydrated) return
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(resumeData))
       localStorage.setItem(TEMPLATE_KEY, template)
     } catch {}
+    // Debounced DB save (fire and forget)
+    const timer = setTimeout(() => {
+      fetch('/api/resume/save', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ data: { resumeData, template } }),
+      }).catch(() => {})
+    }, 1500)
+    return () => clearTimeout(timer)
   }, [resumeData, template, hydrated])
 
   const handleDataChange = useCallback((data: ResumeData) => {
@@ -68,10 +91,16 @@ export default function ResumeBuilderPage() {
 
   const handleReset = () => {
     if (confirm('Reset resume to blank? This cannot be undone.')) {
-      setResumeData(emptyResume())
+      const empty = emptyResume()
+      setResumeData(empty)
       setTemplate('classic')
       localStorage.removeItem(STORAGE_KEY)
       localStorage.removeItem(TEMPLATE_KEY)
+      fetch('/api/resume/save', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ data: { resumeData: empty, template: 'classic' } }),
+      }).catch(() => {})
     }
   }
 
@@ -110,7 +139,7 @@ export default function ResumeBuilderPage() {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
         <div>
           <h1 className="text-2xl sm:text-3xl font-bold text-white">Resume Builder</h1>
-          <p className="text-[#94A3B8] text-sm mt-1">Build an ATS-optimized resume — auto-saved locally</p>
+          <p className="text-[#94A3B8] text-sm mt-1">Build an ATS-optimized resume — auto-saved to your account</p>
         </div>
         <div className="flex items-center gap-3 flex-wrap">
           {/* Save indicator */}

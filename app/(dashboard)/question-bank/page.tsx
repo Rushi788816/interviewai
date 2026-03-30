@@ -125,7 +125,7 @@ export default function QuestionBankPage() {
           {/* Categories */}
           <div>
             <p className="text-xs font-semibold text-[#94A3B8] uppercase tracking-wider mb-3">Category</p>
-            <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
+            <div className="grid grid-cols-3 sm:grid-cols-5 gap-2">
               {CATEGORIES.map(cat => (
                 <button
                   key={cat.id}

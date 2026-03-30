@@ -170,24 +170,17 @@ export default function PricingPage() {
               </ul>
 
               {/* CTA */}
-              <div
-                className="w-full py-3.5 rounded-2xl text-center text-sm font-bold transition-all cursor-not-allowed select-none"
+              <a
+                href="/credits"
+                className="w-full py-3.5 rounded-2xl text-center text-sm font-bold transition-all block hover:opacity-90 hover:scale-[1.02]"
                 style={
                   plan.mostPopular
-                    ? {
-                        background: 'linear-gradient(135deg, #F7931A, #FF6B2B)',
-                        color: 'white',
-                        opacity: 0.7,
-                      }
-                    : {
-                        backgroundColor: 'rgba(255,255,255,0.05)',
-                        border: '1px solid rgba(255,255,255,0.1)',
-                        color: '#94A3B8',
-                      }
+                    ? { background: 'linear-gradient(135deg, #F7931A, #FF6B2B)', color: 'white' }
+                    : { backgroundColor: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', color: '#E2E8F0' }
                 }
               >
-                Coming Soon
-              </div>
+                Get Started →
+              </a>
             </div>
           ))}
         </div>

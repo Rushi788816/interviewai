@@ -2,6 +2,7 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { groq } from '@/lib/anthropic'
+import { rateLimit } from '@/lib/rateLimit'
 
 export const dynamic = 'force-dynamic'
 
@@ -10,6 +11,12 @@ export async function POST(request: Request) {
     const session = await getServerSession(authOptions)
     if (!session?.user?.id) {
       return Response.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
+    // Rate limit: 10 mock interview requests per minute
+    const rl = rateLimit(`mock:${session.user.id}`, 10, 60_000)
+    if (!rl.allowed) {
+      return Response.json({ error: 'Too many requests. Please slow down.' }, { status: 429 })
     }
 
     if (!process.env.GROQ_API_KEY?.trim()) {

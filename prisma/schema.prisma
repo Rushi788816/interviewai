@@ -17,12 +17,24 @@ model User {
   credits           Int                @default(30)
   plan              String             @default("free")
   onboarded         Boolean            @default(false)
+  jobRole           String?
+  goal              String?
   createdAt         DateTime           @default(now())
   updatedAt         DateTime           @updatedAt
   interviewSessions InterviewSession[]
   payments          Payment[]
   mockSessions      MockSession[]
   sessions          Session[]
+  resume            UserResume?
+}
+
+model UserResume {
+  id        String   @id @default(cuid())
+  userId    String   @unique
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  data      Json     @default("{}")
+  updatedAt DateTime @updatedAt
+  createdAt DateTime @default(now())
 }
 
 model InterviewSession {
@@ -38,6 +50,8 @@ model InterviewSession {
   isDesiMode  Boolean  @default(false)
   jobRole     String?
   createdAt   DateTime @default(now())
+
+  @@index([userId, createdAt])
 }
 
 model MockSession {
@@ -53,6 +67,8 @@ model MockSession {
   overallScore Float    @default(0)
   completed    Boolean  @default(false)
   createdAt    DateTime @default(now())
+
+  @@index([userId, createdAt])
 }
 
 model Payment {
@@ -65,6 +81,8 @@ model Payment {
   plan       String
   status     String   @default("pending")
   createdAt  DateTime @default(now())
+
+  @@index([userId])
 }
 
 model Session {
@@ -77,4 +95,3 @@ model Session {
   userAgent String?
   ipAddress String?
 }
-

@@ -3,6 +3,7 @@ import { useSession } from "next-auth/react"
 import { useRouter } from "next/navigation"
 import { useEffect } from "react"
 import dynamic from "next/dynamic"
+import LowCreditBanner from "@/components/ui/LowCreditBanner"
 
 const InterviewAssistant = dynamic(
   () => import("@/components/interview/InterviewAssistant"),
@@ -27,6 +28,9 @@ export default function InterviewPage() {
 
   return (
     <div style={{ minHeight: "100vh", background: "#030304", padding: "clamp(16px, 4vw, 32px) clamp(12px, 4vw, 24px)" }}>
+      <div style={{ maxWidth: "1200px", margin: "0 auto 16px" }}>
+        <LowCreditBanner />
+      </div>
       <InterviewAssistant
         showFloatingLauncher={false}
         defaultOpen={true}

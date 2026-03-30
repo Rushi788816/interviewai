@@ -14,6 +14,11 @@ export async function POST(req: NextRequest) {
       return Response.json({ error: "No file provided" }, { status: 400 })
     }
 
+    // Max 10MB resume file
+    if (file.size > 10 * 1024 * 1024) {
+      return Response.json({ error: "File too large (max 10MB)" }, { status: 413 })
+    }
+
     const fileName = file.name.toLowerCase()
 
     // TXT files — read directly

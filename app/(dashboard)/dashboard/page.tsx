@@ -27,6 +27,7 @@ import {
   BookOpen,
   Mail,
 } from "lucide-react"
+import LowCreditBanner from "@/components/ui/LowCreditBanner"
 
 interface SessionRow {
   id: string
@@ -254,6 +255,9 @@ export default function DashboardPage() {
 
   return (
     <div className="max-w-5xl mx-auto px-4 sm:px-6 py-6 sm:py-8 space-y-6 sm:space-y-8">
+
+      {/* ── Low credit banner ── */}
+      <LowCreditBanner />
 
       {/* ── Header ── */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">

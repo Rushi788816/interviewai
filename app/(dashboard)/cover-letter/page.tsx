@@ -91,7 +91,7 @@ export default function CoverLetterPage() {
           </p>
         </div>
 
-        <div className="grid lg:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
 
           {/* Left — inputs */}
           <div className="space-y-4">
@@ -117,7 +117,7 @@ export default function CoverLetterPage() {
                     value={resumeText}
                     onChange={e => setResumeText(e.target.value)}
                     placeholder="Paste your resume text here..."
-                    rows={5}
+                    rows={3}
                     className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-2.5 text-sm text-white placeholder:text-[#475569] focus:border-[#F7931A]/50 focus:outline-none resize-none transition-colors"
                   />
                 </>
@@ -125,7 +125,7 @@ export default function CoverLetterPage() {
             </div>
 
             {/* Job Role & Company */}
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
                 <label className="text-xs font-semibold text-[#94A3B8] uppercase tracking-wider block mb-2">Job Role</label>
                 <input type="text" value={jobRole} onChange={e => setJobRole(e.target.value)}
@@ -157,13 +157,13 @@ export default function CoverLetterPage() {
             {/* Tone */}
             <div>
               <p className="text-xs font-semibold text-[#94A3B8] uppercase tracking-wider mb-2">Tone</p>
-              <div className="flex gap-2">
+              <div className="grid grid-cols-3 gap-2">
                 {TONES.map(t => (
                   <button
                     key={t.id}
                     type="button"
                     onClick={() => setTone(t.id)}
-                    className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl border text-xs font-semibold transition-all ${
+                    className={`flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-1.5 py-2 rounded-xl border text-xs font-semibold transition-all ${
                       tone === t.id
                         ? 'border-[#F7931A]/50 bg-[#F7931A]/8 text-[#F7931A]'
                         : 'border-white/8 bg-white/3 text-[#64748B] hover:border-white/15 hover:text-white'

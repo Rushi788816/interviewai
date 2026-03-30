@@ -174,7 +174,7 @@ export default function SessionReplayPage() {
         )}
 
         {/* CTA */}
-        <div className="flex flex-wrap gap-3 pt-2">
+        <div className="flex flex-wrap gap-2 sm:gap-3 pt-2">
           <Link
             href="/interview"
             className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold text-white"

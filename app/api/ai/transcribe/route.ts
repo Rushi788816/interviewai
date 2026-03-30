@@ -11,6 +11,11 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ text: '' })
     }
 
+    // Max 25MB audio file
+    if (audioFile.size > 25 * 1024 * 1024) {
+      return NextResponse.json({ text: '', error: 'Audio file too large (max 25MB)' }, { status: 413 })
+    }
+
     const params: Record<string, any> = {
       file: audioFile,
       model: 'whisper-large-v3-turbo',

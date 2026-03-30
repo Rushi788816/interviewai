@@ -16,7 +16,7 @@ export default function MockInterviewPage() {
     if (status === 'unauthenticated') router.replace('/login')
   }, [status, router])
 
-  if (status !== 'authenticated' || !session?.user) {
+  if (status !== 'authenticated' || !session?.user || creditsLoading) {
     return (
       <div className="min-h-screen bg-[#0a0a0f] flex items-center justify-center">
         <div className="w-8 h-8 border-2 border-[#F7931A] border-t-transparent rounded-full animate-spin" />
@@ -25,7 +25,7 @@ export default function MockInterviewPage() {
   }
 
   // Block access — show friendly gate instead of letting them start and fail mid-session
-  if (!creditsLoading && balance < 10) {
+  if (balance < 10) {
     return (
       <div className="min-h-screen bg-[#0a0a0f] flex items-center justify-center px-4">
         <div className="max-w-md w-full text-center space-y-6 bg-[#111827] border border-white/10 rounded-2xl p-10">
@@ -39,7 +39,7 @@ export default function MockInterviewPage() {
           </p>
           <div className="flex flex-col gap-3">
             <Link
-              href="/settings"
+              href="/credits"
               className="w-full py-3 rounded-xl font-bold text-white text-sm hover:opacity-90 transition-all"
               style={{ background: 'linear-gradient(135deg, #F7931A, #FF6B2B)' }}
             >

@@ -28,6 +28,7 @@ export default function SettingsPage() {
   >([])
   const [saving, setSaving] = useState(false)
   const [success, setSuccess] = useState(false)
+  const [sessionsLoading, setSessionsLoading] = useState(true)
 
   useEffect(() => {
     if (status === 'unauthenticated') router.replace('/login')
@@ -39,10 +40,15 @@ export default function SettingsPage() {
 
   useEffect(() => {
     void (async () => {
-      const res = await fetch('/api/sessions/recent?limit=20')
-      if (res.ok) {
-        const j = await res.json()
-        setSessions(j.sessions || [])
+      setSessionsLoading(true)
+      try {
+        const res = await fetch('/api/sessions/recent?limit=20')
+        if (res.ok) {
+          const j = await res.json()
+          setSessions(j.sessions || [])
+        }
+      } finally {
+        setSessionsLoading(false)
       }
     })()
   }, [])
@@ -201,7 +207,7 @@ export default function SettingsPage() {
           </div>
           <div>
             <h2 className="text-base font-bold text-white">Credits & Plans</h2>
-            <p className="text-[#94A3B8] text-xs">Payments launching soon — start with 30 free credits</p>
+            <p className="text-[#94A3B8] text-xs">Buy credits to unlock AI answers, mock interviews & more</p>
           </div>
         </div>
 
@@ -259,16 +265,17 @@ export default function SettingsPage() {
                   </li>
                 ))}
               </ul>
-              <div
-                className="w-full py-2.5 rounded-xl text-xs font-bold text-center cursor-not-allowed select-none"
+              <a
+                href="/credits"
+                className="w-full py-2.5 rounded-xl text-xs font-bold text-center block transition-all hover:opacity-90 hover:scale-[1.02]"
                 style={
                   plan.mostPopular
-                    ? { background: 'linear-gradient(135deg, #F7931A, #FF6B2B)', color: 'white', opacity: 0.65 }
-                    : { backgroundColor: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: '#64748B' }
+                    ? { background: 'linear-gradient(135deg, #F7931A, #FF6B2B)', color: 'white' }
+                    : { backgroundColor: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', color: '#E2E8F0' }
                 }
               >
-                Coming Soon
-              </div>
+                Buy {plan.credits}
+              </a>
             </div>
           ))}
         </div>
@@ -290,6 +297,13 @@ export default function SettingsPage() {
           </div>
         </div>
 
+        {sessionsLoading ? (
+          <div className="space-y-2">
+            {[1,2,3].map(i => (
+              <div key={i} className="h-12 rounded-xl bg-white/4 animate-pulse" />
+            ))}
+          </div>
+        ) : (
         <div className="overflow-x-auto rounded-xl border border-white/5">
           <table className="w-full">
             <thead className="bg-white/3 border-b border-white/5">
@@ -342,6 +356,7 @@ export default function SettingsPage() {
             </tbody>
           </table>
         </div>
+        )}
       </section>
 
       {/* SECTION 4 — ACCOUNT */}

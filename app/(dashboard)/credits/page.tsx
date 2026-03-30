@@ -107,7 +107,7 @@ export default function CreditsPage() {
         {/* Credit usage guide */}
         <div className="rounded-2xl border border-white/8 bg-[#111827] p-4">
           <p className="text-xs font-bold text-[#94A3B8] uppercase tracking-wider mb-3">Credit Usage</p>
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-2 sm:gap-3">
             {[
               { label: 'AI Answer',       cost: '1 credit' },
               { label: 'Mock Interview',  cost: '5 credits' },

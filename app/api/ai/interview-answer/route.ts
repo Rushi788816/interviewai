@@ -2,6 +2,7 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { groq } from '@/lib/anthropic'
 import { sanitizeReadableText } from '@/lib/sanitizeText'
+import { rateLimit } from '@/lib/rateLimit'
 import type { SessionContext } from '@/types'
 
 export async function GET() {
@@ -16,6 +17,12 @@ export async function POST(req: Request) {
     const session = await getServerSession(authOptions)
     if (!session?.user?.id) {
       return Response.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
+    // Rate limit: 30 AI answers per minute per user
+    const rl = rateLimit(`answer:${session.user.id}`, 30, 60_000)
+    if (!rl.allowed) {
+      return Response.json({ error: 'Too many requests. Please slow down.' }, { status: 429 })
     }
 
     const body = await req.json()

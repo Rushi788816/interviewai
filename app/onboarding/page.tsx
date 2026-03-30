@@ -140,10 +140,10 @@ export default function OnboardingPage() {
         {step === 2 && (
           <div className="space-y-5">
             <div className="text-center">
-              <h2 className="text-xl font-bold text-white mb-1">What role are you targeting?</h2>
+              <h2 className="text-xl sm:text-2xl font-bold text-white mb-1">What role are you targeting?</h2>
               <p className="text-[#64748B] text-sm">AI answers will be tailored to your role</p>
             </div>
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid grid-cols-2 gap-2 sm:gap-3">
               {ROLES.map(r => (
                 <button
                   key={r}

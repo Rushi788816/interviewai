@@ -1,8 +1,6 @@
 import LandingInterviewLauncher from '@/components/landing/LandingInterviewLauncher'
 import Navbar from '@/components/landing/Navbar'
 import HeroSection from '@/components/landing/HeroSection'
-import CompanyMarquee from '@/components/landing/CompanyMarquee'
-import LanguageMarquee from '@/components/landing/LanguageMarquee'
 import DesiModeSection from '@/components/landing/DesiModeSection'
 import PlatformsSection from '@/components/landing/PlatformsSection'
 import FeaturesGrid from '@/components/landing/FeaturesGrid'
@@ -17,8 +15,6 @@ export default function LandingPage() {
       <Navbar />
       <main>
         <HeroSection />
-        <CompanyMarquee />
-        <LanguageMarquee />
         <DesiModeSection />
         <PlatformsSection />
         <FeaturesGrid />

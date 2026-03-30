@@ -1,6 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server'
 import nodemailer from 'nodemailer'
 
+function escapeHtml(str: string): string {
+  return str
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;')
+}
+
 export async function POST(req: NextRequest) {
   try {
     const { name, email, subject, message } = await req.json()
@@ -9,10 +18,15 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Name, email and message are required' }, { status: 400 })
     }
 
-    // Always log to server console
-    console.log('[CONTACT]', JSON.stringify({ name, email, subject, message, at: new Date().toISOString() }))
+    // Sanitize all user inputs before using in HTML
+    const safeName    = escapeHtml(String(name).slice(0, 200))
+    const safeEmail   = escapeHtml(String(email).slice(0, 200))
+    const safeSubject = escapeHtml(String(subject ?? 'General Inquiry').slice(0, 300))
+    const safeMessage = escapeHtml(String(message).slice(0, 5000))
 
-    // Send email if SMTP credentials are configured
+    // Always log to server console
+    console.log('[CONTACT]', JSON.stringify({ name: safeName, email: safeEmail, subject: safeSubject, at: new Date().toISOString() }))
+
     const smtpHost = process.env.SMTP_HOST
     const smtpUser = process.env.SMTP_USER
     const smtpPass = process.env.SMTP_PASS
@@ -29,31 +43,32 @@ export async function POST(req: NextRequest) {
       await transporter.sendMail({
         from: `"InterviewAI Contact" <${smtpUser}>`,
         to: toEmail,
-        replyTo: `"${name}" <${email}>`,
-        subject: `[Contact] ${subject ?? 'General Inquiry'} — from ${name}`,
-        text: `Name: ${name}\nEmail: ${email}\nSubject: ${subject}\n\n${message}`,
+        replyTo: `"${safeName}" <${safeEmail}>`,
+        subject: `[Contact] ${safeSubject} — from ${safeName}`,
+        text: `Name: ${safeName}\nEmail: ${safeEmail}\nSubject: ${safeSubject}\n\n${safeMessage}`,
         html: `
           <div style="font-family:sans-serif;max-width:560px">
             <h2 style="color:#F7931A">New Contact Form Submission</h2>
             <table style="width:100%;border-collapse:collapse">
-              <tr><td style="padding:4px 0;color:#888">Name</td><td style="padding:4px 8px"><strong>${name}</strong></td></tr>
-              <tr><td style="padding:4px 0;color:#888">Email</td><td style="padding:4px 8px"><a href="mailto:${email}">${email}</a></td></tr>
-              <tr><td style="padding:4px 0;color:#888">Subject</td><td style="padding:4px 8px">${subject ?? 'General Inquiry'}</td></tr>
+              <tr><td style="padding:4px 0;color:#888">Name</td><td style="padding:4px 8px"><strong>${safeName}</strong></td></tr>
+              <tr><td style="padding:4px 0;color:#888">Email</td><td style="padding:4px 8px"><a href="mailto:${safeEmail}">${safeEmail}</a></td></tr>
+              <tr><td style="padding:4px 0;color:#888">Subject</td><td style="padding:4px 8px">${safeSubject}</td></tr>
             </table>
             <hr style="margin:16px 0;border-color:#eee"/>
-            <p style="white-space:pre-wrap;color:#333">${message}</p>
+            <p style="white-space:pre-wrap;color:#333">${safeMessage}</p>
           </div>
         `,
       })
 
       console.log('[CONTACT] email sent to', toEmail)
     } else {
-      console.warn('[CONTACT] SMTP not configured — message logged only. Add SMTP_HOST, SMTP_USER, SMTP_PASS, CONTACT_TO_EMAIL to .env.local to enable email delivery.')
+      console.warn('[CONTACT] SMTP not configured — message logged only.')
     }
 
     return NextResponse.json({ success: true })
-  } catch (err: any) {
-    console.error('[CONTACT] error:', err?.message)
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : 'Unknown error'
+    console.error('[CONTACT] error:', msg)
     return NextResponse.json({ error: 'Failed to send message' }, { status: 500 })
   }
 }
