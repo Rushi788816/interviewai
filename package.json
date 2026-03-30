@@ -85,7 +85,7 @@
       "target": [
         { "target": "dmg", "arch": ["x64", "arm64"] }
       ],
-      "icon": "public/icon.icns",
+      "icon": "public/icon.png",
       "category": "public.app-category.productivity",
       "hardenedRuntime": true,
       "gatekeeperAssess": false,
