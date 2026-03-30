@@ -13,14 +13,19 @@ import {
   Coins,
   LogOut,
   Zap,
+  BookOpen,
+  Mail,
 } from "lucide-react"
 
 const nav = [
-  { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
-  { href: '/interview', label: 'Interview Assistant', icon: Mic },
-  { href: '/mock-interview', label: 'Mock Interview', icon: Target },
-  { href: '/resume-builder', label: 'Resume Builder', icon: FileText },
-  { href: '/settings', label: 'Settings', icon: Settings },
+  { href: '/dashboard',     label: 'Dashboard',           icon: LayoutDashboard },
+  { href: '/interview',     label: 'Interview Assistant',  icon: Mic },
+  { href: '/mock-interview',label: 'Mock Interview',       icon: Target },
+  { href: '/question-bank', label: 'Question Bank',        icon: BookOpen },
+  { href: '/resume-builder',label: 'Resume Builder',       icon: FileText },
+  { href: '/cover-letter',  label: 'Cover Letter',         icon: Mail },
+  { href: '/credits',       label: 'Buy Credits',          icon: Coins },
+  { href: '/settings',      label: 'Settings',             icon: Settings },
 ]
 
 export default function DashboardSidebar() {
@@ -89,7 +94,7 @@ export default function DashboardSidebar() {
 
         {balance < 20 && (
           <Link
-            href="/settings"
+            href="/credits"
             className="flex items-center justify-center gap-1.5 w-full rounded-xl py-2.5 text-xs font-bold text-white transition-all hover:opacity-90"
             style={{ background: 'linear-gradient(135deg, #F7931A, #FF6B2B)' }}
           >

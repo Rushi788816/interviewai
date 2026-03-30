@@ -9,11 +9,14 @@ import DashboardSidebar from '@/components/layout/DashboardSidebar'
 import { X, Menu } from 'lucide-react'
 
 const mobileNav = [
-  { href: '/dashboard', label: '🏠 Dashboard' },
-  { href: '/interview', label: '🎤 Interview Assistant' },
+  { href: '/dashboard',      label: '🏠 Dashboard' },
+  { href: '/interview',      label: '🎤 Interview Assistant' },
   { href: '/mock-interview', label: '🎯 Mock Interview' },
+  { href: '/question-bank',  label: '📚 Question Bank' },
   { href: '/resume-builder', label: '📄 Resume Builder' },
-  { href: '/settings', label: '⚙️ Settings' },
+  { href: '/cover-letter',   label: '✉️ Cover Letter' },
+  { href: '/credits',        label: '🪙 Buy Credits' },
+  { href: '/settings',       label: '⚙️ Settings' },
 ]
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {

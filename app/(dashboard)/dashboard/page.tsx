@@ -24,6 +24,8 @@ import {
   ShieldCheck,
   EyeOff,
   Sparkles,
+  BookOpen,
+  Mail,
 } from "lucide-react"
 
 interface SessionRow {
@@ -223,10 +225,30 @@ export default function DashboardPage() {
       icon: FileText,
       title: 'Resume Builder',
       subtitle: 'ATS-optimized resume with AI enhancement',
-      features: ['3 templates', 'AI enhance', 'PDF export', 'ATS score'],
+      features: ['8 templates', 'AI enhance', 'PDF export', 'ATS score'],
       gradient: 'linear-gradient(135deg, #10B981, #059669)',
       glow: 'rgba(16,185,129,0.35)',
       border: 'rgba(16,185,129,0.2)',
+    },
+    {
+      href: '/question-bank',
+      icon: BookOpen,
+      title: 'Question Bank',
+      subtitle: 'Personalized questions with ideal answers',
+      features: ['Behavioral', 'Technical', 'HR', 'Coding'],
+      gradient: 'linear-gradient(135deg, #06B6D4, #0891B2)',
+      glow: 'rgba(6,182,212,0.35)',
+      border: 'rgba(6,182,212,0.2)',
+    },
+    {
+      href: '/cover-letter',
+      icon: Mail,
+      title: 'Cover Letter',
+      subtitle: 'AI-written cover letter from your resume',
+      features: ['3 tones', 'JD-tailored', 'Ready to send'],
+      gradient: 'linear-gradient(135deg, #EC4899, #DB2777)',
+      glow: 'rgba(236,72,153,0.35)',
+      border: 'rgba(236,72,153,0.2)',
     },
   ]
 
@@ -404,7 +426,8 @@ export default function DashboardPage() {
                     {sessions.map((row, i) => (
                       <tr
                         key={row.id}
-                        className={`border-b border-white/4 hover:bg-white/2 transition-colors ${i === sessions.length - 1 ? 'border-b-0' : ''}`}
+                        className={`border-b border-white/4 hover:bg-white/2 transition-colors cursor-pointer ${i === sessions.length - 1 ? 'border-b-0' : ''}`}
+                        onClick={() => window.location.href = `/sessions/${row.id}`}
                       >
                         <td className="px-4 py-3 text-white text-sm whitespace-nowrap">
                           {new Date(row.createdAt).toLocaleDateString('en-US', {
@@ -433,7 +456,7 @@ export default function DashboardPage() {
               {/* Mobile card list */}
               <div className="sm:hidden divide-y divide-white/5">
                 {sessions.map((row) => (
-                  <div key={row.id} className="px-4 py-3.5 flex items-center gap-3">
+                  <div key={row.id} className="px-4 py-3.5 flex items-center gap-3 cursor-pointer hover:bg-white/2 transition-colors" onClick={() => window.location.href = `/sessions/${row.id}`}>
                     <div className="w-9 h-9 rounded-xl bg-[#F7931A]/10 flex items-center justify-center flex-shrink-0">
                       <Mic size={15} className="text-[#F7931A]" />
                     </div>

@@ -38,7 +38,7 @@ export default function SignupPage() {
       if (result?.error) {
         router.push("/login")
       } else {
-        router.push("/dashboard")
+        router.push("/onboarding")
       }
     } catch {
       setError("Something went wrong. Try again.")
