@@ -13,14 +13,16 @@ export async function POST(req: Request) {
       return Response.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const { resumeText, tailored } = await req.json() as {
+    const body = await req.json() as {
       resumeText: string
       tailored: {
-        summary: { tailored: string }
-        skills: { tailored: string; added: string[] }
-        experience: { title: string; tailored: string }[]
+        summary?: { tailored?: string }
+        skills?: { tailored?: string; added?: string[] }
+        experience?: { title?: string; tailored?: string }[]
       }
     }
+
+    const { resumeText, tailored } = body
 
     if (!resumeText || resumeText.trim().length < 50) {
       return Response.json({ error: 'Resume text required' }, { status: 400 })
@@ -28,19 +30,25 @@ export async function POST(req: Request) {
 
     const resume = sanitizeReadableText(resumeText, 3000)
 
+    const tailoredSummary = tailored?.summary?.tailored || ''
+    const tailoredSkills = tailored?.skills?.tailored || ''
+    const tailoredExperience = Array.isArray(tailored?.experience)
+      ? tailored.experience.map(e => `${e.title || 'Role'}:\n${e.tailored || ''}`).join('\n\n')
+      : ''
+
     const prompt = `Parse this resume text into structured JSON. Apply the tailored content provided.
 
 RESUME TEXT:
 ${resume}
 
 TAILORED SUMMARY (use this instead of original):
-${tailored.summary.tailored}
+${tailoredSummary}
 
 TAILORED SKILLS (use this instead of original):
-${tailored.skills.tailored}
+${tailoredSkills}
 
 TAILORED EXPERIENCE (apply these rewrites to matching roles):
-${tailored.experience.map(e => `${e.title}:\n${e.tailored}`).join('\n\n')}
+${tailoredExperience}
 
 Extract ALL information from the resume and return ONLY valid JSON with NO markdown, NO explanation:
 {
@@ -118,8 +126,8 @@ Extract ALL information from the resume and return ONLY valid JSON with NO markd
     resumeData.projects = Array.isArray(resumeData.projects) ? resumeData.projects : []
 
     return Response.json({ resumeData })
-  } catch (e) {
-    console.error('tailor-resume/parse error:', e)
-    return Response.json({ error: 'Failed to parse resume' }, { status: 500 })
+  } catch (e: any) {
+    console.error('tailor-resume/parse error:', e?.message || e)
+    return Response.json({ error: e?.message || 'Failed to parse resume' }, { status: 500 })
   }
 }
