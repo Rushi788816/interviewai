@@ -1,9 +1,46 @@
 'use client'
 
 import { useState } from 'react'
-import { Wand2, Upload, Copy, Check, ChevronDown, ChevronUp, Sparkles, TrendingUp, AlertCircle } from 'lucide-react'
+import { Wand2, Upload, Copy, Check, ChevronDown, ChevronUp, Sparkles, TrendingUp, AlertCircle, Download, FileText } from 'lucide-react'
 import { useCredits } from '@/hooks/useCredits'
 import { useToast } from '@/hooks/useToast'
+import type { ResumeData, ResumeTemplateId } from '@/lib/resumeTypes'
+import dynamic from 'next/dynamic'
+import { exportResumeAsDoc } from '@/lib/resumeDocExport'
+
+// Lazy-load the heavy template components
+const ClassicTemplate    = dynamic(() => import('@/components/resume/templates/ClassicTemplate'))
+const ModernTemplate     = dynamic(() => import('@/components/resume/templates/ModernTemplate'))
+const MinimalTemplate    = dynamic(() => import('@/components/resume/templates/MinimalTemplate'))
+const ProfessionalTemplate = dynamic(() => import('@/components/resume/templates/ProfessionalTemplate'))
+const ExecutiveTemplate  = dynamic(() => import('@/components/resume/templates/ExecutiveTemplate'))
+const CreativeTemplate   = dynamic(() => import('@/components/resume/templates/CreativeTemplate'))
+const CompactTemplate    = dynamic(() => import('@/components/resume/templates/CompactTemplate'))
+const BoldTemplate       = dynamic(() => import('@/components/resume/templates/BoldTemplate'))
+
+const TEMPLATES: { id: ResumeTemplateId; label: string }[] = [
+  { id: 'classic',      label: 'Classic' },
+  { id: 'modern',       label: 'Modern' },
+  { id: 'minimal',      label: 'Minimal' },
+  { id: 'professional', label: 'Professional' },
+  { id: 'executive',    label: 'Executive' },
+  { id: 'creative',     label: 'Creative' },
+  { id: 'compact',      label: 'Compact' },
+  { id: 'bold',         label: 'Bold' },
+]
+
+function TemplatePreview({ data, template }: { data: ResumeData; template: ResumeTemplateId }) {
+  const body =
+    template === 'modern'       ? <ModernTemplate data={data} />       :
+    template === 'minimal'      ? <MinimalTemplate data={data} />      :
+    template === 'professional' ? <ProfessionalTemplate data={data} /> :
+    template === 'executive'    ? <ExecutiveTemplate data={data} />    :
+    template === 'creative'     ? <CreativeTemplate data={data} />     :
+    template === 'compact'      ? <CompactTemplate data={data} />      :
+    template === 'bold'         ? <BoldTemplate data={data} />         :
+    <ClassicTemplate data={data} />
+  return <>{body}</>
+}
 
 interface ExperienceSection {
   title: string
@@ -87,6 +124,10 @@ export default function TailorResumePage() {
   const [extracting, setExtracting] = useState(false)
   const [loading, setLoading] = useState(false)
   const [result, setResult] = useState<TailoredResult | null>(null)
+  const [parsedResume, setParsedResume] = useState<ResumeData | null>(null)
+  const [selectedTemplate, setSelectedTemplate] = useState<ResumeTemplateId>('classic')
+  const [parsing, setParsing] = useState(false)
+  const [exportingPdf, setExportingPdf] = useState(false)
 
   const handleFileUpload = async (file: File) => {
     setExtracting(true)
@@ -129,6 +170,53 @@ export default function TailorResumePage() {
     } finally {
       setLoading(false)
     }
+  }
+
+  const parseForDownload = async () => {
+    if (!result) return
+    setParsing(true)
+    try {
+      const r = await fetch('/api/ai/tailor-resume/parse', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ resumeText, tailored: result }),
+      })
+      const d = await r.json() as { resumeData?: ResumeData; error?: string }
+      if (!r.ok || !d.resumeData) { addToast(d.error || 'Failed to prepare resume', 'error'); return }
+      setParsedResume(d.resumeData)
+    } catch {
+      addToast('Something went wrong', 'error')
+    } finally {
+      setParsing(false)
+    }
+  }
+
+  const downloadPdf = async () => {
+    const el = document.getElementById('tailor-resume-preview')
+    if (!el) return
+    setExportingPdf(true)
+    try {
+      const html2canvas = (await import('html2canvas')).default
+      const { default: jsPDF } = await import('jspdf')
+      const canvas = await html2canvas(el, { scale: 2, useCORS: true })
+      const pdf = new jsPDF({ unit: 'pt', format: 'a4' })
+      const img = canvas.toDataURL('image/png')
+      const w = pdf.internal.pageSize.getWidth()
+      const h = (canvas.height * w) / canvas.width
+      pdf.addImage(img, 'PNG', 0, 0, w, h)
+      pdf.save(`${(parsedResume?.fullName || 'resume').replace(/\s+/g, '-')}-tailored.pdf`)
+      addToast('PDF downloaded', 'success')
+    } catch {
+      addToast('PDF export failed', 'error')
+    } finally {
+      setExportingPdf(false)
+    }
+  }
+
+  const downloadDoc = () => {
+    if (!parsedResume) return
+    exportResumeAsDoc(parsedResume)
+    addToast('Word document downloaded', 'success')
   }
 
   const scoreDiff = result ? result.ats_score_after - result.ats_score_before : 0
@@ -314,6 +402,84 @@ export default function TailorResumePage() {
                 tailored={exp.tailored}
               />
             ))}
+
+            {/* Download section */}
+            <div className="rounded-2xl border border-white/8 bg-[#111827] p-5 space-y-4">
+              <div>
+                <p className="text-sm font-bold text-white">Download Full Resume</p>
+                <p className="text-xs text-[#64748B] mt-0.5">
+                  AI will build your complete resume with all tailored content — pick a template and download.
+                </p>
+              </div>
+
+              {!parsedResume ? (
+                <button
+                  type="button"
+                  onClick={parseForDownload}
+                  disabled={parsing}
+                  className="w-full flex items-center justify-center gap-2 py-3 rounded-xl font-bold text-white text-sm transition-all hover:opacity-90 disabled:opacity-50 border border-[#F7931A]/40 bg-[#F7931A]/10 text-[#F7931A]"
+                >
+                  <FileText size={15} />
+                  {parsing ? 'Building resume...' : 'Prepare Full Resume for Download'}
+                </button>
+              ) : (
+                <div className="space-y-4">
+                  {/* Template selector */}
+                  <div>
+                    <p className="text-xs font-semibold text-[#94A3B8] uppercase tracking-wider mb-2">Template</p>
+                    <div className="grid grid-cols-4 sm:grid-cols-8 gap-1.5">
+                      {TEMPLATES.map(t => (
+                        <button
+                          key={t.id}
+                          type="button"
+                          onClick={() => setSelectedTemplate(t.id)}
+                          className={`py-1.5 px-1 rounded-lg border text-[10px] font-semibold transition-all ${
+                            selectedTemplate === t.id
+                              ? 'border-[#F7931A]/50 bg-[#F7931A]/10 text-[#F7931A]'
+                              : 'border-white/8 bg-white/3 text-[#64748B] hover:border-white/15 hover:text-white'
+                          }`}
+                        >
+                          {t.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Download buttons */}
+                  <div className="flex flex-col sm:flex-row gap-3">
+                    <button
+                      type="button"
+                      onClick={downloadPdf}
+                      disabled={exportingPdf}
+                      className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl font-bold text-white text-sm transition-all hover:opacity-90 disabled:opacity-50"
+                      style={{ background: 'linear-gradient(135deg, #F7931A, #FF6B2B)' }}
+                    >
+                      <Download size={15} />
+                      {exportingPdf ? 'Exporting...' : 'Download PDF'}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={downloadDoc}
+                      className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl font-bold text-sm transition-all hover:opacity-90 border border-white/15 bg-white/5 text-white hover:bg-white/10"
+                    >
+                      <Download size={15} />
+                      Download Word (.doc)
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Hidden off-screen template render for PDF export */}
+            {parsedResume && (
+              <div
+                id="tailor-resume-preview"
+                style={{ position: 'fixed', left: '-9999px', top: 0, width: '794px', zIndex: -1 }}
+                aria-hidden="true"
+              >
+                <TemplatePreview data={parsedResume} template={selectedTemplate} />
+              </div>
+            )}
 
           </div>
         )}
