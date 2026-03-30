@@ -5,18 +5,15 @@ import { Wand2, Upload, Copy, Check, ChevronDown, ChevronUp, Sparkles, TrendingU
 import { useCredits } from '@/hooks/useCredits'
 import { useToast } from '@/hooks/useToast'
 import type { ResumeData, ResumeTemplateId } from '@/lib/resumeTypes'
-import dynamic from 'next/dynamic'
 import { exportResumeAsDoc } from '@/lib/resumeDocExport'
-
-// Lazy-load the heavy template components
-const ClassicTemplate    = dynamic(() => import('@/components/resume/templates/ClassicTemplate'))
-const ModernTemplate     = dynamic(() => import('@/components/resume/templates/ModernTemplate'))
-const MinimalTemplate    = dynamic(() => import('@/components/resume/templates/MinimalTemplate'))
-const ProfessionalTemplate = dynamic(() => import('@/components/resume/templates/ProfessionalTemplate'))
-const ExecutiveTemplate  = dynamic(() => import('@/components/resume/templates/ExecutiveTemplate'))
-const CreativeTemplate   = dynamic(() => import('@/components/resume/templates/CreativeTemplate'))
-const CompactTemplate    = dynamic(() => import('@/components/resume/templates/CompactTemplate'))
-const BoldTemplate       = dynamic(() => import('@/components/resume/templates/BoldTemplate'))
+import ClassicTemplate      from '@/components/resume/templates/ClassicTemplate'
+import ModernTemplate       from '@/components/resume/templates/ModernTemplate'
+import MinimalTemplate      from '@/components/resume/templates/MinimalTemplate'
+import ProfessionalTemplate from '@/components/resume/templates/ProfessionalTemplate'
+import ExecutiveTemplate    from '@/components/resume/templates/ExecutiveTemplate'
+import CreativeTemplate     from '@/components/resume/templates/CreativeTemplate'
+import CompactTemplate      from '@/components/resume/templates/CompactTemplate'
+import BoldTemplate         from '@/components/resume/templates/BoldTemplate'
 
 const TEMPLATES: { id: ResumeTemplateId; label: string }[] = [
   { id: 'classic',      label: 'Classic' },
@@ -192,9 +189,11 @@ export default function TailorResumePage() {
   }
 
   const downloadPdf = async () => {
-    const el = document.getElementById('tailor-resume-preview')
-    if (!el) return
     setExportingPdf(true)
+    // Give the template 300ms to fully paint before capturing
+    await new Promise(r => setTimeout(r, 300))
+    const el = document.getElementById('tailor-resume-preview')
+    if (!el) { setExportingPdf(false); return }
     try {
       const html2canvas = (await import('html2canvas')).default
       const { default: jsPDF } = await import('jspdf')
