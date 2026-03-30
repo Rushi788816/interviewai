@@ -15,17 +15,19 @@ import {
   Zap,
   BookOpen,
   Mail,
+  Wand2,
 } from "lucide-react"
 
 const nav = [
-  { href: '/dashboard',     label: 'Dashboard',           icon: LayoutDashboard },
-  { href: '/interview',     label: 'Interview Assistant',  icon: Mic },
-  { href: '/mock-interview',label: 'Mock Interview',       icon: Target },
-  { href: '/question-bank', label: 'Question Bank',        icon: BookOpen },
-  { href: '/resume-builder',label: 'Resume Builder',       icon: FileText },
-  { href: '/cover-letter',  label: 'Cover Letter',         icon: Mail },
-  { href: '/credits',       label: 'Buy Credits',          icon: Coins },
-  { href: '/settings',      label: 'Settings',             icon: Settings },
+  { href: '/dashboard',      label: 'Dashboard',           icon: LayoutDashboard },
+  { href: '/interview',      label: 'Interview Assistant',  icon: Mic },
+  { href: '/mock-interview', label: 'Mock Interview',       icon: Target },
+  { href: '/question-bank',  label: 'Question Bank',        icon: BookOpen },
+  { href: '/resume-builder', label: 'Resume Builder',       icon: FileText },
+  { href: '/tailor-resume',  label: 'Tailor Resume',        icon: Wand2 },
+  { href: '/cover-letter',   label: 'Cover Letter',         icon: Mail },
+  { href: '/credits',        label: 'Buy Credits',          icon: Coins },
+  { href: '/settings',       label: 'Settings',             icon: Settings },
 ]
 
 export default function DashboardSidebar() {

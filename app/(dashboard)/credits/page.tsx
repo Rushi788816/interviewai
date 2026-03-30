@@ -111,6 +111,8 @@ export default function CreditsPage() {
             {[
               { label: 'AI Answer',       cost: '1 credit' },
               { label: 'Mock Interview',  cost: '5 credits' },
+              { label: 'Tailor Resume',   cost: '5 credits' },
+              { label: 'Cover Letter',    cost: '3 credits' },
               { label: 'ATS Score Check', cost: '3 credits' },
               { label: 'Question Bank',   cost: '2 credits' },
             ].map(({ label, cost }) => (

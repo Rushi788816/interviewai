@@ -14,6 +14,7 @@ const mobileNav = [
   { href: '/mock-interview', label: '🎯 Mock Interview' },
   { href: '/question-bank',  label: '📚 Question Bank' },
   { href: '/resume-builder', label: '📄 Resume Builder' },
+  { href: '/tailor-resume',  label: '🪄 Tailor Resume' },
   { href: '/cover-letter',   label: '✉️ Cover Letter' },
   { href: '/credits',        label: '🪙 Buy Credits' },
   { href: '/settings',       label: '⚙️ Settings' },

@@ -251,6 +251,16 @@ export default function DashboardPage() {
       glow: 'rgba(236,72,153,0.35)',
       border: 'rgba(236,72,153,0.2)',
     },
+    {
+      href: '/tailor-resume',
+      icon: Sparkles,
+      title: 'Tailor Resume',
+      subtitle: 'Rewrite your resume to match any job description',
+      features: ['ATS optimized', 'Keyword match', 'Score boost'],
+      gradient: 'linear-gradient(135deg, #F59E0B, #D97706)',
+      glow: 'rgba(245,158,11,0.35)',
+      border: 'rgba(245,158,11,0.2)',
+    },
   ]
 
   return (
