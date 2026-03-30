@@ -98,7 +98,7 @@ function DownloadBanner() {
           <div className="flex items-center gap-2 mb-1 flex-wrap">
             <h3 className="text-sm sm:text-base font-bold text-white">Download Desktop App</h3>
             <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-[#F7931A]/15 text-[#F7931A] border border-[#F7931A]/30 uppercase tracking-wide">
-              Windows
+              Windows &amp; macOS
             </span>
           </div>
           <p className="text-[#94A3B8] text-xs sm:text-sm mb-2">
@@ -117,16 +117,27 @@ function DownloadBanner() {
             ))}
           </div>
         </div>
-        <a
-          href="https://github.com/Rushi788816/interviewai/releases/download/v1.0.0/InterviewAI-Setup.exe"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="inline-flex items-center justify-center gap-2 px-4 sm:px-5 py-2.5 sm:py-3 rounded-xl text-xs sm:text-sm font-bold text-white flex-shrink-0 transition-all hover:scale-[1.03] hover:shadow-[0_0_20px_rgba(247,147,26,0.35)] active:scale-[0.98] w-full sm:w-auto"
-          style={{ background: 'linear-gradient(135deg, #F7931A, #FF6B2B)' }}
-        >
-          <Download size={15} />
-          Download .exe
-        </a>
+        <div className="flex flex-col gap-2 flex-shrink-0 w-full sm:w-auto">
+          <a
+            href="https://github.com/Rushi788816/interviewai/releases/download/v1.0.0/InterviewAI-Setup.exe"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center justify-center gap-2 px-4 sm:px-5 py-2.5 rounded-xl text-xs sm:text-sm font-bold text-white transition-all hover:scale-[1.03] hover:shadow-[0_0_20px_rgba(247,147,26,0.35)] active:scale-[0.98]"
+            style={{ background: 'linear-gradient(135deg, #F7931A, #FF6B2B)' }}
+          >
+            <Download size={15} />
+            Windows (.exe)
+          </a>
+          <a
+            href="https://github.com/Rushi788816/interviewai/releases/download/v1.0.0/InterviewAI.dmg"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center justify-center gap-2 px-4 sm:px-5 py-2.5 rounded-xl text-xs sm:text-sm font-bold text-white transition-all hover:scale-[1.03] active:scale-[0.98] border border-white/20 bg-white/5 hover:bg-white/10"
+          >
+            <Download size={15} />
+            macOS (.dmg)
+          </a>
+        </div>
       </div>
     </div>
   )

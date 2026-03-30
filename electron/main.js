@@ -232,6 +232,13 @@ function startSpeechRec() {
     speechRecProcess = null
   }
 
+  // macOS / Linux: no PowerShell — signal the renderer so it immediately
+  // falls back to the Groq Whisper (MediaRecorder) path
+  if (process.platform !== 'win32') {
+    mainWindow?.webContents.send('speech:error', 'native-sr-unavailable')
+    return
+  }
+
   const psScript = `
 [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
 Add-Type -AssemblyName System.Speech
