@@ -3,6 +3,7 @@ import { useState, useEffect, useRef, useCallback } from "react"
 import { createPortal } from "react-dom"
 import { useSession } from "next-auth/react"
 import { useSpeechRecognition } from "@/hooks/useSpeechRecognition"
+import { useSystemAudio } from "@/hooks/useSystemAudio"
 import { useInterviewStore } from "@/store/interviewStore"
 import { useCredits } from "@/hooks/useCredits"
 import { useToast } from "@/hooks/useToast"
@@ -63,6 +64,7 @@ export default function InterviewAssistant({ userId, credits: creditsProp, showF
   const [screenshots, setScreenshots] = useState<string[]>([])
   const [manualQuestion, setManualQuestion] = useState("")
   const [showShortcuts, setShowShortcuts] = useState(false)
+  const [audioSource, setAudioSource] = useState<"mic" | "system">("mic")
 
   // ── Refs ────────────────────────────────────────────────────────────────────
   const answerScrollRef = useRef<HTMLDivElement>(null)
@@ -172,19 +174,57 @@ export default function InterviewAssistant({ userId, credits: creditsProp, showF
     }
   }, [isDesiMode, interviewType, language, storeContext, qaHistory, addToast, addQAPair])
 
-  // STT hook — auto-sends on silence
-  const { transcript, interimTranscript, isListening, toggleListening, resetTranscript } = useSpeechRecognition({
+  // ── Shared silence handler (used by both STT sources) ───────────────────────
+  const onSilenceHandler = useCallback(async ({ finalTranscript }: { finalTranscript: string }) => {
+    if (!finalTranscript) return
+    const words = finalTranscript.trim().split(/\s+/).filter(Boolean)
+    if (words.length < 3) return
+    if (sessionPhase !== "running") return
+    setLiveQuestion(finalTranscript)
+    await fetchAIAnswer(finalTranscript)
+  }, [sessionPhase, fetchAIAnswer])
+
+  // ── Mic STT hook ─────────────────────────────────────────────────────────────
+  const mic = useSpeechRecognition({
     language: isDesiMode ? "en-IN" : language,
     isDesiMode,
-    onSilence: async ({ finalTranscript }: { finalTranscript: string }) => {
-      if (!finalTranscript) return
-      const words = finalTranscript.trim().split(/\s+/).filter(Boolean)
-      if (words.length < 3) return
-      if (sessionPhase !== "running") return
-      setLiveQuestion(finalTranscript)
-      await fetchAIAnswer(finalTranscript)
-    },
+    onSilence: onSilenceHandler,
   })
+
+  // ── System audio capture hook ─────────────────────────────────────────────────
+  const sysAudio = useSystemAudio({ onSilence: onSilenceHandler })
+
+  // ── Active source values (keep flat names so JSX doesn't change) ─────────────
+  const transcript        = audioSource === "system" ? sysAudio.transcript        : mic.transcript
+  const interimTranscript = audioSource === "system" ? ""                         : mic.interimTranscript
+  const isListening       = audioSource === "system" ? sysAudio.isListening       : mic.isListening
+  const audioError        = audioSource === "system" ? sysAudio.error             : mic.error
+
+  const toggleListening = useCallback(() => {
+    if (audioSource === "system") {
+      if (mic.isListening) mic.toggleListening()
+      sysAudio.toggleListening()
+    } else {
+      if (sysAudio.isListening) sysAudio.toggleListening()
+      mic.toggleListening()
+    }
+  }, [audioSource, mic, sysAudio])
+
+  const resetTranscript = useCallback(() => {
+    mic.resetTranscript()
+    sysAudio.resetTranscript()
+  }, [mic, sysAudio])
+
+  const handleAudioSourceSwitch = useCallback((src: "mic" | "system") => {
+    if (src === audioSource) return
+    // Stop whichever source is currently active
+    if (mic.isListening) mic.toggleListening()
+    if (sysAudio.isListening) sysAudio.toggleListening()
+    setAudioSource(src)
+    if (sessionPhase === "running") {
+      addToast(`Switched to ${src === "system" ? "system audio" : "microphone"} — click the mic button to restart listening`, "info")
+    }
+  }, [audioSource, mic, sysAudio, sessionPhase, addToast])
 
   // ── Screenshot capture ───────────────────────────────────────────────────────
   const captureScreen = useCallback(async () => {
@@ -273,9 +313,11 @@ export default function InterviewAssistant({ userId, credits: creditsProp, showF
       }
       const api = eAPI()
       if (api?.isElectron && sessionPhase === "idle") {
-        try { await navigator.mediaDevices.getUserMedia({ audio: true }) } catch {
-          addToast("Microphone access denied. Please allow mic access and try again.", "error")
-          return
+        if (audioSource === "mic") {
+          try { await navigator.mediaDevices.getUserMedia({ audio: true }) } catch {
+            addToast("Microphone access denied. Please allow mic access and try again.", "error")
+            return
+          }
         }
         api.createOverlay()
       }
@@ -284,7 +326,7 @@ export default function InterviewAssistant({ userId, credits: creditsProp, showF
       if (!isListening) toggleListening()
       eAPI()?.setStatus("listening")
     }
-  }, [sessionPhase, isListening, toggleListening, resetTranscript, addToast, displayCredits])
+  }, [sessionPhase, isListening, toggleListening, resetTranscript, addToast, displayCredits, audioSource])
 
   const handleStop = useCallback(async () => {
     const duration = elapsedSeconds
@@ -448,6 +490,32 @@ export default function InterviewAssistant({ userId, credits: creditsProp, showF
                   <option value="te-IN">Telugu</option>
                 </select>
               </div>
+              {/* Audio source toggle */}
+              <div style={{ display: "flex", gap: "6px", alignItems: "center", marginTop: "10px" }}>
+                <span style={{ color: "#64748B", fontSize: "11px", marginRight: "2px" }}>Input:</span>
+                <button
+                  onClick={() => handleAudioSourceSwitch("mic")}
+                  title="Capture your microphone (default)"
+                  style={{ background: audioSource === "mic" ? "rgba(247,147,26,0.15)" : "transparent", border: `1px solid ${audioSource === "mic" ? "#F7931A" : "rgba(255,255,255,0.1)"}`, borderRadius: "20px", padding: "4px 11px", fontSize: "12px", color: audioSource === "mic" ? "#F7931A" : "#94A3B8", fontWeight: audioSource === "mic" ? "600" : "400", cursor: "pointer" }}
+                >
+                  🎤 Mic
+                </button>
+                <button
+                  onClick={() => handleAudioSourceSwitch("system")}
+                  title="Capture system audio / speaker output (Chrome: tick 'Share system audio' in the dialog)"
+                  style={{ background: audioSource === "system" ? "rgba(99,102,241,0.15)" : "transparent", border: `1px solid ${audioSource === "system" ? "#818cf8" : "rgba(255,255,255,0.1)"}`, borderRadius: "20px", padding: "4px 11px", fontSize: "12px", color: audioSource === "system" ? "#818cf8" : "#94A3B8", fontWeight: audioSource === "system" ? "600" : "400", cursor: "pointer" }}
+                >
+                  🔊 System Audio
+                </button>
+              </div>
+              {audioSource === "system" && (
+                <p style={{ color: "#64748B", fontSize: "10px", margin: "6px 0 0", lineHeight: "1.5" }}>
+                  When the share dialog appears, check <strong style={{ color: "#94A3B8" }}>"Share system audio"</strong> to capture speaker output (e.g. interviewer on a call).
+                </p>
+              )}
+              {audioError && (
+                <p style={{ color: "#f87171", fontSize: "10px", margin: "6px 0 0" }}>{audioError}</p>
+              )}
             </div>
 
             {/* Session Timer */}
