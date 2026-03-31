@@ -16,14 +16,13 @@
       --text: #e8e8f0;
       --muted: #94A3B8;
       --radius: 16px;
+      --font-size: 13px;
     }
 
     html, body {
-      width: 100%;
-      height: 100%;
+      width: 100%; height: 100%;
       background: transparent;
       overflow: hidden;
-      user-select: none;
       font-family: -apple-system, 'Segoe UI', system-ui, sans-serif;
       font-size: 13px;
       color: var(--text);
@@ -45,45 +44,41 @@
         0 0 40px rgba(247,147,26,0.06);
     }
 
-    /* ── Title bar (drag handle) ─────────────────────────── */
+    /* ── Title bar ─────────────────────────────────────────────────────────── */
     #titlebar {
       display: flex;
       align-items: center;
       justify-content: space-between;
-      padding: 9px 12px 9px 14px;
+      padding: 8px 10px 8px 12px;
       background: rgba(0,0,0,0.3);
       border-bottom: 1px solid var(--border);
       -webkit-app-region: drag;
       flex-shrink: 0;
-      gap: 8px;
+      gap: 6px;
     }
-
     #titlebar-left {
       display: flex;
       align-items: center;
-      gap: 8px;
+      gap: 7px;
       flex: 1;
       min-width: 0;
     }
-
-    #logo { font-size: 14px; flex-shrink: 0; }
-
+    #logo { font-size: 13px; flex-shrink: 0; }
     #app-name {
       font-weight: 700;
-      font-size: 12px;
+      font-size: 11px;
       background: linear-gradient(90deg, #F7931A, #FF6B2B);
       -webkit-background-clip: text;
       -webkit-text-fill-color: transparent;
       white-space: nowrap;
     }
-
     #status-badge {
       display: inline-flex;
       align-items: center;
-      gap: 5px;
-      padding: 3px 8px;
+      gap: 4px;
+      padding: 2px 7px;
       border-radius: 20px;
-      font-size: 10px;
+      font-size: 9px;
       font-weight: 600;
       letter-spacing: 0.03em;
       text-transform: uppercase;
@@ -91,45 +86,54 @@
       white-space: nowrap;
       flex-shrink: 0;
     }
-    #status-badge.idle     { background: rgba(100,116,139,0.15); border: 1px solid rgba(100,116,139,0.3); color: #64748B; }
-    #status-badge.listening{ background: rgba(247,147,26,0.12);  border: 1px solid rgba(247,147,26,0.3);  color: #F7931A; }
-    #status-badge.thinking { background: rgba(139,92,246,0.12);  border: 1px solid rgba(139,92,246,0.3);  color: #A78BFA; }
-    #status-badge.ready    { background: rgba(34,197,94,0.12);   border: 1px solid rgba(34,197,94,0.3);   color: #4ADE80; }
-
-    .status-dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
+    #status-badge.idle      { background: rgba(100,116,139,0.15); border: 1px solid rgba(100,116,139,0.3);  color: #64748B; }
+    #status-badge.listening { background: rgba(247,147,26,0.12);  border: 1px solid rgba(247,147,26,0.3);   color: #F7931A; }
+    #status-badge.thinking  { background: rgba(139,92,246,0.12);  border: 1px solid rgba(139,92,246,0.3);   color: #A78BFA; }
+    #status-badge.ready     { background: rgba(34,197,94,0.12);   border: 1px solid rgba(34,197,94,0.3);    color: #4ADE80; }
+    .status-dot { width: 5px; height: 5px; border-radius: 50%; flex-shrink: 0; }
     .listening .status-dot { background: #F7931A; animation: pulse 1.2s ease-in-out infinite; }
     .thinking  .status-dot { background: #A78BFA; animation: spin-dot 1s linear infinite; }
     .ready     .status-dot { background: #4ADE80; }
     .idle      .status-dot { background: #64748B; }
-
     @keyframes pulse    { 0%,100%{opacity:.4;transform:scale(.8)} 50%{opacity:1;transform:scale(1.2)} }
     @keyframes spin-dot { 0%{opacity:.2} 50%{opacity:1} 100%{opacity:.2} }
 
-    /* ── Title bar controls (no drag) ──────────────────────── */
+    /* ── Titlebar controls ─────────────────────────────────────────────────── */
     #tb-controls {
       display: flex;
       align-items: center;
-      gap: 5px;
+      gap: 4px;
       -webkit-app-region: no-drag;
       flex-shrink: 0;
     }
-
-    #opacity-wrap { display: flex; align-items: center; gap: 4px; }
-    #opacity-icon { font-size: 10px; opacity: 0.5; }
+    #opacity-wrap { display: flex; align-items: center; gap: 3px; }
+    #opacity-icon { font-size: 9px; opacity: 0.5; }
     #opacity-slider {
       -webkit-appearance: none; appearance: none;
-      width: 54px; height: 3px; border-radius: 2px;
+      width: 48px; height: 3px; border-radius: 2px;
       background: rgba(255,255,255,0.15); outline: none; cursor: pointer;
     }
     #opacity-slider::-webkit-slider-thumb {
       -webkit-appearance: none;
-      width: 11px; height: 11px; border-radius: 50%;
+      width: 10px; height: 10px; border-radius: 50%;
       background: #F7931A; cursor: pointer;
       box-shadow: 0 0 5px rgba(247,147,26,0.5);
     }
-
+    /* Font size controls */
+    #font-controls {
+      display: flex;
+      align-items: center;
+      gap: 2px;
+      -webkit-app-region: no-drag;
+    }
+    #font-size-display {
+      font-size: 9px;
+      color: var(--muted);
+      min-width: 20px;
+      text-align: center;
+    }
     .ctrl-btn {
-      width: 22px; height: 22px; border-radius: 6px; border: none;
+      width: 20px; height: 20px; border-radius: 5px; border: none;
       background: rgba(255,255,255,0.06); color: var(--muted);
       cursor: pointer; font-size: 11px;
       display: flex; align-items: center; justify-content: center;
@@ -138,30 +142,28 @@
     .ctrl-btn:hover { background: rgba(255,255,255,0.12); color: white; }
     #close-btn:hover { background: rgba(239,68,68,0.2); color: #EF4444; }
 
-    /* ── Quick controls bar ─────────────────────────────────── */
+    /* ── Controls bar ─────────────────────────────────────────────────────── */
     #controls-bar {
       display: flex;
       align-items: center;
-      gap: 6px;
-      padding: 7px 12px;
+      gap: 5px;
+      padding: 6px 10px;
       background: rgba(0,0,0,0.2);
       border-bottom: 1px solid var(--border);
       flex-shrink: 0;
       flex-wrap: nowrap;
       overflow: hidden;
     }
-
-    /* Mic toggle button */
     #mic-btn {
       display: flex;
       align-items: center;
-      gap: 5px;
-      padding: 4px 10px;
+      gap: 4px;
+      padding: 3px 9px;
       border-radius: 20px;
       border: 1px solid rgba(247,147,26,0.4);
       background: rgba(247,147,26,0.12);
       color: #F7931A;
-      font-size: 11px;
+      font-size: 10px;
       font-weight: 600;
       cursor: pointer;
       transition: all 0.2s;
@@ -170,30 +172,24 @@
       -webkit-app-region: no-drag;
     }
     #mic-btn:hover { background: rgba(247,147,26,0.22); }
-    #mic-btn.muted {
-      border-color: rgba(239,68,68,0.4);
-      background: rgba(239,68,68,0.12);
-      color: #F87171;
-    }
+    #mic-btn.muted { border-color: rgba(239,68,68,0.4); background: rgba(239,68,68,0.12); color: #F87171; }
     #mic-btn.muted:hover { background: rgba(239,68,68,0.22); }
     #mic-dot {
-      width: 6px; height: 6px; border-radius: 50%; background: #F7931A;
-      animation: pulse 1.2s ease-in-out infinite;
-      flex-shrink: 0;
+      width: 5px; height: 5px; border-radius: 50%; background: #F7931A;
+      animation: pulse 1.2s ease-in-out infinite; flex-shrink: 0;
     }
     #mic-btn.muted #mic-dot { background: #F87171; animation: none; }
 
-    /* Desi mode toggle */
     #desi-btn {
       display: flex;
       align-items: center;
-      gap: 4px;
-      padding: 4px 9px;
+      gap: 3px;
+      padding: 3px 8px;
       border-radius: 20px;
       border: 1px solid rgba(255,255,255,0.1);
       background: transparent;
       color: var(--muted);
-      font-size: 11px;
+      font-size: 10px;
       font-weight: 500;
       cursor: pointer;
       transition: all 0.2s;
@@ -202,43 +198,55 @@
       -webkit-app-region: no-drag;
     }
     #desi-btn:hover { border-color: rgba(247,147,26,0.3); color: white; }
-    #desi-btn.active {
-      border-color: rgba(247,147,26,0.5);
-      background: rgba(247,147,26,0.1);
-      color: #F7931A;
-    }
+    #desi-btn.active { border-color: rgba(247,147,26,0.5); background: rgba(247,147,26,0.1); color: #F7931A; }
 
-    /* Language selector */
     #lang-select {
-      padding: 3px 6px;
-      border-radius: 8px;
+      padding: 2px 5px;
+      border-radius: 7px;
       border: 1px solid rgba(255,255,255,0.1);
       background: rgba(255,255,255,0.05);
       color: var(--muted);
-      font-size: 10px;
+      font-size: 9px;
       cursor: pointer;
       outline: none;
-      max-width: 80px;
+      max-width: 70px;
       flex-shrink: 0;
       -webkit-app-region: no-drag;
     }
     #lang-select:focus { border-color: rgba(247,147,26,0.3); color: white; }
     #lang-select option { background: #111827; color: white; }
 
-    /* Spacer */
     .ctrl-spacer { flex: 1; }
 
-    /* Show App button */
+    /* Window position buttons */
+    #pos-controls {
+      display: flex;
+      align-items: center;
+      gap: 2px;
+      -webkit-app-region: no-drag;
+      flex-shrink: 0;
+    }
+    .pos-btn {
+      width: 18px; height: 18px;
+      border-radius: 4px; border: 1px solid rgba(255,255,255,0.1);
+      background: rgba(255,255,255,0.04);
+      color: var(--muted); cursor: pointer;
+      font-size: 9px;
+      display: flex; align-items: center; justify-content: center;
+      transition: all 0.15s; -webkit-app-region: no-drag;
+    }
+    .pos-btn:hover { background: rgba(255,255,255,0.1); color: white; border-color: rgba(255,255,255,0.2); }
+
     #show-app-btn {
       display: flex;
       align-items: center;
-      gap: 4px;
-      padding: 4px 9px;
+      gap: 3px;
+      padding: 3px 8px;
       border-radius: 20px;
       border: 1px solid rgba(139,92,246,0.35);
       background: rgba(139,92,246,0.1);
       color: #A78BFA;
-      font-size: 10px;
+      font-size: 9px;
       font-weight: 600;
       cursor: pointer;
       transition: all 0.2s;
@@ -248,80 +256,100 @@
     }
     #show-app-btn:hover { background: rgba(139,92,246,0.2); color: #C4B5FD; }
 
-    /* ── Content ─────────────────────────────────────────── */
+    /* ── Content ─────────────────────────────────────────────────────────── */
     #content {
       flex: 1;
       overflow: hidden;
       display: flex;
       flex-direction: column;
+      min-height: 0;
     }
 
-    /* Question section */
+    /* Detected question (editable) */
     #question-section {
-      padding: 9px 14px 7px;
+      padding: 8px 12px 6px;
       border-bottom: 1px solid var(--border);
       flex-shrink: 0;
     }
     #question-section.hidden { display: none; }
-
     .section-label {
-      font-size: 9px;
+      font-size: 8px;
       font-weight: 700;
       letter-spacing: 0.08em;
       text-transform: uppercase;
       color: var(--muted);
-      margin-bottom: 4px;
+      margin-bottom: 3px;
       display: flex;
       align-items: center;
+      justify-content: space-between;
       gap: 5px;
     }
-
-    #question-text {
-      font-size: 12px;
+    #question-textarea {
+      width: 100%;
+      font-size: 11px;
       color: #CBD5E1;
       line-height: 1.5;
-      max-height: 50px;
-      overflow: hidden;
-      display: -webkit-box;
-      -webkit-line-clamp: 3;
-      -webkit-box-orient: vertical;
+      max-height: 56px;
+      resize: none;
+      background: transparent;
+      border: none;
+      outline: none;
+      font-family: inherit;
+      overflow-y: auto;
+      scrollbar-width: thin;
+      scrollbar-color: rgba(247,147,26,0.2) transparent;
+      -webkit-user-select: text;
+      user-select: text;
     }
+    #question-textarea:focus { color: #E2E8F0; }
+    #resend-btn {
+      font-size: 9px;
+      padding: 2px 7px;
+      border-radius: 6px;
+      border: 1px solid rgba(247,147,26,0.3);
+      background: rgba(247,147,26,0.08);
+      color: #F7931A;
+      cursor: pointer;
+      transition: all 0.15s;
+      white-space: nowrap;
+    }
+    #resend-btn:hover { background: rgba(247,147,26,0.18); }
 
     /* Answer section */
     #answer-section {
       flex: 1;
-      padding: 9px 14px 6px;
+      padding: 8px 12px 6px;
       overflow: hidden;
       display: flex;
       flex-direction: column;
-      gap: 6px;
+      gap: 5px;
+      min-height: 0;
     }
-
     #answer-label-row {
       display: flex;
       align-items: center;
       justify-content: space-between;
       flex-shrink: 0;
     }
-
     #answer-text-wrap {
       flex: 1;
       overflow-y: auto;
       scrollbar-width: thin;
       scrollbar-color: rgba(247,147,26,0.3) transparent;
+      min-height: 0;
     }
     #answer-text-wrap::-webkit-scrollbar { width: 3px; }
     #answer-text-wrap::-webkit-scrollbar-thumb { background: rgba(247,147,26,0.3); border-radius: 2px; }
-
     #answer-text {
-      font-size: 13px;
+      font-size: var(--font-size);
       line-height: 1.65;
       color: var(--text);
       white-space: pre-wrap;
       word-break: break-word;
+      -webkit-user-select: text;
+      user-select: text;
     }
     #answer-text.empty { color: var(--muted); font-style: italic; }
-
     #cursor {
       display: inline-block;
       width: 2px; height: 14px;
@@ -333,59 +361,242 @@
     @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0} }
 
     #copy-btn {
-      padding: 3px 10px; border-radius: 8px;
+      padding: 2px 9px; border-radius: 7px;
       border: 1px solid rgba(247,147,26,0.3);
       background: rgba(247,147,26,0.08);
-      color: #F7931A; font-size: 10px; font-weight: 600;
+      color: #F7931A; font-size: 9px; font-weight: 600;
       cursor: pointer; transition: all 0.15s;
       white-space: nowrap; flex-shrink: 0;
     }
     #copy-btn:hover { background: rgba(247,147,26,0.18); }
     #copy-btn.copied { color: #4ADE80; border-color: rgba(74,222,128,0.3); background: rgba(74,222,128,0.08); }
 
-    /* ── Thinking animation ─────────────────────────────── */
+    /* Thinking animation */
     #thinking-dots {
       display: none; gap: 4px; padding: 8px 0; align-items: center;
     }
     #thinking-dots.visible { display: flex; }
     .dot {
-      width: 6px; height: 6px; border-radius: 50%;
+      width: 5px; height: 5px; border-radius: 50%;
       background: #A78BFA; animation: bounce 1.2s ease-in-out infinite;
     }
     .dot:nth-child(2) { animation-delay: 0.2s; }
     .dot:nth-child(3) { animation-delay: 0.4s; }
-    @keyframes bounce { 0%,80%,100%{transform:translateY(0);opacity:.4} 40%{transform:translateY(-6px);opacity:1} }
+    @keyframes bounce { 0%,80%,100%{transform:translateY(0);opacity:.4} 40%{transform:translateY(-5px);opacity:1} }
 
-    /* ── Footer ─────────────────────────────────────────── */
+    /* ── Manual question panel ───────────────────────────────────────────── */
+    #manual-panel {
+      border-top: 1px solid var(--border);
+      background: rgba(0,0,0,0.15);
+      flex-shrink: 0;
+      padding: 6px 10px 6px;
+    }
+    #manual-label-row {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      margin-bottom: 5px;
+    }
+    #manual-label {
+      font-size: 8px;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+    /* Screenshot thumbnails */
+    #screenshots-row {
+      display: flex;
+      gap: 5px;
+      flex-wrap: wrap;
+      margin-bottom: 5px;
+    }
+    #screenshots-row:empty { display: none; }
+    .screenshot-thumb {
+      position: relative;
+      width: 48px;
+      height: 32px;
+      border-radius: 5px;
+      overflow: hidden;
+      border: 1px solid rgba(247,147,26,0.3);
+      flex-shrink: 0;
+    }
+    .screenshot-thumb img {
+      width: 100%; height: 100%;
+      object-fit: cover;
+    }
+    .screenshot-remove {
+      position: absolute;
+      top: 1px; right: 1px;
+      width: 13px; height: 13px;
+      border-radius: 50%;
+      background: rgba(239,68,68,0.85);
+      color: white;
+      border: none;
+      cursor: pointer;
+      font-size: 8px;
+      display: flex; align-items: center; justify-content: center;
+      line-height: 1;
+    }
+    /* Manual textarea + action row */
+    #manual-input-row {
+      display: flex;
+      gap: 5px;
+      align-items: flex-end;
+    }
+    #manual-textarea {
+      flex: 1;
+      font-size: 11px;
+      color: #E2E8F0;
+      background: rgba(255,255,255,0.05);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 9px;
+      padding: 5px 9px;
+      resize: none;
+      font-family: inherit;
+      line-height: 1.4;
+      min-height: 30px;
+      max-height: 72px;
+      overflow-y: auto;
+      outline: none;
+      transition: border-color 0.15s;
+      -webkit-user-select: text;
+      user-select: text;
+    }
+    #manual-textarea::placeholder { color: rgba(148,163,184,0.45); }
+    #manual-textarea:focus { border-color: rgba(247,147,26,0.4); }
+    #manual-actions {
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+      flex-shrink: 0;
+    }
+    .action-btn {
+      width: 26px; height: 26px;
+      border-radius: 7px;
+      border: 1px solid rgba(255,255,255,0.1);
+      background: rgba(255,255,255,0.05);
+      color: var(--muted);
+      cursor: pointer;
+      font-size: 12px;
+      display: flex; align-items: center; justify-content: center;
+      transition: all 0.15s;
+      flex-shrink: 0;
+    }
+    .action-btn:hover { background: rgba(255,255,255,0.1); color: white; border-color: rgba(255,255,255,0.2); }
+    #send-btn {
+      background: rgba(247,147,26,0.15);
+      border-color: rgba(247,147,26,0.35);
+      color: #F7931A;
+    }
+    #send-btn:hover { background: rgba(247,147,26,0.3); }
+    #send-btn:disabled { opacity: 0.4; cursor: default; }
+
+    /* ── Footer ─────────────────────────────────────────────────────────── */
     #footer {
-      padding: 5px 14px 7px;
+      padding: 4px 12px 6px;
       border-top: 1px solid var(--border);
       display: flex; align-items: center; justify-content: space-between;
       flex-shrink: 0; background: rgba(0,0,0,0.2);
+      gap: 6px;
     }
     .shortcut-hint {
-      font-size: 9px; color: rgba(148,163,184,0.45);
-      display: flex; align-items: center; gap: 3px; flex-wrap: wrap;
+      font-size: 8px; color: rgba(148,163,184,0.4);
+      display: flex; align-items: center; gap: 2px; flex-wrap: wrap;
     }
     .kbd {
-      padding: 1px 4px; border-radius: 3px;
+      padding: 1px 3px; border-radius: 3px;
       background: rgba(255,255,255,0.06);
       border: 1px solid rgba(255,255,255,0.08);
-      font-size: 9px; font-family: monospace;
+      font-size: 8px; font-family: monospace;
     }
     #shield-badge {
-      display: flex; align-items: center; gap: 4px;
-      font-size: 9px; color: #4ADE80; font-weight: 600;
+      display: flex; align-items: center; gap: 3px;
+      font-size: 8px; color: #4ADE80; font-weight: 600;
+      white-space: nowrap; flex-shrink: 0;
     }
+    /* Shortcuts popup toggle */
+    #shortcuts-toggle {
+      font-size: 8px;
+      padding: 1px 5px;
+      border-radius: 5px;
+      border: 1px solid rgba(255,255,255,0.08);
+      background: rgba(255,255,255,0.04);
+      color: rgba(148,163,184,0.6);
+      cursor: pointer;
+      transition: all 0.15s;
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+    #shortcuts-toggle:hover { background: rgba(255,255,255,0.08); color: white; }
 
-    * { -webkit-user-select: none; }
-    #answer-text { -webkit-user-select: text; }
+    /* Shortcuts popup */
+    #shortcuts-popup {
+      display: none;
+      position: absolute;
+      bottom: 40px;
+      left: 8px;
+      right: 8px;
+      background: rgba(10,15,30,0.97);
+      border: 1px solid rgba(247,147,26,0.2);
+      border-radius: 12px;
+      padding: 10px 12px;
+      z-index: 100;
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+    }
+    #shortcuts-popup.visible { display: block; }
+    #shortcuts-popup h4 {
+      font-size: 9px;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: #F7931A;
+      margin-bottom: 8px;
+    }
+    .sc-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 4px 12px;
+    }
+    .sc-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 6px;
+    }
+    .sc-label { font-size: 9px; color: var(--muted); }
+    .sc-key   { font-size: 8px; font-family: monospace; color: rgba(247,147,26,0.8); background: rgba(247,147,26,0.08); border: 1px solid rgba(247,147,26,0.2); border-radius: 4px; padding: 1px 4px; white-space: nowrap; }
+
+    /* Stop button */
+    #stop-btn {
+      display: flex;
+      align-items: center;
+      gap: 3px;
+      padding: 3px 8px;
+      border-radius: 20px;
+      border: 1px solid rgba(239,68,68,0.3);
+      background: rgba(239,68,68,0.08);
+      color: #F87171;
+      font-size: 9px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+      white-space: nowrap;
+      flex-shrink: 0;
+      -webkit-app-region: no-drag;
+    }
+    #stop-btn:hover { background: rgba(239,68,68,0.18); }
+
+    #app { position: relative; }
+    * { -webkit-user-select: none; user-select: none; }
+    #answer-text, #question-textarea, #manual-textarea { -webkit-user-select: text; user-select: text; }
   </style>
 </head>
 <body>
   <div id="app">
 
-    <!-- Title bar (drag handle) -->
+    <!-- Title bar -->
     <div id="titlebar">
       <div id="titlebar-left">
         <span id="logo">🐦</span>
@@ -396,31 +607,33 @@
         </span>
       </div>
       <div id="tb-controls">
+        <!-- Font size -->
+        <div id="font-controls">
+          <button class="ctrl-btn" id="font-down-btn" title="Decrease font (Ctrl+-)">A−</button>
+          <span id="font-size-display">13</span>
+          <button class="ctrl-btn" id="font-up-btn" title="Increase font (Ctrl+=)">A+</button>
+        </div>
+        <!-- Opacity -->
         <div id="opacity-wrap" title="Transparency">
           <span id="opacity-icon">◑</span>
           <input type="range" id="opacity-slider" min="15" max="100" value="95" />
         </div>
-        <button class="ctrl-btn" id="clear-btn" title="Clear answer">⌫</button>
-        <button class="ctrl-btn" id="minimize-btn" title="Hide (Ctrl+Shift+Space)">─</button>
-        <button class="ctrl-btn" id="close-btn" title="Close overlay">✕</button>
+        <button class="ctrl-btn" id="clear-btn" title="Clear answer (Ctrl+Shift+R)">⌫</button>
+        <button class="ctrl-btn" id="minimize-btn" title="Hide (Ctrl+Shift+H)">─</button>
+        <button class="ctrl-btn" id="close-btn" title="Close">✕</button>
       </div>
     </div>
 
-    <!-- Quick controls: mic, mode, show app -->
+    <!-- Controls bar -->
     <div id="controls-bar">
-      <!-- Mic toggle -->
-      <button id="mic-btn" title="Toggle microphone (Ctrl+Shift+M)">
+      <button id="mic-btn" title="Toggle mic (Ctrl+Shift+M)">
         <span id="mic-dot"></span>
         <span id="mic-label">Mic On</span>
       </button>
 
-      <!-- Desi mode toggle -->
-      <button id="desi-btn" title="Toggle Desi Mode (Indian English)">
-        🇮🇳 Desi
-      </button>
+      <button id="desi-btn" title="Desi Mode">🇮🇳 Desi</button>
 
-      <!-- Language selector -->
-      <select id="lang-select" title="Speech recognition language">
+      <select id="lang-select" title="Language">
         <option value="en-US">EN US</option>
         <option value="en-IN">EN IN</option>
         <option value="hi-IN">हिंदी</option>
@@ -430,28 +643,33 @@
 
       <div class="ctrl-spacer"></div>
 
-      <!-- Show main app -->
-      <button id="show-app-btn" title="Show main InterviewAI window">
-        ⬜ Show App
-      </button>
+      <!-- Window position -->
+      <div id="pos-controls" title="Move window (Ctrl+Shift+←/→)">
+        <button class="pos-btn" id="pos-left-btn"  title="Move left">◀</button>
+        <button class="pos-btn" id="pos-right-btn" title="Move right">▶</button>
+      </div>
+
+      <button id="stop-btn" title="Stop session (Ctrl+Shift+Q)">■ Stop</button>
+      <button id="show-app-btn" title="Show main app">⬜ App</button>
     </div>
 
     <!-- Content -->
     <div id="content">
 
-      <!-- Detected question -->
+      <!-- Detected question (editable) -->
       <div id="question-section" class="hidden">
         <div class="section-label">
-          <span>🎙</span> Question detected
+          <span>🎙 Question detected</span>
+          <button id="resend-btn" title="Re-send to AI">↺ Resend</button>
         </div>
-        <p id="question-text"></p>
+        <textarea id="question-textarea" rows="2" placeholder="Detected question…"></textarea>
       </div>
 
       <!-- AI Answer -->
       <div id="answer-section">
         <div id="answer-label-row">
-          <div class="section-label">
-            <span>🤖</span> AI Answer
+          <div class="section-label" style="margin-bottom:0">
+            <span>🤖 AI Answer</span>
           </div>
           <button id="copy-btn">Copy</button>
         </div>
@@ -460,7 +678,7 @@
           <div class="dot"></div>
           <div class="dot"></div>
           <div class="dot"></div>
-          <span style="font-size:11px; color:#A78BFA; margin-left:4px;">Generating answer…</span>
+          <span style="font-size:10px; color:#A78BFA; margin-left:4px;">Generating…</span>
         </div>
 
         <div id="answer-text-wrap">
@@ -470,16 +688,63 @@
       </div>
     </div>
 
+    <!-- Manual question panel -->
+    <div id="manual-panel">
+      <div id="manual-label-row">
+        <span id="manual-label">✏️ Ask Manually</span>
+      </div>
+      <!-- Screenshot thumbnails -->
+      <div id="screenshots-row"></div>
+      <!-- Input + action buttons -->
+      <div id="manual-input-row">
+        <textarea
+          id="manual-textarea"
+          rows="1"
+          placeholder="Type a question… (Enter to send)"
+        ></textarea>
+        <div id="manual-actions">
+          <button class="action-btn" id="screenshot-btn" title="Capture screen (Ctrl+Shift+S)">📷</button>
+          <button class="action-btn" id="send-btn" title="Send (Enter)">➤</button>
+        </div>
+      </div>
+    </div>
+
     <!-- Footer -->
     <div id="footer">
       <div class="shortcut-hint">
-        <span class="kbd">Ctrl+Shift+Space</span> toggle
+        <span class="kbd">⌃⇧H</span> hide
         &nbsp;·&nbsp;
-        <span class="kbd">Ctrl+Shift+M</span> mic
+        <span class="kbd">⌃⇧M</span> mic
         &nbsp;·&nbsp;
-        <span class="kbd">Ctrl+Shift+C</span> copy
+        <span class="kbd">⌃⇧C</span> copy
+        &nbsp;·&nbsp;
+        <span class="kbd">⌃⇧S</span> shot
       </div>
-      <div id="shield-badge">🛡 Screen invisible</div>
+      <button id="shortcuts-toggle" title="Show all shortcuts">?</button>
+      <div id="shield-badge">🛡 Invisible</div>
+    </div>
+
+    <!-- Shortcuts popup -->
+    <div id="shortcuts-popup">
+      <h4>⌨ Keyboard Shortcuts</h4>
+      <div class="sc-grid">
+        <div class="sc-row"><span class="sc-label">Show/Hide</span>      <span class="sc-key">Ctrl+Shift+H</span></div>
+        <div class="sc-row"><span class="sc-label">Mic toggle</span>     <span class="sc-key">Ctrl+Shift+M</span></div>
+        <div class="sc-row"><span class="sc-label">Screenshot</span>     <span class="sc-key">Ctrl+Shift+S</span></div>
+        <div class="sc-row"><span class="sc-label">Clear answer</span>   <span class="sc-key">Ctrl+Shift+R</span></div>
+        <div class="sc-row"><span class="sc-label">Clear input</span>    <span class="sc-key">Ctrl+Shift+⌫</span></div>
+        <div class="sc-row"><span class="sc-label">Focus input</span>    <span class="sc-key">Ctrl+Shift+E</span></div>
+        <div class="sc-row"><span class="sc-label">Scroll up</span>      <span class="sc-key">Ctrl+Shift+↑</span></div>
+        <div class="sc-row"><span class="sc-label">Scroll down</span>    <span class="sc-key">Ctrl+Shift+↓</span></div>
+        <div class="sc-row"><span class="sc-label">Move left</span>      <span class="sc-key">Ctrl+Shift+←</span></div>
+        <div class="sc-row"><span class="sc-label">Move right</span>     <span class="sc-key">Ctrl+Shift+→</span></div>
+        <div class="sc-row"><span class="sc-label">Copy answer</span>    <span class="sc-key">Ctrl+Shift+C</span></div>
+        <div class="sc-row"><span class="sc-label">Stop session</span>   <span class="sc-key">Ctrl+Shift+Q</span></div>
+        <div class="sc-row"><span class="sc-label">Font size</span>      <span class="sc-key">Ctrl+= / Ctrl+-</span></div>
+        <div class="sc-row"><span class="sc-label">Send message</span>   <span class="sc-key">Enter</span></div>
+        <div class="sc-row"><span class="sc-label">New line</span>       <span class="sc-key">Shift+Enter</span></div>
+        <div class="sc-row"><span class="sc-label">Resend Q to AI</span><span class="sc-key">Ctrl+R</span></div>
+      </div>
     </div>
 
   </div>
@@ -487,45 +752,68 @@
   <script>
     const api = window.electronAPI
 
-    // ── State ────────────────────────────────────────────────
-    let fullAnswer = ''
-    let currentStatus = 'idle'
-    let micActive = false
-    let desiMode = false
-    let currentLang = 'en-US'
+    // ── State ────────────────────────────────────────────────────────────────
+    let fullAnswer     = ''
+    let currentStatus  = 'idle'
+    let micActive      = false
+    let desiMode       = false
+    let currentLang    = 'en-US'
+    let fontSize       = 13
+    let screenshots    = []   // array of dataUrl strings
 
-    // ── DOM refs ─────────────────────────────────────────────
-    const statusBadge   = document.getElementById('status-badge')
-    const statusText    = document.getElementById('status-text')
-    const questionSec   = document.getElementById('question-section')
-    const questionText  = document.getElementById('question-text')
-    const answerText    = document.getElementById('answer-text')
-    const cursor        = document.getElementById('cursor')
-    const copyBtn       = document.getElementById('copy-btn')
-    const clearBtn      = document.getElementById('clear-btn')
-    const minimizeBtn   = document.getElementById('minimize-btn')
-    const closeBtn      = document.getElementById('close-btn')
-    const opacitySlider = document.getElementById('opacity-slider')
-    const thinkingDots  = document.getElementById('thinking-dots')
-    const answerWrap    = document.getElementById('answer-text-wrap')
-    const micBtn        = document.getElementById('mic-btn')
-    const micLabel      = document.getElementById('mic-label')
-    const desiBtn       = document.getElementById('desi-btn')
-    const langSelect    = document.getElementById('lang-select')
-    const showAppBtn    = document.getElementById('show-app-btn')
+    // ── DOM refs ─────────────────────────────────────────────────────────────
+    const statusBadge    = document.getElementById('status-badge')
+    const statusText     = document.getElementById('status-text')
+    const questionSec    = document.getElementById('question-section')
+    const questionTA     = document.getElementById('question-textarea')
+    const resendBtn      = document.getElementById('resend-btn')
+    const answerText     = document.getElementById('answer-text')
+    const cursor         = document.getElementById('cursor')
+    const copyBtn        = document.getElementById('copy-btn')
+    const clearBtn       = document.getElementById('clear-btn')
+    const minimizeBtn    = document.getElementById('minimize-btn')
+    const closeBtn       = document.getElementById('close-btn')
+    const opacitySlider  = document.getElementById('opacity-slider')
+    const thinkingDots   = document.getElementById('thinking-dots')
+    const answerWrap     = document.getElementById('answer-text-wrap')
+    const micBtn         = document.getElementById('mic-btn')
+    const micLabel       = document.getElementById('mic-label')
+    const desiBtn        = document.getElementById('desi-btn')
+    const langSelect     = document.getElementById('lang-select')
+    const showAppBtn     = document.getElementById('show-app-btn')
+    const stopBtn        = document.getElementById('stop-btn')
+    const fontUpBtn      = document.getElementById('font-up-btn')
+    const fontDownBtn    = document.getElementById('font-down-btn')
+    const fontDisplay    = document.getElementById('font-size-display')
+    const posLeftBtn     = document.getElementById('pos-left-btn')
+    const posRightBtn    = document.getElementById('pos-right-btn')
+    const manualTA       = document.getElementById('manual-textarea')
+    const screenshotsRow = document.getElementById('screenshots-row')
+    const screenshotBtn  = document.getElementById('screenshot-btn')
+    const sendBtn        = document.getElementById('send-btn')
+    const shortcutsToggle = document.getElementById('shortcuts-toggle')
+    const shortcutsPopup  = document.getElementById('shortcuts-popup')
 
-    // ── Status helper ─────────────────────────────────────────
+    // ── Font size ─────────────────────────────────────────────────────────────
+    function applyFontSize(size) {
+      fontSize = Math.max(10, Math.min(22, size))
+      document.documentElement.style.setProperty('--font-size', fontSize + 'px')
+      fontDisplay.textContent = fontSize
+    }
+    fontUpBtn.addEventListener('click',   () => applyFontSize(fontSize + 1))
+    fontDownBtn.addEventListener('click', () => applyFontSize(fontSize - 1))
+
+    // ── Status helper ─────────────────────────────────────────────────────────
     function setStatus(s) {
       currentStatus = s
-      statusBadge.className = 'idle'
-      statusBadge.classList.add(s)
+      statusBadge.className = s
       const labels = { idle: 'Idle', listening: 'Listening', thinking: 'Thinking', ready: 'Ready' }
       statusText.textContent = labels[s] || s
       thinkingDots.className = s === 'thinking' ? 'visible' : ''
-      answerWrap.style.display = s === 'thinking' ? 'none' : 'block'
+      if (s !== 'thinking') answerWrap.style.display = 'block'
     }
 
-    // ── Mic state helper ──────────────────────────────────────
+    // ── Mic state ─────────────────────────────────────────────────────────────
     function applyMicState(active) {
       micActive = active
       if (active) {
@@ -539,7 +827,7 @@
       }
     }
 
-    // ── Mode helper ───────────────────────────────────────────
+    // ── Desi mode ─────────────────────────────────────────────────────────────
     function applyDesiMode(enabled) {
       desiMode = enabled
       if (enabled) {
@@ -548,21 +836,103 @@
         langSelect.value = 'en-IN'
       } else {
         desiBtn.classList.remove('active')
-        if (currentLang === 'en-IN') {
-          currentLang = 'en-US'
-          langSelect.value = 'en-US'
-        }
+        if (currentLang === 'en-IN') { currentLang = 'en-US'; langSelect.value = 'en-US' }
       }
     }
-
     function sendModeToMain() {
       api?.setModeFromOverlay({ isDesiMode: desiMode, language: currentLang })
     }
 
-    // ── IPC listeners ─────────────────────────────────────────
+    // ── Clear everything ──────────────────────────────────────────────────────
+    function clearAll() {
+      fullAnswer = ''
+      answerText.textContent = 'Waiting for a question…'
+      answerText.classList.add('empty')
+      questionSec.classList.add('hidden')
+      questionTA.value = ''
+      cursor.classList.add('hidden')
+      thinkingDots.className = ''
+      answerWrap.style.display = 'block'
+      setStatus('idle')
+    }
+
+    // ── Screenshots ───────────────────────────────────────────────────────────
+    function addScreenshot(dataUrl) {
+      screenshots.push(dataUrl)
+      renderScreenshots()
+    }
+    function removeScreenshot(idx) {
+      screenshots.splice(idx, 1)
+      renderScreenshots()
+    }
+    function renderScreenshots() {
+      screenshotsRow.innerHTML = ''
+      screenshots.forEach((src, i) => {
+        const wrap = document.createElement('div')
+        wrap.className = 'screenshot-thumb'
+        const img = document.createElement('img')
+        img.src = src
+        const rm = document.createElement('button')
+        rm.className = 'screenshot-remove'
+        rm.textContent = '×'
+        rm.onclick = (e) => { e.stopPropagation(); removeScreenshot(i) }
+        wrap.appendChild(img)
+        wrap.appendChild(rm)
+        screenshotsRow.appendChild(wrap)
+      })
+    }
+
+    // ── Send manual question ──────────────────────────────────────────────────
+    function sendManual() {
+      const text = manualTA.value.trim()
+      if (!text && screenshots.length === 0) return
+      api?.sendManualQuestion({ text, images: screenshots.length > 0 ? [...screenshots] : undefined })
+      manualTA.value = ''
+      screenshots = []
+      renderScreenshots()
+      // Show thinking state
+      fullAnswer = ''
+      answerText.textContent = ''
+      answerText.classList.remove('empty')
+      cursor.classList.remove('hidden')
+      setStatus('thinking')
+    }
+
+    // ── Resend detected question ──────────────────────────────────────────────
+    function resendQuestion() {
+      const text = questionTA.value.trim()
+      if (!text) return
+      api?.sendManualQuestion({ text, images: screenshots.length > 0 ? [...screenshots] : undefined })
+      screenshots = []
+      renderScreenshots()
+      fullAnswer = ''
+      answerText.textContent = ''
+      answerText.classList.remove('empty')
+      cursor.classList.remove('hidden')
+      setStatus('thinking')
+    }
+
+    // ── Copy answer ───────────────────────────────────────────────────────────
+    function copyAnswer() {
+      if (!fullAnswer) return
+      navigator.clipboard.writeText(fullAnswer).then(() => {
+        copyBtn.textContent = '✓ Copied'
+        copyBtn.classList.add('copied')
+        setTimeout(() => { copyBtn.textContent = 'Copy'; copyBtn.classList.remove('copied') }, 2000)
+      })
+    }
+
+    // ── Auto-resize textarea ──────────────────────────────────────────────────
+    function autoResize(el) {
+      el.style.height = 'auto'
+      el.style.height = Math.min(el.scrollHeight, 72) + 'px'
+    }
+    manualTA.addEventListener('input', () => autoResize(manualTA))
+
+    // ── IPC listeners ─────────────────────────────────────────────────────────
     if (api) {
       api.onQuestion((data) => {
-        questionText.textContent = data.text || ''
+        questionTA.value = data.text || ''
         questionSec.classList.remove('hidden')
         fullAnswer = ''
         answerText.textContent = ''
@@ -591,22 +961,10 @@
       })
 
       api.onStatus((s) => setStatus(s))
-
-      api.onClear(() => {
-        fullAnswer = ''
-        answerText.textContent = 'Waiting for a question…'
-        answerText.classList.add('empty')
-        questionSec.classList.add('hidden')
-        cursor.classList.add('hidden')
-        setStatus('idle')
-      })
-
+      api.onClear(() => clearAll())
       api.onCopyAnswer(() => copyAnswer())
-
-      // Mic state updates from main process
       api.onMicState((state) => applyMicState(state.active))
 
-      // Mode confirmed back from main
       api.onModeConfirmed((data) => {
         applyDesiMode(data.isDesiMode)
         if (!data.isDesiMode && data.language) {
@@ -615,69 +973,127 @@
         }
       })
 
-      // Query initial mic state
+      // Screenshot pushed from global shortcut in main.js
+      if (api.onFontSize)   api.onFontSize((dir)   => applyFontSize(dir === 'up' ? fontSize + 1 : fontSize - 1))
+      if (api.onScroll)     api.onScroll((dir)      => {
+        const amount = 80
+        answerWrap.scrollTop += dir === 'down' ? amount : -amount
+      })
+      if (api.onFocusInput) api.onFocusInput(()     => { manualTA.focus() })
+      if (api.onClearInput) api.onClearInput(()     => {
+        manualTA.value = ''
+        autoResize(manualTA)
+        screenshots = []
+        renderScreenshots()
+      })
+
+      // Screenshot pushed from main.js global shortcut (Ctrl+Shift+S)
+      if (api.onScreenshot) api.onScreenshot((dataUrl) => addScreenshot(dataUrl))
+
       api.getMicState().then((state) => applyMicState(state.active))
     }
 
-    // ── Opacity slider ────────────────────────────────────────
+    // ── Opacity ───────────────────────────────────────────────────────────────
     opacitySlider.addEventListener('input', () => {
       api?.setOpacity(parseInt(opacitySlider.value) / 100)
     })
 
-    // ── Copy answer ───────────────────────────────────────────
-    function copyAnswer() {
-      if (!fullAnswer) return
-      navigator.clipboard.writeText(fullAnswer).then(() => {
-        copyBtn.textContent = '✓ Copied'
-        copyBtn.classList.add('copied')
-        setTimeout(() => { copyBtn.textContent = 'Copy'; copyBtn.classList.remove('copied') }, 2000)
-      })
-    }
+    // ── Button handlers ───────────────────────────────────────────────────────
     copyBtn.addEventListener('click', copyAnswer)
-
-    // ── Mic toggle ────────────────────────────────────────────
     micBtn.addEventListener('click', () => api?.toggleMicFromOverlay())
-
-    // ── Desi mode toggle ──────────────────────────────────────
-    desiBtn.addEventListener('click', () => {
-      applyDesiMode(!desiMode)
-      sendModeToMain()
-    })
-
-    // ── Language select ───────────────────────────────────────
+    desiBtn.addEventListener('click', () => { applyDesiMode(!desiMode); sendModeToMain() })
     langSelect.addEventListener('change', () => {
       currentLang = langSelect.value
-      // Desi mode follows en-IN
-      if (currentLang === 'en-IN') {
-        applyDesiMode(true)
-      } else {
-        desiBtn.classList.remove('active')
-        desiMode = false
-      }
+      if (currentLang === 'en-IN') applyDesiMode(true)
+      else { desiBtn.classList.remove('active'); desiMode = false }
       sendModeToMain()
     })
-
-    // ── Show main app ─────────────────────────────────────────
     showAppBtn.addEventListener('click', () => api?.showMainWindow())
+    stopBtn.addEventListener('click', () => api?.stopSession())
+    clearBtn.addEventListener('click', clearAll)
+    minimizeBtn.addEventListener('click', () => api?.hideOverlay())
+    closeBtn.addEventListener('click', () => { api?.showMainWindow(); api?.hideOverlay() })
+    resendBtn.addEventListener('click', resendQuestion)
+    sendBtn.addEventListener('click', sendManual)
+    posLeftBtn.addEventListener('click',  () => api?.moveWindow('left'))
+    posRightBtn.addEventListener('click', () => api?.moveWindow('right'))
 
-    // ── Clear ─────────────────────────────────────────────────
-    clearBtn.addEventListener('click', () => {
-      fullAnswer = ''
-      answerText.textContent = 'Waiting for a question…'
-      answerText.classList.add('empty')
-      questionSec.classList.add('hidden')
-      cursor.classList.add('hidden')
-      thinkingDots.className = ''
-      answerWrap.style.display = 'block'
-      setStatus('idle')
+    screenshotBtn.addEventListener('click', async () => {
+      const dataUrl = await api?.captureScreen()
+      if (dataUrl) addScreenshot(dataUrl)
     })
 
-    // ── Minimize / Close ──────────────────────────────────────
-    minimizeBtn.addEventListener('click', () => api?.hideOverlay())
-    closeBtn.addEventListener('click',    () => {
-      // Closing overlay → show main app so user isn't stranded
-      api?.showMainWindow()
-      api?.hideOverlay()
+    // Shortcuts popup
+    shortcutsToggle.addEventListener('click', () => {
+      shortcutsPopup.classList.toggle('visible')
+    })
+    document.addEventListener('click', (e) => {
+      if (!shortcutsPopup.contains(e.target) && e.target !== shortcutsToggle) {
+        shortcutsPopup.classList.remove('visible')
+      }
+    })
+
+    // ── In-overlay keyboard shortcuts ─────────────────────────────────────────
+    document.addEventListener('keydown', (e) => {
+      const ctrl = e.ctrlKey || e.metaKey
+
+      // Enter → send manual question (unless Shift+Enter = new line in focused textarea)
+      if (e.key === 'Enter' && !e.shiftKey && document.activeElement !== manualTA) {
+        e.preventDefault()
+        sendManual()
+        return
+      }
+      if (e.key === 'Enter' && !e.shiftKey && document.activeElement === manualTA) {
+        e.preventDefault()
+        sendManual()
+        return
+      }
+
+      if (!ctrl) return
+
+      switch (e.key) {
+        case '=':
+        case '+':
+          e.preventDefault()
+          applyFontSize(fontSize + 1)
+          break
+        case '-':
+          e.preventDefault()
+          applyFontSize(fontSize - 1)
+          break
+        case 'ArrowUp':
+          e.preventDefault()
+          answerWrap.scrollTop -= 80
+          break
+        case 'ArrowDown':
+          e.preventDefault()
+          answerWrap.scrollTop += 80
+          break
+        case 'e':
+        case 'E':
+          e.preventDefault()
+          manualTA.focus()
+          break
+        case 'r':
+        case 'R':
+          // Ctrl+R = resend detected question (no Shift)
+          if (!e.shiftKey) {
+            e.preventDefault()
+            resendQuestion()
+          }
+          break
+        case 'Backspace':
+          if (!e.shiftKey) {
+            // Ctrl+Backspace only clears if input is NOT focused (avoid breaking word-delete)
+            if (document.activeElement !== manualTA) {
+              e.preventDefault()
+              manualTA.value = ''
+              screenshots = []
+              renderScreenshots()
+            }
+          }
+          break
+      }
     })
 
     setStatus('idle')

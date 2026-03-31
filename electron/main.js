@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain, screen, globalShortcut, shell, Menu, session, dialog } = require('electron')
+const { app, BrowserWindow, ipcMain, screen, globalShortcut, shell, Menu, session, dialog, desktopCapturer } = require('electron')
 const path = require('path')
 const { spawn } = require('child_process')
 const http = require('http')
@@ -184,7 +184,7 @@ function createOverlayWindow() {
 
   overlayWindow = new BrowserWindow({
     width: 440,
-    height: 560,
+    height: 600,
     x: width - 460,
     y: 80,
     frame: false,
@@ -210,7 +210,6 @@ function createOverlayWindow() {
   overlayWindow.once('ready-to-show', () => overlayWindow.show())
   overlayWindow.on('closed', () => {
     overlayWindow = null
-    // When overlay is closed, make sure main window is visible
     if (mainWindow && !mainWindow.isVisible()) {
       mainWindow.show()
       mainWindow.focus()
@@ -223,6 +222,33 @@ function destroyOverlayWindow() {
     overlayWindow.destroy()
     overlayWindow = null
   }
+}
+
+// ─── Overlay window position helper (3-stop cycling) ─────────────────────────
+function moveOverlay(dir) {
+  if (!overlayWindow) return
+  const { width: sw, height: sh } = screen.getPrimaryDisplay().workAreaSize
+  const [ow, oh] = overlayWindow.getSize()
+  const [cx, cy] = overlayWindow.getPosition()
+  const margin = 20
+  const snapLeft   = margin
+  const snapCenter = Math.floor((sw - ow) / 2)
+  const snapRight  = sw - ow - margin
+  const threshold  = 80
+
+  let nextX = cx
+  if (dir === 'right') {
+    if (cx <= snapLeft + threshold)        nextX = snapCenter
+    else if (cx <= snapCenter + threshold) nextX = snapRight
+    else                                   nextX = snapLeft
+  } else if (dir === 'left') {
+    if (cx >= snapRight - threshold)       nextX = snapCenter
+    else if (cx >= snapCenter - threshold) nextX = snapLeft
+    else                                   nextX = snapRight
+  }
+  // Keep within vertical bounds
+  const clampedY = Math.max(0, Math.min(cy, sh - oh))
+  overlayWindow.setPosition(nextX, clampedY)
 }
 
 // ─── Speech Recognition helpers ───────────────────────────────────────────────
@@ -329,7 +355,7 @@ function stopSpeechRec() {
 // ─── IPC Handlers ─────────────────────────────────────────────────────────────
 
 // Overlay lifecycle
-ipcMain.on('overlay:create', () => createOverlayWindow())
+ipcMain.on('overlay:create',  () => createOverlayWindow())
 ipcMain.on('overlay:destroy', () => destroyOverlayWindow())
 
 // Data forwarding to overlay
@@ -345,42 +371,32 @@ ipcMain.on('overlay:toggle', () => {
 ipcMain.on('overlay:hide', () => overlayWindow?.hide())
 ipcMain.on('overlay:show', () => overlayWindow?.show())
 
-// ── Main window visibility — called when user "goes invisible" ─────────────────
-ipcMain.on('main:hide', () => {
-  if (mainWindow) mainWindow.hide()
-})
-ipcMain.on('main:show', () => {
-  if (mainWindow) {
-    mainWindow.show()
-    mainWindow.focus()
-  }
-})
+// Main window visibility
+ipcMain.on('main:hide', () => { if (mainWindow) mainWindow.hide() })
+ipcMain.on('main:show', () => { if (mainWindow) { mainWindow.show(); mainWindow.focus() } })
 
-// ── Mic toggle from overlay — mirrors start/stop logic ────────────────────────
+// Mic toggle from overlay
 ipcMain.on('overlay:mic-toggle', () => {
   if (isMicActive) {
     stopSpeechRec()
     overlayWindow?.webContents.send('mic:state', { active: false })
   } else {
     startSpeechRec()
-    // mic:state is sent once SR sends READY
   }
 })
 
-// ── Mode change from overlay → sync to hidden main window's React state ────────
-// payload: { isDesiMode: boolean, language: string }
+// Mode change from overlay
 ipcMain.on('overlay:set-mode', (_e, data) => {
   mainWindow?.webContents.send('mode:set', data)
   overlayWindow?.webContents.send('mode:confirmed', data)
 })
 
-// ── Query current mic state (overlay asks on open) ────────────────────────────
+// Query current mic state
 ipcMain.handle('overlay:get-mic-state', () => ({ active: isMicActive }))
-
 ipcMain.handle('app:is-electron', () => true)
 ipcMain.handle('app:platform', () => process.platform)
 
-// ── Windows Speech Recognition via PowerShell ─────────────────────────────────
+// ── Windows Speech Recognition ────────────────────────────────────────────────
 ipcMain.on('speech:start', () => startSpeechRec())
 ipcMain.on('speech:stop',  () => stopSpeechRec())
 
@@ -397,6 +413,42 @@ ipcMain.handle('mic:check-permission', async () => {
     return 'error'
   }
 })
+
+// ── Screenshot capture (used by overlay) ──────────────────────────────────────
+ipcMain.handle('screen:capture', async () => {
+  try {
+    const sources = await desktopCapturer.getSources({
+      types: ['screen'],
+      thumbnailSize: { width: 1920, height: 1080 },
+    })
+    const primary = sources[0]
+    if (!primary) return null
+    return primary.thumbnail.toDataURL()
+  } catch (err) {
+    console.error('screen:capture error:', err)
+    return null
+  }
+})
+
+// ── Manual question from overlay → forward to main React app ──────────────────
+ipcMain.on('overlay:manual-question', (_e, data) => {
+  mainWindow?.webContents.send('manual:question', data)
+})
+
+// ── Stop session (from overlay or global shortcut) ────────────────────────────
+ipcMain.on('overlay:stop-session', () => {
+  stopSpeechRec()
+  mainWindow?.webContents.send('session:stop')
+  destroyOverlayWindow()
+  // Show the main window so user isn't left with nothing
+  if (mainWindow && !mainWindow.isVisible()) {
+    mainWindow.show()
+    mainWindow.focus()
+  }
+})
+
+// ── Window position from overlay ──────────────────────────────────────────────
+ipcMain.on('overlay:move-window', (_e, dir) => moveOverlay(dir))
 
 // ─── App lifecycle ────────────────────────────────────────────────────────────
 app.whenReady().then(async () => {
@@ -421,22 +473,78 @@ app.whenReady().then(async () => {
 
   createMainWindow(url)
 
-  // Ctrl+Shift+Space → toggle overlay visibility
-  globalShortcut.register('CommandOrControl+Shift+Space', () => {
+  // ── Global shortcuts (work system-wide, even when app is not focused) ────────
+
+  // Show / Hide overlay  (Ctrl/Cmd+Shift+H  and legacy Ctrl/Cmd+Shift+Space)
+  const toggleOverlayFn = () => {
     if (!overlayWindow) return
     overlayWindow.isVisible() ? overlayWindow.hide() : overlayWindow.show()
+  }
+  globalShortcut.register('CommandOrControl+Shift+H',     toggleOverlayFn)
+  globalShortcut.register('CommandOrControl+Shift+Space', toggleOverlayFn)
+
+  // Mic toggle
+  globalShortcut.register('CommandOrControl+Shift+M', () => {
+    if (isMicActive) stopSpeechRec()
+    else             startSpeechRec()
   })
-  // Ctrl+Shift+C → copy answer in overlay
+
+  // Screenshot — capture screen and send to overlay
+  globalShortcut.register('CommandOrControl+Shift+S', async () => {
+    try {
+      const sources = await desktopCapturer.getSources({
+        types: ['screen'],
+        thumbnailSize: { width: 1920, height: 1080 },
+      })
+      const dataUrl = sources[0]?.thumbnail.toDataURL()
+      if (dataUrl) overlayWindow?.webContents.send('overlay:screenshot', dataUrl)
+    } catch (err) {
+      console.error('Screenshot shortcut error:', err)
+    }
+  })
+
+  // Clear chat history in overlay
+  globalShortcut.register('CommandOrControl+Shift+R', () => {
+    overlayWindow?.webContents.send('overlay:clear')
+    mainWindow?.webContents.send('overlay:clear')
+  })
+
+  // Clear message input box in overlay
+  globalShortcut.register('CommandOrControl+Shift+Backspace', () => {
+    overlayWindow?.webContents.send('overlay:clear-input')
+  })
+
+  // Focus message input (also shows overlay if hidden)
+  globalShortcut.register('CommandOrControl+Shift+E', () => {
+    if (overlayWindow) {
+      if (!overlayWindow.isVisible()) overlayWindow.show()
+      overlayWindow.webContents.send('overlay:focus-input')
+    }
+  })
+
+  // Scroll answer up / down
+  globalShortcut.register('CommandOrControl+Shift+Up', () => {
+    overlayWindow?.webContents.send('overlay:scroll', 'up')
+  })
+  globalShortcut.register('CommandOrControl+Shift+Down', () => {
+    overlayWindow?.webContents.send('overlay:scroll', 'down')
+  })
+
+  // Move overlay window left / right (3-stop cycling)
+  globalShortcut.register('CommandOrControl+Shift+Left',  () => moveOverlay('left'))
+  globalShortcut.register('CommandOrControl+Shift+Right', () => moveOverlay('right'))
+
+  // Copy answer
   globalShortcut.register('CommandOrControl+Shift+C', () => {
     overlayWindow?.webContents.send('overlay:copy-answer')
   })
-  // Ctrl+Shift+M → toggle mic from anywhere
-  globalShortcut.register('CommandOrControl+Shift+M', () => {
-    if (isMicActive) {
-      stopSpeechRec()
-    } else {
-      startSpeechRec()
-    }
+
+  // Stop session
+  globalShortcut.register('CommandOrControl+Shift+Q', () => {
+    stopSpeechRec()
+    mainWindow?.webContents.send('session:stop')
+    destroyOverlayWindow()
+    if (mainWindow && !mainWindow.isVisible()) { mainWindow.show(); mainWindow.focus() }
   })
 })
 

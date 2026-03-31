@@ -27,27 +27,47 @@ contextBridge.exposeInMainWorld('electronAPI', {
   showMainWindow: () => ipcRenderer.send('main:show'),
 
   // ── Overlay ↔ main window mode sync ───────────────────────────────────────
-  // Called from overlay to change interview mode/language in the hidden main app
   setModeFromOverlay: (data) => ipcRenderer.send('overlay:set-mode', data),
-  // Called from main window to listen for mode changes coming from the overlay
   onModeSet: (cb) => { ipcRenderer.on('mode:set', (_e, data) => cb(data)) },
 
   // ── Mic toggle from overlay ────────────────────────────────────────────────
   toggleMicFromOverlay: () => ipcRenderer.send('overlay:mic-toggle'),
   getMicState: () => ipcRenderer.invoke('overlay:get-mic-state'),
-  // Overlay listens for mic state changes
   onMicState: (cb) => { ipcRenderer.on('mic:state', (_e, state) => cb(state)) },
 
-  // ── Listeners (overlay window receives data from main app) ─────────────────
+  // ── Listeners (overlay receives data pushed from main process) ─────────────
   onAnswer:     (cb) => { ipcRenderer.on('overlay:answer',       (_e, data)   => cb(data)) },
   onQuestion:   (cb) => { ipcRenderer.on('overlay:question',     (_e, data)   => cb(data)) },
   onStatus:     (cb) => { ipcRenderer.on('overlay:status',       (_e, status) => cb(status)) },
   onClear:      (cb) => { ipcRenderer.on('overlay:clear',        ()           => cb()) },
   onCopyAnswer: (cb) => { ipcRenderer.on('overlay:copy-answer',  ()           => cb()) },
-  // Mode confirmed back from main.js after overlay sets mode
   onModeConfirmed: (cb) => { ipcRenderer.on('mode:confirmed', (_e, data) => cb(data)) },
 
-  removeAllListeners: (channel) => { ipcRenderer.removeAllListeners(channel) },
+  // ── Manual question: overlay → main React app ─────────────────────────────
+  // Called from overlay to send a typed question (+ optional screenshots) to AI
+  sendManualQuestion: (data) => ipcRenderer.send('overlay:manual-question', data),
+  // Called from main React app to receive manual questions forwarded from overlay
+  onManualQuestion: (cb) => { ipcRenderer.on('manual:question', (_e, data) => cb(data)) },
+
+  // ── Screenshot capture ─────────────────────────────────────────────────────
+  // Overlay invokes this; main process captures screen and returns base64 dataUrl
+  captureScreen: () => ipcRenderer.invoke('screen:capture'),
+
+  // ── Session stop ───────────────────────────────────────────────────────────
+  stopSession: () => ipcRenderer.send('overlay:stop-session'),
+  // Main React app listens for stop signal (triggered by global shortcut)
+  onStopSession: (cb) => { ipcRenderer.on('session:stop', () => cb()) },
+
+  // ── Overlay commands pushed from global shortcuts in main.js ──────────────
+  onFontSize:    (cb) => { ipcRenderer.on('overlay:font-size',   (_e, dir)    => cb(dir)) },
+  onScroll:      (cb) => { ipcRenderer.on('overlay:scroll',      (_e, dir)    => cb(dir)) },
+  onFocusInput:  (cb) => { ipcRenderer.on('overlay:focus-input', ()           => cb()) },
+  onClearInput:  (cb) => { ipcRenderer.on('overlay:clear-input', ()           => cb()) },
+  // Screenshot pushed from main.js global shortcut (Ctrl+Shift+S)
+  onScreenshot:  (cb) => { ipcRenderer.on('overlay:screenshot',  (_e, dataUrl) => cb(dataUrl)) },
+
+  // ── Window position ────────────────────────────────────────────────────────
+  moveWindow: (dir) => ipcRenderer.send('overlay:move-window', dir),
 
   // ── Windows Speech Recognition ─────────────────────────────────────────────
   startSpeechRecognition: () => ipcRenderer.send('speech:start'),
@@ -56,4 +76,6 @@ contextBridge.exposeInMainWorld('electronAPI', {
   onSpeechInterim: (cb) => { ipcRenderer.on('speech:interim', (_e, text)   => cb(text)) },
   onSpeechFinal:   (cb) => { ipcRenderer.on('speech:final',   (_e, text)   => cb(text)) },
   onSpeechError:   (cb) => { ipcRenderer.on('speech:error',   (_e, msg)    => cb(msg)) },
+
+  removeAllListeners: (channel) => { ipcRenderer.removeAllListeners(channel) },
 })

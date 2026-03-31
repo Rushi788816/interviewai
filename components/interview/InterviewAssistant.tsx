@@ -30,6 +30,10 @@ declare global {
       hideMainWindow: () => void
       showMainWindow: () => void
       onModeSet: (cb: (data: { isDesiMode: boolean; language?: string }) => void) => void
+      // Manual question typed in overlay → forwarded here to hit the AI API
+      onManualQuestion?: (cb: (data: { text: string; images?: string[] }) => void) => void
+      // Stop session signal from global shortcut or overlay stop button
+      onStopSession?: (cb: () => void) => void
     }
   }
 }
@@ -310,6 +314,20 @@ export default function InterviewAssistant({ userId, credits: creditsProp, showF
 
   // Keep handleStopRef current for PiP close callback
   useEffect(() => { handleStopRef.current = handleStop }, [handleStop])
+
+  // Handle manual questions typed in the Electron overlay → send to AI
+  useEffect(() => {
+    const api = eAPI()
+    if (!api?.onManualQuestion) return
+    api.onManualQuestion((data) => { void fetchAIAnswer(data.text, data.images ?? []) })
+  }, [fetchAIAnswer])
+
+  // Handle stop-session from Electron global shortcut (Ctrl+Shift+Q)
+  useEffect(() => {
+    const api = eAPI()
+    if (!api?.onStopSession) return
+    api.onStopSession(() => { void handleStopRef.current() })
+  }, [])
 
   const handleDesiToggle = () => {
     const next = !isDesiMode
