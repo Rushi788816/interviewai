@@ -52,6 +52,7 @@ export default function InterviewAssistant({ userId, credits: creditsProp, showF
   const [language, setLanguage] = useState("en-US")
   const [streamingAnswer, setStreamingAnswer] = useState("")
   const [isStreamingAnswer, setIsStreamingAnswer] = useState(false)
+  const [answerMode, setAnswerMode] = useState<"code" | "verbal">("verbal")
   const [sessionPhase, setSessionPhase] = useState<SessionPhase>("idle")
   const [elapsedSeconds, setElapsedSeconds] = useState(0)
   const [liveQuestion, setLiveQuestion] = useState("")
@@ -100,6 +101,7 @@ export default function InterviewAssistant({ userId, credits: creditsProp, showF
   const fetchAIAnswer = useCallback(async (question: string, images: string[] = []) => {
     setStreamingAnswer("")
     setIsStreamingAnswer(true)
+    setAnswerMode("verbal") // reset until server tells us otherwise
     eAPI()?.sendQuestion(question)
     eAPI()?.setStatus("thinking")
 
@@ -148,6 +150,11 @@ export default function InterviewAssistant({ userId, credits: creditsProp, showF
           }
           try {
             const parsed = JSON.parse(data)
+            // First event from server carries the render mode
+            if (parsed.mode) {
+              setAnswerMode(parsed.mode as "code" | "verbal")
+              continue
+            }
             const token = parsed.text || parsed.delta?.text || ""
             if (token) {
               fullAnswer += token
@@ -571,7 +578,7 @@ export default function InterviewAssistant({ userId, credits: creditsProp, showF
               {/* Scrollable answer area */}
               <div ref={answerScrollRef} style={{ flex: 1, overflowY: "auto", fontSize: `${fontSize}px` }}>
                 {streamingAnswer ? (
-                  <StructuredAnswer text={streamingAnswer} isStreaming={isStreamingAnswer} fontSize={fontSize} />
+                  <StructuredAnswer text={streamingAnswer} isStreaming={isStreamingAnswer} fontSize={fontSize} mode={answerMode} />
                 ) : (
                   <p style={{ color: "#64748B", fontSize: `${fontSize}px`, lineHeight: "1.7", margin: 0, fontStyle: "italic" }}>
                     Speak a question or send a screenshot task — AI answer appears here.
@@ -659,7 +666,7 @@ export default function InterviewAssistant({ userId, credits: creditsProp, showF
 
           {/* Document PiP portal */}
           {pip.isOpen && pip.container && createPortal(
-            <PiPContent question={liveQuestion} answer={streamingAnswer} isStreaming={isStreamingAnswer} qaHistory={qaHistory} credits={displayCredits} sessionActive={sessionPhase === "running"} isDesiMode={isDesiMode} fontSize={fontSize} />,
+            <PiPContent question={liveQuestion} answer={streamingAnswer} isStreaming={isStreamingAnswer} qaHistory={qaHistory} credits={displayCredits} sessionActive={sessionPhase === "running"} isDesiMode={isDesiMode} fontSize={fontSize} answerMode={answerMode} />,
             pip.container
           )}
         </>
@@ -668,19 +675,93 @@ export default function InterviewAssistant({ userId, credits: creditsProp, showF
   )
 }
 
-// ── Structured answer display ─────────────────────────────────────────────────
-function StructuredAnswer({ text, isStreaming, fontSize }: { text: string; isStreaming: boolean; fontSize: number }) {
-  const parts = text.split(" | ")
-  const [keyPoint, detail, example] = [parts[0] ?? "", parts[1] ?? "", parts[2] ?? ""]
+// ── Markdown segment parser (for code blocks) ────────────────────────────────
+type MdSegment =
+  | { type: "code"; lang: string; code: string }
+  | { type: "text"; text: string }
 
+function parseMarkdown(raw: string): MdSegment[] {
+  const result: MdSegment[] = []
+  const re = /```([\w]*)\n?([\s\S]*?)```/g
+  let last = 0
+  let m: RegExpExecArray | null
+  while ((m = re.exec(raw)) !== null) {
+    if (m.index > last) {
+      const t = raw.slice(last, m.index).trim()
+      if (t) result.push({ type: "text", text: t })
+    }
+    result.push({ type: "code", lang: m[1] || "code", code: m[2].trim() })
+    last = m.index + m[0].length
+  }
+  const tail = raw.slice(last).trim()
+  if (tail) result.push({ type: "text", text: tail })
+  if (result.length === 0) result.push({ type: "text", text: raw })
+  return result
+}
+
+// ── Code answer renderer ──────────────────────────────────────────────────────
+function CodeAnswer({ text, isStreaming, fontSize }: { text: string; isStreaming: boolean; fontSize: number }) {
+  const segments = parseMarkdown(text)
+  const [copiedIdx, setCopiedIdx] = useState<number | null>(null)
+
+  const copyCode = (code: string, idx: number) => {
+    void navigator.clipboard.writeText(code)
+    setCopiedIdx(idx)
+    setTimeout(() => setCopiedIdx(null), 2000)
+  }
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+      {segments.map((seg, i) =>
+        seg.type === "code" ? (
+          <div key={i} style={{ background: "#0d1117", border: "1px solid rgba(255,255,255,0.1)", borderRadius: "10px", overflow: "hidden" }}>
+            {/* Code block header */}
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "6px 14px", background: "rgba(255,255,255,0.04)", borderBottom: "1px solid rgba(255,255,255,0.07)" }}>
+              <span style={{ fontSize: "11px", color: "#F7931A", fontWeight: "700", fontFamily: "monospace", textTransform: "lowercase" }}>
+                {seg.lang}
+              </span>
+              <button
+                onClick={() => copyCode(seg.code, i)}
+                style={{ background: copiedIdx === i ? "rgba(74,222,128,0.12)" : "rgba(255,255,255,0.06)", border: `1px solid ${copiedIdx === i ? "rgba(74,222,128,0.3)" : "rgba(255,255,255,0.1)"}`, borderRadius: "6px", padding: "3px 10px", color: copiedIdx === i ? "#4ade80" : "#94A3B8", fontSize: "11px", cursor: "pointer", fontWeight: "600", transition: "all 0.15s" }}
+              >
+                {copiedIdx === i ? "✓ Copied" : "Copy"}
+              </button>
+            </div>
+            {/* Code content */}
+            <pre style={{ margin: 0, padding: "14px 16px", overflowX: "auto", scrollbarWidth: "thin" as const }}>
+              <code style={{ color: "#e6edf3", fontFamily: "'Fira Code', 'Cascadia Code', 'Consolas', 'Monaco', monospace", fontSize: `${Math.max(fontSize - 1, 12)}px`, lineHeight: "1.65", display: "block", whiteSpace: "pre" as const }}>
+                {seg.code}
+              </code>
+            </pre>
+          </div>
+        ) : (
+          <p key={i} style={{ color: isStreaming && i === segments.length - 1 ? "#4ade80" : "#e2e8f0", fontSize: `${fontSize}px`, lineHeight: "1.75", margin: 0, whiteSpace: "pre-wrap" as const }}>
+            {seg.text}
+          </p>
+        )
+      )}
+    </div>
+  )
+}
+
+// ── Structured answer display (verbal mode) ───────────────────────────────────
+function StructuredAnswer({ text, isStreaming, fontSize, mode = "verbal" }: { text: string; isStreaming: boolean; fontSize: number; mode?: "code" | "verbal" }) {
+  if (mode === "code") {
+    return <CodeAnswer text={text} isStreaming={isStreaming} fontSize={fontSize} />
+  }
+
+  const parts = text.split(" | ")
+  const [keyPoint, detail, result] = [parts[0] ?? "", parts[1] ?? "", parts[2] ?? ""]
+
+  // Still streaming the first part — no " | " yet
   if (parts.length === 1) {
     return <p style={{ color: isStreaming ? "#4ade80" : "#fff", fontSize: `${fontSize}px`, lineHeight: "1.7", margin: 0 }}>{text}</p>
   }
 
   const panels = [
-    { label: "SAY THIS", content: keyPoint, accent: "#4ade80", bg: "rgba(34,197,94,0.07)" },
-    { label: "DETAIL", content: detail, accent: "#60a5fa", bg: "rgba(96,165,250,0.07)" },
-    { label: "EXAMPLE", content: example, accent: "#F7931A", bg: "rgba(247,147,26,0.07)" },
+    { label: "SAY THIS FIRST", content: keyPoint, accent: "#4ade80", bg: "rgba(34,197,94,0.07)" },
+    { label: "DETAIL",         content: detail,   accent: "#60a5fa", bg: "rgba(96,165,250,0.07)" },
+    { label: "RESULT",         content: result,   accent: "#F7931A", bg: "rgba(247,147,26,0.07)" },
   ]
 
   return (
@@ -696,9 +777,9 @@ function StructuredAnswer({ text, isStreaming, fontSize }: { text: string; isStr
 }
 
 // ── PiP stealth window content ────────────────────────────────────────────────
-function PiPContent({ question, answer, isStreaming, qaHistory, credits, sessionActive, isDesiMode, fontSize }: {
+function PiPContent({ question, answer, isStreaming, qaHistory, credits, sessionActive, isDesiMode, fontSize, answerMode }: {
   question: string; answer: string; isStreaming: boolean
-  qaHistory: any[]; credits: number; sessionActive: boolean; isDesiMode: boolean; fontSize: number
+  qaHistory: any[]; credits: number; sessionActive: boolean; isDesiMode: boolean; fontSize: number; answerMode: "code" | "verbal"
 }) {
   return (
     <div style={{ padding: "12px", minHeight: "100vh", background: "#0a0a0f", fontFamily: "system-ui, sans-serif", color: "#fff" }}>
@@ -736,7 +817,9 @@ function PiPContent({ question, answer, isStreaming, qaHistory, credits, session
           )}
         </div>
         <div style={{ fontSize: `${fontSize}px`, lineHeight: 1.7, color: isStreaming ? "#43e97b" : "#f0f0f8" }}>
-          {answer || <span style={{ color: "#8888aa", fontStyle: "italic" }}>Waiting for question… speak naturally.</span>}
+          {answer
+            ? <StructuredAnswer text={answer} isStreaming={isStreaming} fontSize={fontSize} mode={answerMode} />
+            : <span style={{ color: "#8888aa", fontStyle: "italic" }}>Waiting for question… speak naturally.</span>}
         </div>
       </div>
 
