@@ -28,12 +28,14 @@ export async function POST(req: Request) {
     const body = await req.json()
     const {
       question,
+      images,
       isDesiMode,
       interviewType,
       sessionContext,
       qaHistory,
     } = body as {
       question?: string
+      images?: string[]
       isDesiMode?: boolean
       interviewType?: string
       language?: string
@@ -45,7 +47,9 @@ export async function POST(req: Request) {
       return Response.json({ error: 'GROQ_API_KEY not configured' }, { status: 500 })
     }
 
-    if (!question || question.trim().length < 3) {
+    const hasImages = Array.isArray(images) && images.length > 0
+
+    if (!hasImages && (!question || question.trim().length < 3)) {
       return Response.json({ error: 'Question too short' }, { status: 400 })
     }
 
@@ -70,7 +74,7 @@ export async function POST(req: Request) {
       : ''
 
     // Classify question type
-    const questionLower = question.toLowerCase()
+    const questionLower = (question ?? '').toLowerCase()
     const isBehavioral = /tell me about|describe a time|give me an example|walk me through|situation where|how did you|what did you do|greatest (strength|weakness)|why should|why do you want|biggest challenge/.test(questionLower)
     const isTechnical = /^(what is|explain|how does|difference between|when would you|implement|algorithm|complexity|debug|optimize)/.test(questionLower) || interviewType === 'technical' || interviewType === 'coding'
     const isFollowUp = /tell me more|elaborate|can you explain|go deeper|expand on|what do you mean|give me an example of that|say more/.test(questionLower)
@@ -114,11 +118,31 @@ ${baseRules}`
 ${identityBlock}${historyBlock}
 ${baseRules}`
 
+    // Use vision model when screenshots are attached
+    const model = hasImages
+      ? 'meta-llama/llama-4-scout-17b-16e-instruct'
+      : 'llama-3.3-70b-versatile'
+
+    const userContent = hasImages
+      ? [
+          {
+            type: 'text' as const,
+            text: question?.trim()
+              ? `Interview question: "${question}"\n\nPlease analyze the attached screenshot(s) and provide a helpful answer.`
+              : 'Please analyze the attached screenshot(s) and provide a helpful answer for this coding/technical interview question.',
+          },
+          ...images!.map(img => ({
+            type: 'image_url' as const,
+            image_url: { url: img },
+          })),
+        ]
+      : (`Interview question: "${question ?? ''}"` as string)
+
     const stream = await groq.chat.completions.create({
-      model: 'llama-3.3-70b-versatile',
+      model,
       messages: [
         { role: 'system', content: systemPrompt },
-        { role: 'user', content: `Interview question: "${question}"` },
+        { role: 'user', content: userContent },
       ],
       stream: true,
       max_tokens: 650,

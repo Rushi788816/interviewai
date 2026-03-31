@@ -7,14 +7,13 @@ import { useInterviewStore } from "@/store/interviewStore"
 import { useCredits } from "@/hooks/useCredits"
 import { useToast } from "@/hooks/useToast"
 import { useDocumentPiP } from "@/hooks/useDocumentPiP"
-import { Mic, MicOff, Pause, Square, Play, Ghost } from "lucide-react"
+import { Mic, MicOff, Pause, Square, Play, Ghost, Camera, Upload, Send, X, ZoomIn, ZoomOut, Keyboard } from "lucide-react"
 import SetupScreen from "@/components/interview/SetupScreen"
 import type { SessionContext } from "@/types/index"
 
 type InterviewType = "technical" | "behavioral" | "coding"
 type SessionPhase = "idle" | "running" | "paused"
 
-// ── Electron IPC bridge (only available in the desktop app) ──────────────────
 declare global {
   interface Window {
     electronAPI?: {
@@ -53,9 +52,19 @@ export default function InterviewAssistant({ userId, credits: creditsProp, showF
   const [elapsedSeconds, setElapsedSeconds] = useState(0)
   const [liveQuestion, setLiveQuestion] = useState("")
   const [isMobile, setIsMobile] = useState(false)
-  const pip = useDocumentPiP(() => {
-    // called when PiP window is closed by user
-  })
+
+  // ── New feature state ────────────────────────────────────────────────────────
+  const [fontSize, setFontSize] = useState(14)
+  const [screenshots, setScreenshots] = useState<string[]>([])
+  const [manualQuestion, setManualQuestion] = useState("")
+  const [showShortcuts, setShowShortcuts] = useState(false)
+
+  // ── Refs ────────────────────────────────────────────────────────────────────
+  const answerScrollRef = useRef<HTMLDivElement>(null)
+  const manualInputRef = useRef<HTMLTextAreaElement>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
+  const handleStopRef = useRef<() => Promise<void>>(async () => {})
+  const sendManualRef = useRef<() => Promise<void>>(async () => {})
 
   const { sessionContext: storeContext, setSessionContext: setSessionContextStore, addQAPair, qaHistory } = useInterviewStore((s: any) => s)
 
@@ -66,7 +75,6 @@ export default function InterviewAssistant({ userId, credits: creditsProp, showF
     return () => window.removeEventListener("resize", check)
   }, [])
 
-  // Sync mode/language changes pushed from the Electron overlay
   useEffect(() => {
     const api = eAPI()
     if (!api?.onModeSet) return
@@ -76,122 +84,188 @@ export default function InterviewAssistant({ userId, credits: creditsProp, showF
     })
   }, [])
 
-  // Session timer
   useEffect(() => {
     if (sessionPhase !== "running") return
     const timer = setInterval(() => setElapsedSeconds(s => s + 1), 1000)
     return () => clearInterval(timer)
   }, [sessionPhase])
 
-  const formatTime = (s: number) => `${String(Math.floor(s/60)).padStart(2,"0")}:${String(s%60).padStart(2,"0")}`
+  const formatTime = (s: number) => `${String(Math.floor(s / 60)).padStart(2, "0")}:${String(s % 60).padStart(2, "0")}`
 
+  // ── Core AI fetch (shared by STT auto-send and manual send) ─────────────────
+  const fetchAIAnswer = useCallback(async (question: string, images: string[] = []) => {
+    setStreamingAnswer("")
+    setIsStreamingAnswer(true)
+    eAPI()?.sendQuestion(question)
+    eAPI()?.setStatus("thinking")
+
+    try {
+      const response = await fetch("/api/ai/interview-answer", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          question,
+          images: images.length > 0 ? images : undefined,
+          isDesiMode,
+          interviewType,
+          language: isDesiMode ? "en-IN" : language,
+          sessionContext: storeContext,
+          qaHistory: qaHistory?.slice(-4) ?? [],
+        }),
+      })
+
+      if (!response.ok || !response.body) {
+        setIsStreamingAnswer(false)
+        addToast("Couldn't get AI answer. Check your connection and try again.", "error")
+        return
+      }
+
+      const reader = response.body.getReader()
+      const decoder = new TextDecoder()
+      let buffer = ""
+      let fullAnswer = ""
+
+      while (true) {
+        const { done, value } = await reader.read()
+        if (done) break
+        buffer += decoder.decode(value, { stream: true })
+        const lines = buffer.split("\n")
+        buffer = lines.pop() || ""
+        for (const line of lines) {
+          const trimmed = line.trim()
+          if (!trimmed.startsWith("data: ")) continue
+          const data = trimmed.slice(6).trim()
+          if (data === "[DONE]") {
+            if (fullAnswer) addQAPair(question, fullAnswer)
+            setIsStreamingAnswer(false)
+            eAPI()?.sendAnswer({ done: true })
+            eAPI()?.setStatus("ready")
+            return
+          }
+          try {
+            const parsed = JSON.parse(data)
+            const token = parsed.text || parsed.delta?.text || ""
+            if (token) {
+              fullAnswer += token
+              setStreamingAnswer(prev => prev + token)
+              eAPI()?.sendAnswer({ text: token })
+            }
+          } catch {}
+        }
+      }
+      setIsStreamingAnswer(false)
+    } catch (err: any) {
+      console.error("[AI] fetch error:", err?.message)
+      setIsStreamingAnswer(false)
+      addToast("Connection error. Please check your internet and try again.", "error")
+    }
+  }, [isDesiMode, interviewType, language, storeContext, qaHistory, addToast, addQAPair])
+
+  // STT hook — auto-sends on silence
   const { transcript, interimTranscript, isListening, toggleListening, resetTranscript } = useSpeechRecognition({
     language: isDesiMode ? "en-IN" : language,
     isDesiMode,
     onSilence: async ({ finalTranscript }: { finalTranscript: string }) => {
       if (!finalTranscript) return
       const words = finalTranscript.trim().split(/\s+/).filter(Boolean)
-      // Require at least 3 words — avoids firing on noise or single stray words
       if (words.length < 3) return
       if (sessionPhase !== "running") return
-
       setLiveQuestion(finalTranscript)
-      setStreamingAnswer("")
-      setIsStreamingAnswer(true)
-
-      // Forward question to Electron overlay (if running as desktop app)
-      eAPI()?.sendQuestion(finalTranscript)
-      eAPI()?.setStatus("thinking")
-
-      try {
-        const response = await fetch("/api/ai/interview-answer", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            question: finalTranscript,
-            isDesiMode,
-            interviewType,
-            language: isDesiMode ? "en-IN" : language,
-            sessionContext: storeContext,
-            qaHistory: qaHistory?.slice(-4) ?? [],
-          }),
-        })
-
-        if (!response.ok || !response.body) {
-          console.error("[AI] bad response or no body")
-          setIsStreamingAnswer(false)
-          addToast("Couldn't get AI answer. Check your connection and try again.", "error")
-          return
-        }
-
-        const reader = response.body.getReader()
-        const decoder = new TextDecoder()
-        let buffer = ""
-        let fullAnswer = ""
-
-        while (true) {
-          const { done, value } = await reader.read()
-          if (done) break
-          buffer += decoder.decode(value, { stream: true })
-          const lines = buffer.split("\n")
-          buffer = lines.pop() || ""
-          for (const line of lines) {
-            const trimmed = line.trim()
-            if (!trimmed.startsWith("data: ")) continue
-            const data = trimmed.slice(6).trim()
-            if (data === "[DONE]") {
-              if (fullAnswer) addQAPair(finalTranscript, fullAnswer)
-              setIsStreamingAnswer(false)
-              // Signal overlay: streaming finished
-              eAPI()?.sendAnswer({ done: true })
-              eAPI()?.setStatus("ready")
-              return
-            }
-            try {
-              const parsed = JSON.parse(data)
-              const token = parsed.text || parsed.delta?.text || ""
-              if (token) {
-                fullAnswer += token
-                setStreamingAnswer(prev => prev + token)
-                // Forward each token to Electron overlay
-                eAPI()?.sendAnswer({ text: token })
-              }
-            } catch {}
-          }
-        }
-        setIsStreamingAnswer(false)
-      } catch (err: any) {
-        console.error("[AI] fetch error:", err?.message)
-        setIsStreamingAnswer(false)
-        addToast("Connection error. Please check your internet and try again.", "error")
-      }
-    }
+      await fetchAIAnswer(finalTranscript)
+    },
   })
 
+  // ── Screenshot capture ───────────────────────────────────────────────────────
+  const captureScreen = useCallback(async () => {
+    try {
+      const stream = await navigator.mediaDevices.getDisplayMedia({ video: true })
+      const video = document.createElement("video")
+      video.srcObject = stream
+      video.onloadedmetadata = () => {
+        void video.play().then(() => {
+          const MAX_W = 1280
+          const ratio = Math.min(1, MAX_W / video.videoWidth)
+          const canvas = document.createElement("canvas")
+          canvas.width = Math.round(video.videoWidth * ratio)
+          canvas.height = Math.round(video.videoHeight * ratio)
+          canvas.getContext("2d")!.drawImage(video, 0, 0, canvas.width, canvas.height)
+          stream.getTracks().forEach(t => t.stop())
+          const base64 = canvas.toDataURL("image/jpeg", 0.65)
+          setScreenshots(prev => [...prev.slice(-4), base64])
+          addToast("Screenshot captured — attach a question and click Send", "success")
+        })
+      }
+    } catch (e: any) {
+      if (e.name !== "AbortError") addToast("Screen capture failed — allow screen recording in browser permissions", "error")
+    }
+  }, [addToast])
+
+  const handleFileSelect = useCallback((file: File) => {
+    if (!file.type.startsWith("image/")) { addToast("Only image files allowed", "error"); return }
+    const reader = new FileReader()
+    reader.onload = e => {
+      const base64 = e.target?.result as string
+      setScreenshots(prev => [...prev.slice(-4), base64])
+    }
+    reader.readAsDataURL(file)
+  }, [addToast])
+
+  // ── Manual question send (text + optional screenshots) ───────────────────────
+  const sendManualQuestion = useCallback(async () => {
+    const q = manualQuestion.trim()
+    if (!q && screenshots.length === 0) { addToast("Type a question or attach a screenshot first", "error"); return }
+    if (sessionPhase !== "running") { addToast("Start the session first", "error"); return }
+    const questionText = q || "Analyze these screenshots and provide guidance on solving this task"
+    setLiveQuestion(questionText)
+    const imgs = [...screenshots]
+    setManualQuestion("")
+    setScreenshots([])
+    await fetchAIAnswer(questionText, imgs)
+  }, [manualQuestion, screenshots, sessionPhase, fetchAIAnswer, addToast])
+
+  // Keep refs current so keyboard handler always has latest versions
+  useEffect(() => { sendManualRef.current = sendManualQuestion }, [sendManualQuestion])
+
+  // ── Keyboard shortcuts (page-level) ─────────────────────────────────────────
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      const ctrl = e.ctrlKey || e.metaKey
+      if (!ctrl) return
+      switch (e.key) {
+        case "m": e.preventDefault(); if (sessionPhase === "running") toggleListening(); break
+        case "Enter": e.preventDefault(); void sendManualRef.current(); break
+        case "s": e.preventDefault(); void captureScreen(); break
+        case "r": e.preventDefault(); setManualQuestion(""); setScreenshots([]); break
+        case "d": e.preventDefault(); setScreenshots(prev => prev.slice(0, -1)); break
+        case "=": case "+": e.preventDefault(); setFontSize(f => Math.min(f + 2, 22)); break
+        case "-": e.preventDefault(); setFontSize(f => Math.max(f - 2, 10)); break
+        case "ArrowDown": e.preventDefault(); answerScrollRef.current?.scrollBy({ top: 120, behavior: "smooth" }); break
+        case "ArrowUp": e.preventDefault(); answerScrollRef.current?.scrollBy({ top: -120, behavior: "smooth" }); break
+        case "e": e.preventDefault(); manualInputRef.current?.focus(); break
+      }
+    }
+    window.addEventListener("keydown", handler)
+    return () => window.removeEventListener("keydown", handler)
+  }, [sessionPhase, toggleListening, captureScreen])
+
+  // ── Session controls ─────────────────────────────────────────────────────────
   const handleToggleSession = useCallback(async () => {
     if (sessionPhase === "running") {
-      // Pausing
       setSessionPhase("paused")
       resetTranscript()
       if (isListening) toggleListening()
       eAPI()?.setStatus("idle")
     } else {
-      // Warn if user has no credits before they start a new session
       if (sessionPhase === "idle" && displayCredits === 0) {
         addToast("You have 0 credits. Go to Settings to get more before starting a session.", "error")
         return
       }
-      // Starting or resuming — check mic permission first
       const api = eAPI()
       if (api?.isElectron && sessionPhase === "idle") {
-        // Ask OS/browser for mic permission before starting
-        try {
-          await navigator.mediaDevices.getUserMedia({ audio: true })
-        } catch {
+        try { await navigator.mediaDevices.getUserMedia({ audio: true }) } catch {
           addToast("Microphone access denied. Please allow mic access and try again.", "error")
           return
         }
-        // Create the invisible overlay now that session is starting
         api.createOverlay()
       }
       setSessionPhase("running")
@@ -199,10 +273,9 @@ export default function InterviewAssistant({ userId, credits: creditsProp, showF
       if (!isListening) toggleListening()
       eAPI()?.setStatus("listening")
     }
-  }, [sessionPhase, isListening, toggleListening, resetTranscript, addToast])
+  }, [sessionPhase, isListening, toggleListening, resetTranscript, addToast, displayCredits])
 
-  const handleStop = async () => {
-    // Snapshot state before clearing
+  const handleStop = useCallback(async () => {
     const duration = elapsedSeconds
     const savedQa = qaHistory
     const savedInterviewType = interviewType
@@ -216,40 +289,36 @@ export default function InterviewAssistant({ userId, credits: creditsProp, showF
     if (isListening) toggleListening()
     setStreamingAnswer("")
     setLiveQuestion("")
+    setManualQuestion("")
+    setScreenshots([])
     eAPI()?.setStatus("idle")
     eAPI()?.clearOverlay()
-    // Destroy the overlay window when session fully stops
     eAPI()?.destroyOverlay()
 
-    // Persist session if any questions were answered
     const creditsUsed = savedQa.length
     if (creditsUsed > 0) {
       try {
         await fetch("/api/sessions/save", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            duration,
-            creditsUsed,
-            qaHistory: savedQa,
-            language: savedLanguage,
-            mode: savedInterviewType,
-            isDesiMode: savedIsDesiMode,
-            jobRole: savedJobRole,
-          }),
+          body: JSON.stringify({ duration, creditsUsed, qaHistory: savedQa, language: savedLanguage, mode: savedInterviewType, isDesiMode: savedIsDesiMode, jobRole: savedJobRole }),
         })
         refetchCredits()
-      } catch {
-        // Session data lives in local Q&A history — silent fail is acceptable
-      }
+      } catch {}
     }
-  }
+  }, [elapsedSeconds, qaHistory, interviewType, isDesiMode, language, storeContext, sessionContext, isListening, toggleListening, resetTranscript, refetchCredits])
+
+  // Keep handleStopRef current for PiP close callback
+  useEffect(() => { handleStopRef.current = handleStop }, [handleStop])
 
   const handleDesiToggle = () => {
     const next = !isDesiMode
     setIsDesiMode(next)
     setLanguage(next ? "en-IN" : "en-US")
   }
+
+  // PiP — stop session when stealth window is closed
+  const pip = useDocumentPiP(() => { void handleStopRef.current() })
 
   const handleStealthMode = async () => {
     if (pip.isOpen) { pip.close(); return }
@@ -259,54 +328,25 @@ export default function InterviewAssistant({ userId, credits: creditsProp, showF
     else addToast("Overlay opened — share only this tab to keep it hidden", "info")
   }
 
-  const mainContainerStyle = {
-    maxWidth: "1100px", 
-    margin: "0 auto", 
-    display: "flex", 
-    flexDirection: "column" as const, 
-    gap: "16px"
-  }
+  const mainContainerStyle = { maxWidth: "1100px", margin: "0 auto", display: "flex", flexDirection: "column" as const, gap: "16px" }
 
   return (
     <div style={mainContainerStyle}>
       {showSetup ? (
-        <div style={{
-          background: "#0F1115",
-          border: "1px solid rgba(255,255,255,0.08)",
-          borderRadius: "16px",
-          padding: "28px"
-        }}>
-          {/* Setup header */}
+        <div style={{ background: "#0F1115", border: "1px solid rgba(255,255,255,0.08)", borderRadius: "16px", padding: "28px" }}>
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "24px", flexWrap: "wrap" as const, gap: "12px" }}>
             <div>
               <h2 style={{ color: "#fff", fontSize: "22px", fontWeight: "700" as const, margin: "0 0 6px", display: "flex", alignItems: "center", gap: "8px" }}>
                 🎯 Setup Your Interview Session
               </h2>
-              <p style={{ color: "#64748B", fontSize: "13px", margin: 0 }}>
-                Help AI give you personalized answers
-              </p>
+              <p style={{ color: "#64748B", fontSize: "13px", margin: 0 }}>Help AI give you personalized answers</p>
             </div>
-            <button
-              onClick={() => setShowSetup(false)}
-              style={{
-                background: "rgba(255,255,255,0.05)",
-                border: "1px solid rgba(255,255,255,0.1)",
-                borderRadius: "20px",
-                padding: "7px 16px",
-                color: "#64748B",
-                fontSize: "12px",
-                cursor: "pointer",
-              }}
-            >
+            <button onClick={() => setShowSetup(false)} style={{ background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: "20px", padding: "7px 16px", color: "#64748B", fontSize: "12px", cursor: "pointer" }}>
               Skip Setup
             </button>
           </div>
           <SetupScreen
-            onComplete={(ctx: SessionContext) => { 
-              setSessionContextStore(ctx); 
-              setSessionContextLocal(ctx); 
-              setShowSetup(false) 
-            }}
+            onComplete={(ctx: SessionContext) => { setSessionContextStore(ctx); setSessionContextLocal(ctx); setShowSetup(false) }}
             onSkip={() => setShowSetup(false)}
             initialContext={storeContext}
           />
@@ -316,12 +356,21 @@ export default function InterviewAssistant({ userId, credits: creditsProp, showF
           {/* Page Header */}
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: "12px" }}>
             <div>
-              <h1 style={{ color: "#fff", fontSize: "24px", fontWeight: "700", margin: "0 0 4px", fontFamily: "var(--font-heading, system-ui)" }}>
-                Live Interview Assistant
-              </h1>
+              <h1 style={{ color: "#fff", fontSize: "24px", fontWeight: "700", margin: "0 0 4px" }}>Live Interview Assistant</h1>
               <p style={{ color: "#94A3B8", fontSize: "13px", margin: 0 }}>AI answers stream privately to your screen in real-time</p>
             </div>
-            <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap" }}>
+              {/* Font size controls */}
+              <div style={{ display: "flex", alignItems: "center", gap: "4px", background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: "20px", padding: "4px 10px" }}>
+                <span style={{ color: "#64748B", fontSize: "11px", marginRight: "4px" }}>Aa</span>
+                <button onClick={() => setFontSize(f => Math.max(f - 2, 10))} title="Ctrl+-" style={{ background: "transparent", border: "none", color: "#94A3B8", cursor: "pointer", padding: "2px 4px", display: "flex", alignItems: "center" }}>
+                  <ZoomOut size={14} />
+                </button>
+                <span style={{ color: "#F7931A", fontSize: "12px", fontWeight: "700", minWidth: "26px", textAlign: "center" }}>{fontSize}px</span>
+                <button onClick={() => setFontSize(f => Math.min(f + 2, 22))} title="Ctrl+=" style={{ background: "transparent", border: "none", color: "#94A3B8", cursor: "pointer", padding: "2px 4px", display: "flex", alignItems: "center" }}>
+                  <ZoomIn size={14} />
+                </button>
+              </div>
               <div style={{ background: "rgba(247,147,26,0.15)", border: "1px solid rgba(247,147,26,0.3)", borderRadius: "20px", padding: "6px 14px", fontSize: "13px", color: "#F7931A", fontWeight: "600" }}>
                 🪙 {displayCredits} credits
               </div>
@@ -333,7 +382,7 @@ export default function InterviewAssistant({ userId, credits: creditsProp, showF
             </div>
           </div>
 
-          {/* Context Banner if setup was done */}
+          {/* Context Banner */}
           {storeContext?.jobRole && (
             <div style={{ background: "rgba(247,147,26,0.06)", border: "1px solid rgba(247,147,26,0.2)", borderRadius: "10px", padding: "10px 16px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
               <div style={{ fontSize: "13px", color: "#F7931A" }}>
@@ -347,40 +396,26 @@ export default function InterviewAssistant({ userId, credits: creditsProp, showF
 
           {/* Controls Row */}
           <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr 1fr", gap: "12px" }}>
-            {/* Interview Type Card */}
+            {/* Interview Type */}
             <div style={{ background: "#0F1115", border: "1px solid rgba(255,255,255,0.08)", borderRadius: "12px", padding: "16px" }}>
               <p style={{ color: "#94A3B8", fontSize: "11px", textTransform: "uppercase", letterSpacing: "0.08em", margin: "0 0 10px", fontWeight: "600" }}>Interview Type</p>
               <div style={{ display: "flex", gap: "6px", flexWrap: "wrap" }}>
                 {(["technical", "behavioral", "coding"] as const).map(t => (
-                  <button key={t} onClick={() => setInterviewType(t)} style={{
-                    background: interviewType === t ? "rgba(247,147,26,0.15)" : "transparent",
-                    border: `1px solid ${interviewType === t ? "#F7931A" : "rgba(255,255,255,0.1)"}`,
-                    borderRadius: "20px", padding: "5px 12px", fontSize: "12px",
-                    color: interviewType === t ? "#F7931A" : "#94A3B8",
-                    fontWeight: interviewType === t ? "600" : "400", cursor: "pointer"
-                  }}>
+                  <button key={t} onClick={() => setInterviewType(t)} style={{ background: interviewType === t ? "rgba(247,147,26,0.15)" : "transparent", border: `1px solid ${interviewType === t ? "#F7931A" : "rgba(255,255,255,0.1)"}`, borderRadius: "20px", padding: "5px 12px", fontSize: "12px", color: interviewType === t ? "#F7931A" : "#94A3B8", fontWeight: interviewType === t ? "600" : "400", cursor: "pointer" }}>
                     {t.charAt(0).toUpperCase() + t.slice(1)}
                   </button>
                 ))}
               </div>
             </div>
 
-            {/* Mode & Language Card */}
+            {/* Mode & Language */}
             <div style={{ background: "#0F1115", border: "1px solid rgba(255,255,255,0.08)", borderRadius: "12px", padding: "16px" }}>
               <p style={{ color: "#94A3B8", fontSize: "11px", textTransform: "uppercase", letterSpacing: "0.08em", margin: "0 0 10px", fontWeight: "600" }}>Mode & Language</p>
               <div style={{ display: "flex", gap: "8px", alignItems: "center", flexWrap: "wrap" }}>
-                <button onClick={handleDesiToggle} style={{
-                  background: isDesiMode ? "rgba(247,147,26,0.1)" : "transparent",
-                  border: `1px solid ${isDesiMode ? "rgba(247,147,26,0.4)" : "rgba(255,255,255,0.1)"}`,
-                  borderRadius: "20px", padding: "5px 12px", fontSize: "12px",
-                  color: isDesiMode ? "#F7931A" : "#94A3B8", cursor: "pointer", fontWeight: isDesiMode ? "600" : "400"
-                }}>
+                <button onClick={handleDesiToggle} style={{ background: isDesiMode ? "rgba(247,147,26,0.1)" : "transparent", border: `1px solid ${isDesiMode ? "rgba(247,147,26,0.4)" : "rgba(255,255,255,0.1)"}`, borderRadius: "20px", padding: "5px 12px", fontSize: "12px", color: isDesiMode ? "#F7931A" : "#94A3B8", cursor: "pointer", fontWeight: isDesiMode ? "600" : "400" }}>
                   🇮🇳 Desi Mode
                 </button>
-                <select value={language} onChange={e => setLanguage(e.target.value)} style={{
-                  background: "#0a0a0f", border: "1px solid rgba(255,255,255,0.1)", borderRadius: "8px",
-                  padding: "5px 10px", color: "#94A3B8", fontSize: "12px", cursor: "pointer"
-                }}>
+                <select value={language} onChange={e => setLanguage(e.target.value)} style={{ background: "#0a0a0f", border: "1px solid rgba(255,255,255,0.1)", borderRadius: "8px", padding: "5px 10px", color: "#94A3B8", fontSize: "12px", cursor: "pointer" }}>
                   <option value="en-US">English (US)</option>
                   <option value="en-IN">English (India)</option>
                   <option value="hi-IN">Hindi</option>
@@ -390,7 +425,7 @@ export default function InterviewAssistant({ userId, credits: creditsProp, showF
               </div>
             </div>
 
-            {/* Session Timer Card */}
+            {/* Session Timer */}
             <div style={{ background: "#0F1115", border: "1px solid rgba(255,255,255,0.08)", borderRadius: "12px", padding: "16px" }}>
               <p style={{ color: "#94A3B8", fontSize: "11px", textTransform: "uppercase", letterSpacing: "0.08em", margin: "0 0 10px", fontWeight: "600" }}>Session</p>
               <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
@@ -416,103 +451,138 @@ export default function InterviewAssistant({ userId, credits: creditsProp, showF
             </div>
           </div>
 
-          {/* Main Content: Transcript + Answer */}
+          {/* Main Content: Question + Answer */}
           <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: "16px" }}>
-            {/* Live Transcript */}
-            <div style={{ background: "#0F1115", border: "1px solid rgba(59,130,246,0.25)", borderRadius: "12px", padding: "20px", minHeight: "180px" }}>
-              <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "14px" }}>
-                {isListening && <div style={{ width: "8px", height: "8px", borderRadius: "50%", background: "#F7931A", boxShadow: "0 0 8px rgba(247,147,26,0.6)" }} />}
-                <span style={{ color: "#94A3B8", fontSize: "11px", textTransform: "uppercase", letterSpacing: "0.1em", fontWeight: "600" }}>Live Transcript</span>
+
+            {/* ── Left: Live Transcript + Manual Question + Screenshots ─────── */}
+            <div style={{ background: "#0F1115", border: "1px solid rgba(59,130,246,0.25)", borderRadius: "12px", padding: "20px", display: "flex", flexDirection: "column", gap: "12px" }}>
+
+              {/* Live transcript (auto from STT) */}
+              <div>
+                <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "10px" }}>
+                  {isListening && <div style={{ width: "7px", height: "7px", borderRadius: "50%", background: "#F7931A", boxShadow: "0 0 8px rgba(247,147,26,0.6)" }} />}
+                  <span style={{ color: "#94A3B8", fontSize: "11px", textTransform: "uppercase", letterSpacing: "0.1em", fontWeight: "600" }}>Live Transcript</span>
+                </div>
+                <p style={{ color: "#fff", fontSize: `${fontSize}px`, lineHeight: "1.65", margin: 0, fontStyle: transcript || interimTranscript ? "normal" : "italic", opacity: transcript || interimTranscript ? 1 : 0.4 }}>
+                  {transcript || interimTranscript || "Speech appears here. Start the session and speak."}
+                </p>
+                {interimTranscript && <p style={{ color: "#94A3B8", fontSize: "13px", margin: "6px 0 0", fontStyle: "italic" }}>{interimTranscript}</p>}
               </div>
-              <p style={{ color: "#fff", fontSize: "15px", lineHeight: "1.65", margin: 0, fontStyle: transcript || interimTranscript ? "normal" : "italic", opacity: transcript || interimTranscript ? 1 : 0.4 }}>
-                {transcript || interimTranscript || "Speech appears here. Start the session and use the microphone."}
-              </p>
-              {interimTranscript && <p style={{ color: "#94A3B8", fontSize: "13px", margin: "8px 0 0", fontStyle: "italic" }}>{interimTranscript}</p>}
+
+              {/* Divider */}
+              <div style={{ borderTop: "1px solid rgba(255,255,255,0.06)", paddingTop: "12px" }}>
+                <span style={{ color: "#64748B", fontSize: "10px", textTransform: "uppercase", letterSpacing: "0.08em", fontWeight: "600" }}>
+                  Task / Manual Question {screenshots.length > 0 && `· ${screenshots.length} screenshot${screenshots.length > 1 ? "s" : ""} attached`}
+                </span>
+              </div>
+
+              {/* Editable manual question textarea */}
+              <textarea
+                ref={manualInputRef}
+                value={manualQuestion}
+                onChange={e => setManualQuestion(e.target.value)}
+                onKeyDown={e => { if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) { e.preventDefault(); void sendManualRef.current() } }}
+                placeholder="Type a question or task... or just attach a screenshot below and click Send"
+                rows={3}
+                style={{
+                  width: "100%", boxSizing: "border-box",
+                  background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.1)",
+                  borderRadius: "10px", padding: "10px 12px",
+                  color: "#fff", fontSize: `${fontSize}px`, lineHeight: "1.6",
+                  resize: "vertical", outline: "none", fontFamily: "inherit",
+                }}
+              />
+
+              {/* Screenshot thumbnails */}
+              {screenshots.length > 0 && (
+                <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
+                  {screenshots.map((src, i) => (
+                    <div key={i} style={{ position: "relative" }}>
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={src} alt={`Screenshot ${i + 1}`} style={{ height: "56px", width: "auto", maxWidth: "120px", objectFit: "cover", borderRadius: "6px", border: "1px solid rgba(255,255,255,0.15)" }} />
+                      <button
+                        onClick={() => setScreenshots(prev => prev.filter((_, j) => j !== i))}
+                        style={{ position: "absolute", top: "-6px", right: "-6px", background: "#ef4444", border: "none", borderRadius: "50%", width: "18px", height: "18px", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", padding: 0 }}
+                      >
+                        <X size={10} color="white" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* Action buttons */}
+              <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
+                <button
+                  onClick={() => fileInputRef.current?.click()}
+                  title="Upload image (Ctrl+U)"
+                  style={{ background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.12)", borderRadius: "8px", padding: "7px 12px", color: "#94A3B8", fontSize: "12px", cursor: "pointer", display: "flex", alignItems: "center", gap: "5px", fontWeight: "500" }}
+                >
+                  <Upload size={13} /> Upload Image
+                </button>
+                <button
+                  onClick={() => void captureScreen()}
+                  title="Capture screen (Ctrl+S)"
+                  style={{ background: "rgba(99,102,241,0.08)", border: "1px solid rgba(99,102,241,0.3)", borderRadius: "8px", padding: "7px 12px", color: "#818cf8", fontSize: "12px", cursor: "pointer", display: "flex", alignItems: "center", gap: "5px", fontWeight: "500" }}
+                >
+                  <Camera size={13} /> Capture Screen
+                </button>
+                <button
+                  onClick={() => void sendManualRef.current()}
+                  disabled={sessionPhase !== "running" || (manualQuestion.trim() === "" && screenshots.length === 0)}
+                  title="Send (Ctrl+Enter)"
+                  style={{ background: manualQuestion.trim() || screenshots.length > 0 ? "linear-gradient(135deg, #F7931A, #EA580C)" : "rgba(255,255,255,0.05)", border: "none", borderRadius: "8px", padding: "7px 14px", color: manualQuestion.trim() || screenshots.length > 0 ? "white" : "#475569", fontSize: "12px", cursor: sessionPhase === "running" ? "pointer" : "not-allowed", display: "flex", alignItems: "center", gap: "5px", fontWeight: "600", marginLeft: "auto", opacity: sessionPhase !== "running" ? 0.5 : 1 }}
+                >
+                  <Send size={13} /> Send
+                  <span style={{ opacity: 0.6, fontSize: "10px" }}>Ctrl+↵</span>
+                </button>
+                <input ref={fileInputRef} type="file" accept="image/*" style={{ display: "none" }} onChange={e => { const f = e.target.files?.[0]; if (f) handleFileSelect(f); e.target.value = "" }} />
+              </div>
             </div>
 
-            {/* AI Answer */}
-            <div style={{ background: "#0F1115", border: "1px solid rgba(34,197,94,0.25)", borderRadius: "12px", padding: "20px", minHeight: "180px" }}>
+            {/* ── Right: AI Answer ──────────────────────────────────────────── */}
+            <div style={{ background: "#0F1115", border: "1px solid rgba(34,197,94,0.25)", borderRadius: "12px", padding: "20px", minHeight: "180px", display: "flex", flexDirection: "column" }}>
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "14px" }}>
                 <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
                   {isStreamingAnswer && <div style={{ width: "8px", height: "8px", borderRadius: "50%", background: "#4ade80", boxShadow: "0 0 8px rgba(74,222,128,0.6)" }} />}
                   <span style={{ color: "#4ade80", fontSize: "11px", textTransform: "uppercase", letterSpacing: "0.1em", fontWeight: "600" }}>AI Answer</span>
                 </div>
-                {isStreamingAnswer && (
-                  <span style={{ background: "rgba(34,197,94,0.1)", border: "1px solid rgba(34,197,94,0.3)", borderRadius: "10px", padding: "2px 8px", fontSize: "11px", color: "#4ade80" }}>streaming...</span>
+                {isStreamingAnswer && <span style={{ background: "rgba(34,197,94,0.1)", border: "1px solid rgba(34,197,94,0.3)", borderRadius: "10px", padding: "2px 8px", fontSize: "11px", color: "#4ade80" }}>streaming...</span>}
+              </div>
+
+              {/* Scrollable answer area */}
+              <div ref={answerScrollRef} style={{ flex: 1, overflowY: "auto", fontSize: `${fontSize}px` }}>
+                {streamingAnswer ? (
+                  <StructuredAnswer text={streamingAnswer} isStreaming={isStreamingAnswer} fontSize={fontSize} />
+                ) : (
+                  <p style={{ color: "#64748B", fontSize: `${fontSize}px`, lineHeight: "1.7", margin: 0, fontStyle: "italic" }}>
+                    Speak a question or send a screenshot task — AI answer appears here.
+                  </p>
                 )}
               </div>
-              {streamingAnswer ? (
-                <StructuredAnswer text={streamingAnswer} isStreaming={isStreamingAnswer} />
-              ) : (
-                <p style={{ color: "#64748B", fontSize: "14px", lineHeight: "1.7", margin: 0, fontStyle: "italic" }}>
-                  Speak a question... AI answer appears here after 2s silence.
-                </p>
-              )}
             </div>
           </div>
 
-          {/* Bottom Row: Mic + Invisible Mode + Q&A History */}
+          {/* Bottom Row: Mic + Stealth + Q&A History */}
           <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "120px 1fr", gap: "16px" }}>
             {/* Mic Controls */}
             <div style={{ background: "#0F1115", border: "1px solid rgba(255,255,255,0.08)", borderRadius: "12px", padding: "16px", display: "flex", flexDirection: "column" as const, alignItems: "center", gap: "12px" }}>
-              <button onClick={handleToggleSession}
-                disabled={sessionPhase === "idle"}
-                style={{
-                  width: "60px", height: "60px", borderRadius: "50%",
-                  background: isListening ? "linear-gradient(to bottom, #EA580C, #F7931A)" : "rgba(255,255,255,0.08)",
-                  border: "none", cursor: sessionPhase === "idle" ? "not-allowed" : "pointer",
-                  display: "flex", alignItems: "center", justifyContent: "center",
-                  boxShadow: isListening ? "0 0 24px rgba(247,147,26,0.5)" : "none",
-                  opacity: sessionPhase === "idle" ? 0.4 : 1,
-                  transition: "all 0.3s"
-                }}>
+              <button onClick={handleToggleSession} disabled={sessionPhase === "idle"} style={{ width: "60px", height: "60px", borderRadius: "50%", background: isListening ? "linear-gradient(to bottom, #EA580C, #F7931A)" : "rgba(255,255,255,0.08)", border: "none", cursor: sessionPhase === "idle" ? "not-allowed" : "pointer", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: isListening ? "0 0 24px rgba(247,147,26,0.5)" : "none", opacity: sessionPhase === "idle" ? 0.4 : 1, transition: "all 0.3s" }}>
                 {isListening ? <Mic size={24} color="white" /> : <MicOff size={24} color="#94A3B8" />}
               </button>
-              {/* Electron desktop: toggle the always-on-top invisible overlay */}
               {eAPI()?.isElectron ? (
                 <>
-                  <button
-                    onClick={() => {
-                      eAPI()?.showOverlay()
-                      eAPI()?.hideMainWindow()
-                    }}
-                    style={{
-                      background: "rgba(34,197,94,0.12)",
-                      border: "1px solid rgba(34,197,94,0.4)",
-                      borderRadius: "8px", padding: "6px 10px",
-                      color: "#4ade80", fontSize: "11px", cursor: "pointer",
-                      display: "flex", alignItems: "center", gap: "4px",
-                      width: "100%", justifyContent: "center", fontWeight: "600",
-                    }}>
-                    <Ghost size={12} />
-                    Go Invisible
+                  <button onClick={() => { eAPI()?.showOverlay(); eAPI()?.hideMainWindow() }} style={{ background: "rgba(34,197,94,0.12)", border: "1px solid rgba(34,197,94,0.4)", borderRadius: "8px", padding: "6px 10px", color: "#4ade80", fontSize: "11px", cursor: "pointer", display: "flex", alignItems: "center", gap: "4px", width: "100%", justifyContent: "center", fontWeight: "600" }}>
+                    <Ghost size={12} /> Go Invisible
                   </button>
-                  <span style={{ fontSize: "9px", color: "#4ade80", textAlign: "center", letterSpacing: "0.05em" }}>
-                    🛡 OS-level invisible
-                  </span>
+                  <span style={{ fontSize: "9px", color: "#4ade80", textAlign: "center", letterSpacing: "0.05em" }}>🛡 OS-level invisible</span>
                 </>
               ) : (
                 <>
-                  <button
-                    onClick={handleStealthMode}
-                    title={pip.isSupported ? "Document PiP — invisible to screen recorders" : "Popup overlay — hide by sharing only this tab"}
-                    style={{
-                      background: pip.isOpen ? "rgba(34,197,94,0.12)" : "rgba(247,147,26,0.08)",
-                      border: `1px solid ${pip.isOpen ? "rgba(34,197,94,0.4)" : "rgba(247,147,26,0.25)"}`,
-                      borderRadius: "8px", padding: "6px 10px",
-                      color: pip.isOpen ? "#4ade80" : "#F7931A",
-                      fontSize: "11px", cursor: "pointer",
-                      display: "flex", alignItems: "center", gap: "4px",
-                      width: "100%", justifyContent: "center", fontWeight: "600",
-                    }}>
-                    <Ghost size={12} />
-                    {pip.isOpen ? "Close Stealth" : pip.isSupported ? "Stealth" : "Overlay"}
+                  <button onClick={handleStealthMode} style={{ background: pip.isOpen ? "rgba(34,197,94,0.12)" : "rgba(247,147,26,0.08)", border: `1px solid ${pip.isOpen ? "rgba(34,197,94,0.4)" : "rgba(247,147,26,0.25)"}`, borderRadius: "8px", padding: "6px 10px", color: pip.isOpen ? "#4ade80" : "#F7931A", fontSize: "11px", cursor: "pointer", display: "flex", alignItems: "center", gap: "4px", width: "100%", justifyContent: "center", fontWeight: "600" }}>
+                    <Ghost size={12} /> {pip.isOpen ? "Close Stealth" : pip.isSupported ? "Stealth" : "Overlay"}
                   </button>
-                  {pip.isSupported && (
-                    <span style={{ fontSize: "9px", color: "#4ade80", textAlign: "center", letterSpacing: "0.05em" }}>
-                      ● Screen-invisible
-                    </span>
-                  )}
+                  {pip.isSupported && <span style={{ fontSize: "9px", color: "#4ade80", textAlign: "center", letterSpacing: "0.05em" }}>● Screen-invisible</span>}
                 </>
               )}
             </div>
@@ -526,8 +596,8 @@ export default function InterviewAssistant({ userId, credits: creditsProp, showF
                 <div style={{ display: "flex", flexDirection: "column" as const, gap: "8px", maxHeight: "160px", overflowY: "auto" }}>
                   {qaHistory.slice(-5).reverse().map((item: any, i: number) => (
                     <div key={i} style={{ background: "rgba(255,255,255,0.03)", borderRadius: "8px", padding: "10px 12px" }}>
-                      <p style={{ color: "#60a5fa", fontSize: "12px", margin: "0 0 3px", fontWeight: "500" }}>Q: {item.question?.slice(0, 80)}...</p>
-                      <p style={{ color: "#94A3B8", fontSize: "12px", margin: 0 }}>A: {item.answer?.slice(0, 100)}...</p>
+                      <p style={{ color: "#60a5fa", fontSize: "12px", margin: "0 0 3px", fontWeight: "500" }}>Q: {item.question?.slice(0, 80)}{item.question?.length > 80 ? "..." : ""}</p>
+                      <p style={{ color: "#94A3B8", fontSize: "12px", margin: 0 }}>A: {item.answer?.slice(0, 100)}{item.answer?.length > 100 ? "..." : ""}</p>
                     </div>
                   ))}
                 </div>
@@ -537,17 +607,41 @@ export default function InterviewAssistant({ userId, credits: creditsProp, showF
             </div>
           </div>
 
-          {/* Document PiP portal — renders AI answers into the stealth window */}
+          {/* Keyboard Shortcuts Reference */}
+          <div style={{ background: "#0F1115", border: "1px solid rgba(255,255,255,0.06)", borderRadius: "12px", overflow: "hidden" }}>
+            <button
+              onClick={() => setShowShortcuts(s => !s)}
+              style={{ width: "100%", background: "transparent", border: "none", padding: "12px 16px", display: "flex", alignItems: "center", gap: "8px", cursor: "pointer", color: "#64748B", fontSize: "12px", textAlign: "left" }}
+            >
+              <Keyboard size={13} />
+              Keyboard Shortcuts
+              <span style={{ marginLeft: "auto", fontSize: "10px" }}>{showShortcuts ? "▲ Hide" : "▼ Show"}</span>
+            </button>
+            {showShortcuts && (
+              <div style={{ padding: "0 16px 14px", display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: "6px 24px" }}>
+                {[
+                  ["Ctrl+Enter", "Send manual question"],
+                  ["Ctrl+M", "Toggle microphone"],
+                  ["Ctrl+S", "Capture screenshot"],
+                  ["Ctrl+D", "Remove last screenshot"],
+                  ["Ctrl+R", "Clear question & screenshots"],
+                  ["Ctrl+E", "Focus question input"],
+                  ["Ctrl+=", "Increase font size"],
+                  ["Ctrl+-", "Decrease font size"],
+                  ["Ctrl+↑↓", "Scroll AI answer"],
+                ].map(([key, desc]) => (
+                  <div key={key} style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                    <span style={{ background: "rgba(255,255,255,0.08)", border: "1px solid rgba(255,255,255,0.12)", borderRadius: "5px", padding: "2px 7px", fontSize: "10px", color: "#F7931A", fontFamily: "monospace", whiteSpace: "nowrap" }}>{key}</span>
+                    <span style={{ color: "#64748B", fontSize: "12px" }}>{desc}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Document PiP portal */}
           {pip.isOpen && pip.container && createPortal(
-            <PiPContent
-              question={liveQuestion}
-              answer={streamingAnswer}
-              isStreaming={isStreamingAnswer}
-              qaHistory={qaHistory}
-              credits={displayCredits}
-              sessionActive={sessionPhase === "running"}
-              isDesiMode={isDesiMode}
-            />,
+            <PiPContent question={liveQuestion} answer={streamingAnswer} isStreaming={isStreamingAnswer} qaHistory={qaHistory} credits={displayCredits} sessionActive={sessionPhase === "running"} isDesiMode={isDesiMode} fontSize={fontSize} />,
             pip.container
           )}
         </>
@@ -556,18 +650,13 @@ export default function InterviewAssistant({ userId, credits: creditsProp, showF
   )
 }
 
-// ── Structured answer — splits on " | " into Key / Detail / Example panels ──
-function StructuredAnswer({ text, isStreaming }: { text: string; isStreaming: boolean }) {
+// ── Structured answer display ─────────────────────────────────────────────────
+function StructuredAnswer({ text, isStreaming, fontSize }: { text: string; isStreaming: boolean; fontSize: number }) {
   const parts = text.split(" | ")
   const [keyPoint, detail, example] = [parts[0] ?? "", parts[1] ?? "", parts[2] ?? ""]
 
-  // While streaming the first part hasn't been split yet — show as plain text
   if (parts.length === 1) {
-    return (
-      <p style={{ color: isStreaming ? "#4ade80" : "#fff", fontSize: "14px", lineHeight: "1.7", margin: 0 }}>
-        {text}
-      </p>
-    )
+    return <p style={{ color: isStreaming ? "#4ade80" : "#fff", fontSize: `${fontSize}px`, lineHeight: "1.7", margin: 0 }}>{text}</p>
   }
 
   const panels = [
@@ -581,21 +670,20 @@ function StructuredAnswer({ text, isStreaming }: { text: string; isStreaming: bo
       {panels.map(({ label, content, accent, bg }) => content ? (
         <div key={label} style={{ background: bg, borderLeft: `3px solid ${accent}`, borderRadius: "0 8px 8px 0", padding: "8px 12px" }}>
           <span style={{ fontSize: "9px", color: accent, fontWeight: "700", letterSpacing: "0.1em", display: "block", marginBottom: "3px" }}>{label}</span>
-          <p style={{ color: "#fff", fontSize: "13px", lineHeight: "1.65", margin: 0 }}>{content}</p>
+          <p style={{ color: "#fff", fontSize: `${fontSize}px`, lineHeight: "1.65", margin: 0 }}>{content}</p>
         </div>
       ) : null)}
     </div>
   )
 }
 
-// ── PiP content rendered inside the Document PiP window ─────────────────────
-function PiPContent({ question, answer, isStreaming, qaHistory, credits, sessionActive, isDesiMode }: {
+// ── PiP stealth window content ────────────────────────────────────────────────
+function PiPContent({ question, answer, isStreaming, qaHistory, credits, sessionActive, isDesiMode, fontSize }: {
   question: string; answer: string; isStreaming: boolean
-  qaHistory: any[]; credits: number; sessionActive: boolean; isDesiMode: boolean
+  qaHistory: any[]; credits: number; sessionActive: boolean; isDesiMode: boolean; fontSize: number
 }) {
   return (
     <div style={{ padding: "12px", minHeight: "100vh", background: "#0a0a0f", fontFamily: "system-ui, sans-serif", color: "#fff" }}>
-      {/* Header */}
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "10px", padding: "8px 12px", background: "#111827", borderRadius: "10px", border: "1px solid rgba(255,255,255,0.08)" }}>
         <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
           <span style={{ fontSize: "14px" }}>🤖</span>
@@ -611,15 +699,13 @@ function PiPContent({ question, answer, isStreaming, qaHistory, credits, session
         </div>
       </div>
 
-      {/* Question */}
       {question ? (
         <div style={{ background: "#111827", border: "1px solid #6c63ff44", borderLeft: "3px solid #6c63ff", borderRadius: "10px", padding: "10px 12px", marginBottom: "10px" }}>
           <div style={{ fontSize: "9px", color: "#8888aa", textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: "5px" }}>🎙️ Question</div>
-          <div style={{ fontSize: "13px", lineHeight: 1.5 }}>{question}</div>
+          <div style={{ fontSize: `${fontSize}px`, lineHeight: 1.5 }}>{question}</div>
         </div>
       ) : null}
 
-      {/* AI Answer */}
       <div style={{ background: "#111827", border: "1px solid #43e97b44", borderLeft: "3px solid #43e97b", borderRadius: "10px", padding: "12px", marginBottom: "10px", minHeight: "100px" }}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "8px" }}>
           <div style={{ fontSize: "9px", color: "#43e97b", textTransform: "uppercase", letterSpacing: "0.1em", fontWeight: 700 }}>🤖 AI Answer</div>
@@ -631,12 +717,11 @@ function PiPContent({ question, answer, isStreaming, qaHistory, credits, session
             </div>
           )}
         </div>
-        <div style={{ fontSize: "13px", lineHeight: 1.7, color: isStreaming ? "#43e97b" : "#f0f0f8" }}>
+        <div style={{ fontSize: `${fontSize}px`, lineHeight: 1.7, color: isStreaming ? "#43e97b" : "#f0f0f8" }}>
           {answer || <span style={{ color: "#8888aa", fontStyle: "italic" }}>Waiting for question… speak naturally.</span>}
         </div>
       </div>
 
-      {/* Recent Q&A */}
       {qaHistory?.length > 0 && (
         <div>
           <div style={{ fontSize: "9px", color: "#8888aa", textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: "6px" }}>Recent Q&A</div>
@@ -662,4 +747,3 @@ function PiPContent({ question, answer, isStreaming, qaHistory, credits, session
     </div>
   )
 }
-
