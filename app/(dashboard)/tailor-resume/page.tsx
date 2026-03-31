@@ -6,6 +6,7 @@ import { useCredits } from '@/hooks/useCredits'
 import { useToast } from '@/hooks/useToast'
 import type { ResumeData, ResumeTemplateId } from '@/lib/resumeTypes'
 import { exportResumeAsDoc } from '@/lib/resumeDocExport'
+import { downloadDocxOriginalFormat } from '@/lib/docxOriginalFormat'
 import ClassicTemplate      from '@/components/resume/templates/ClassicTemplate'
 import ModernTemplate       from '@/components/resume/templates/ModernTemplate'
 import MinimalTemplate      from '@/components/resume/templates/MinimalTemplate'
@@ -117,6 +118,8 @@ export default function TailorResumePage() {
 
   const [resumeText, setResumeText] = useState('')
   const [resumeFileName, setResumeFileName] = useState('')
+  const [fileBuffer, setFileBuffer] = useState<ArrayBuffer | null>(null)
+  const [fileType, setFileType] = useState<'docx' | 'pdf' | 'other' | null>(null)
   const [jobDescription, setJobDescription] = useState('')
   const [extracting, setExtracting] = useState(false)
   const [loading, setLoading] = useState(false)
@@ -125,10 +128,22 @@ export default function TailorResumePage() {
   const [selectedTemplate, setSelectedTemplate] = useState<ResumeTemplateId>('classic')
   const [parsing, setParsing] = useState(false)
   const [exportingPdf, setExportingPdf] = useState(false)
+  const [exportingOriginal, setExportingOriginal] = useState(false)
 
   const handleFileUpload = async (file: File) => {
     setExtracting(true)
     try {
+      // Store buffer for original-format export (DOCX only)
+      const ext = file.name.split('.').pop()?.toLowerCase()
+      const detectedType = ext === 'docx' || ext === 'doc' ? 'docx' : ext === 'pdf' ? 'pdf' : 'other'
+      setFileType(detectedType)
+      if (detectedType === 'docx') {
+        const buf = await file.arrayBuffer()
+        setFileBuffer(buf)
+      } else {
+        setFileBuffer(null)
+      }
+
       const fd = new FormData()
       fd.append('file', file)
       const r = await fetch('/api/resume/extract-text', { method: 'POST', body: fd })
@@ -218,6 +233,19 @@ export default function TailorResumePage() {
     addToast('Word document downloaded', 'success')
   }
 
+  const downloadOriginalFormat = async () => {
+    if (!fileBuffer || !result) return
+    setExportingOriginal(true)
+    try {
+      await downloadDocxOriginalFormat(fileBuffer, result, resumeFileName)
+      addToast('Original format resume downloaded', 'success')
+    } catch (e: any) {
+      addToast(e?.message || 'Failed to export original format', 'error')
+    } finally {
+      setExportingOriginal(false)
+    }
+  }
+
   const scoreDiff = result ? result.ats_score_after - result.ats_score_before : 0
 
   return (
@@ -248,7 +276,7 @@ export default function TailorResumePage() {
                 <span className="text-sm text-emerald-400 font-medium truncate">{resumeFileName}</span>
                 <button
                   type="button"
-                  onClick={() => { setResumeText(''); setResumeFileName('') }}
+                  onClick={() => { setResumeText(''); setResumeFileName(''); setFileBuffer(null); setFileType(null) }}
                   className="text-xs text-red-400 hover:text-red-300 ml-2 flex-shrink-0"
                 >
                   Remove
@@ -405,10 +433,44 @@ export default function TailorResumePage() {
             {/* Download section */}
             <div className="rounded-2xl border border-white/8 bg-[#111827] p-5 space-y-4">
               <div>
-                <p className="text-sm font-bold text-white">Download Full Resume</p>
+                <p className="text-sm font-bold text-white">Download Tailored Resume</p>
                 <p className="text-xs text-[#64748B] mt-0.5">
-                  AI will build your complete resume with all tailored content — pick a template and download.
+                  Download with your original formatting or choose one of our templates.
                 </p>
+              </div>
+
+              {/* Original format — DOCX only */}
+              {fileType === 'docx' && fileBuffer && result && (
+                <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/5 p-4 space-y-2">
+                  <p className="text-xs font-bold text-emerald-400 uppercase tracking-wider">Your Original Format</p>
+                  <p className="text-xs text-[#94A3B8]">
+                    Downloads your uploaded DOCX with tailored text replacing the original — layout, fonts, and design preserved.
+                  </p>
+                  <button
+                    type="button"
+                    onClick={downloadOriginalFormat}
+                    disabled={exportingOriginal}
+                    className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl font-bold text-white text-sm transition-all hover:opacity-90 disabled:opacity-50 bg-emerald-600 hover:bg-emerald-500"
+                  >
+                    <Download size={14} />
+                    {exportingOriginal ? 'Exporting...' : 'Download in Original Format (.doc)'}
+                  </button>
+                </div>
+              )}
+
+              {/* PDF note */}
+              {fileType === 'pdf' && (
+                <div className="flex items-start gap-2.5 rounded-xl border border-amber-500/20 bg-amber-500/6 px-4 py-3">
+                  <AlertCircle size={14} className="text-amber-400 flex-shrink-0 mt-0.5" />
+                  <p className="text-xs text-[#94A3B8]">
+                    PDF format cannot be preserved — PDFs are not editable documents.
+                    Use our templates below, or copy the tailored text and paste it into your original Word/Google Docs file.
+                  </p>
+                </div>
+              )}
+
+              <div>
+                <p className="text-xs font-semibold text-[#64748B] uppercase tracking-wider mb-2">Or use our templates</p>
               </div>
 
               {!parsedResume ? (
@@ -419,7 +481,7 @@ export default function TailorResumePage() {
                   className="w-full flex items-center justify-center gap-2 py-3 rounded-xl font-bold text-white text-sm transition-all hover:opacity-90 disabled:opacity-50 border border-[#F7931A]/40 bg-[#F7931A]/10 text-[#F7931A]"
                 >
                   <FileText size={15} />
-                  {parsing ? 'Building resume...' : 'Prepare Full Resume for Download'}
+                  {parsing ? 'Building resume...' : 'Prepare with Our Template'}
                 </button>
               ) : (
                 <div className="space-y-4">
