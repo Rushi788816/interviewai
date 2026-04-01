@@ -35,6 +35,13 @@ declare global {
       onManualQuestion?: (cb: (data: { text: string; images?: string[] }) => void) => void
       // Stop session signal from global shortcut or overlay stop button
       onStopSession?: (cb: () => void) => void
+      // Ctrl+Shift+E → send current question to AI
+      onSendQuestion?: (cb: () => void) => void
+      // Ctrl+Shift+S → screenshot captured, auto-send to AI immediately
+      onScreenshotAndSend?: (cb: (dataUrl: string) => void) => void
+      moveWindow?: (dir: "left" | "right") => void
+      minimizeWindow?: () => void
+      hideWindow?: () => void
     }
   }
 }
@@ -378,6 +385,34 @@ export default function InterviewAssistant({ userId, credits: creditsProp, showF
     api.onStopSession(() => { void handleStopRef.current() })
   }, [])
 
+  // Ctrl+Shift+E — send current question to AI
+  useEffect(() => {
+    const api = eAPI()
+    if (!api?.onSendQuestion) return
+    api.onSendQuestion(() => { void sendManualRef.current() })
+  }, [])
+
+  // Ctrl+Shift+S — screenshot captured in main process, auto-send to AI immediately
+  const sessionPhaseRef = useRef(sessionPhase)
+  useEffect(() => { sessionPhaseRef.current = sessionPhase }, [sessionPhase])
+  const fetchAIAnswerRef = useRef(fetchAIAnswer)
+  useEffect(() => { fetchAIAnswerRef.current = fetchAIAnswer }, [fetchAIAnswer])
+
+  useEffect(() => {
+    const api = eAPI()
+    if (!api?.onScreenshotAndSend) return
+    api.onScreenshotAndSend((dataUrl: string) => {
+      if (sessionPhaseRef.current !== "running") {
+        addToast("Start the session first, then use Ctrl+Shift+S", "error")
+        return
+      }
+      const qText = manualInputRef.current?.value?.trim() || "Analyze this screenshot and provide guidance on solving this"
+      setLiveQuestion(qText)
+      setManualQuestion("")
+      void fetchAIAnswerRef.current(qText, [dataUrl])
+    })
+  }, [addToast])
+
   const handleDesiToggle = () => {
     const next = !isDesiMode
     setIsDesiMode(next)
@@ -623,11 +658,11 @@ export default function InterviewAssistant({ userId, credits: creditsProp, showF
                 <button
                   onClick={() => void sendManualRef.current()}
                   disabled={sessionPhase !== "running" || (manualQuestion.trim() === "" && screenshots.length === 0)}
-                  title="Send (Ctrl+Enter)"
+                  title={eAPI()?.isElectron ? "Send (Ctrl+Shift+E)" : "Send (Ctrl+Enter)"}
                   style={{ background: manualQuestion.trim() || screenshots.length > 0 ? "linear-gradient(135deg, #F7931A, #EA580C)" : "rgba(255,255,255,0.05)", border: "none", borderRadius: "8px", padding: "7px 14px", color: manualQuestion.trim() || screenshots.length > 0 ? "white" : "#475569", fontSize: "12px", cursor: sessionPhase === "running" ? "pointer" : "not-allowed", display: "flex", alignItems: "center", gap: "5px", fontWeight: "600", marginLeft: "auto", opacity: sessionPhase !== "running" ? 0.5 : 1 }}
                 >
                   <Send size={13} /> Send
-                  <span style={{ opacity: 0.6, fontSize: "10px" }}>Ctrl+↵</span>
+                  <span style={{ opacity: 0.6, fontSize: "10px" }}>{eAPI()?.isElectron ? "Ctrl+Shift+E" : "Ctrl+↵"}</span>
                 </button>
                 <input ref={fileInputRef} type="file" accept="image/*" style={{ display: "none" }} onChange={e => { const f = e.target.files?.[0]; if (f) handleFileSelect(f); e.target.value = "" }} />
               </div>
@@ -664,12 +699,8 @@ export default function InterviewAssistant({ userId, credits: creditsProp, showF
                 {isListening ? <Mic size={24} color="white" /> : <MicOff size={24} color="#94A3B8" />}
               </button>
               {eAPI()?.isElectron ? (
-                <>
-                  <button onClick={() => { eAPI()?.showOverlay(); eAPI()?.hideMainWindow() }} style={{ background: "rgba(34,197,94,0.12)", border: "1px solid rgba(34,197,94,0.4)", borderRadius: "8px", padding: "6px 10px", color: "#4ade80", fontSize: "11px", cursor: "pointer", display: "flex", alignItems: "center", gap: "4px", width: "100%", justifyContent: "center", fontWeight: "600" }}>
-                    <Ghost size={12} /> Go Invisible
-                  </button>
-                  <span style={{ fontSize: "9px", color: "#4ade80", textAlign: "center", letterSpacing: "0.05em" }}>🛡 OS-level invisible</span>
-                </>
+                // Window is already OS-level invisible — no button needed
+                <span style={{ fontSize: "9px", color: "#4ade80", textAlign: "center", letterSpacing: "0.05em", lineHeight: "1.4" }}>🛡 Invisible to<br/>screen recorders</span>
               ) : (
                 <>
                   <button onClick={handleStealthMode} style={{ background: pip.isOpen ? "rgba(34,197,94,0.12)" : "rgba(247,147,26,0.08)", border: `1px solid ${pip.isOpen ? "rgba(34,197,94,0.4)" : "rgba(247,147,26,0.25)"}`, borderRadius: "8px", padding: "6px 10px", color: pip.isOpen ? "#4ade80" : "#F7931A", fontSize: "11px", cursor: "pointer", display: "flex", alignItems: "center", gap: "4px", width: "100%", justifyContent: "center", fontWeight: "600" }}>
