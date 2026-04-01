@@ -1,0 +1,62 @@
+name: Build Windows .exe
+
+on:
+  push:
+    branches: [main]       # auto-build on every push to main
+  workflow_dispatch:        # also allow manual trigger from GitHub Actions tab
+    inputs:
+      version:
+        description: 'Release tag to upload to (e.g. v1.0.0)'
+        required: true
+        default: 'v1.0.0'
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Create .env.local for build
+        shell: bash
+        run: |
+          cat > .env.local << 'EOF'
+          DATABASE_URL="${{ secrets.DATABASE_URL }}"
+          GROQ_API_KEY=${{ secrets.GROQ_API_KEY }}
+          NEXTAUTH_SECRET="${{ secrets.NEXTAUTH_SECRET }}"
+          NEXTAUTH_URL="http://localhost:3000"
+          EOF
+
+      - name: Build Next.js (standalone)
+        run: npx cross-env ELECTRON_BUILD=1 next build
+
+      - name: Build Windows .exe
+        run: npx electron-builder build --win --publish never
+
+      - name: Find built .exe
+        id: find_exe
+        shell: bash
+        run: |
+          EXE=$(ls dist-electron/*.exe | grep -v "Uninstall" | head -1)
+          echo "path=$EXE" >> $GITHUB_OUTPUT
+          echo "name=$(basename "$EXE")" >> $GITHUB_OUTPUT
+
+      - name: Upload .exe to GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.event.inputs.version || 'v1.0.0' }}
+          files: ${{ steps.find_exe.outputs.path }}
+          name: InterviewAI ${{ github.event.inputs.version || 'v1.0.0' }}
+          fail_on_unmatched_files: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
