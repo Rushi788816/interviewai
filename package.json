@@ -118,7 +118,8 @@
       "allowToChangeInstallationDirectory": true,
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true,
-      "shortcutName": "InterviewAI"
+      "shortcutName": "InterviewAI",
+      "artifactName": "InterviewAI-Setup.exe"
     },
     "publish": null,
     "toolsets": {
