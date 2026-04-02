@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain, screen, globalShortcut, shell, Menu, session, desktopCapturer } = require('electron')
+const { app, BrowserWindow, ipcMain, screen, globalShortcut, shell, Menu, Tray, nativeImage, session, desktopCapturer } = require('electron')
 const path = require('path')
 const { spawn } = require('child_process')
 const http = require('http')
@@ -7,6 +7,7 @@ const fs = require('fs')
 const isDev = !app.isPackaged
 
 let mainWindow = null
+let tray = null
 let nextServerProcess = null
 let speechRecProcess = null
 let isMicActive = false
@@ -145,7 +146,7 @@ function createMainWindow(url) {
     resizable: true,
     minWidth: 380,
     minHeight: 500,
-    skipTaskbar: false,
+    skipTaskbar: true,   // hidden from taskbar — only accessible via tray + Ctrl+Shift+H
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
       nodeIntegration: false,
@@ -186,7 +187,17 @@ function createMainWindow(url) {
     shell.openExternal(u)
     return { action: 'deny' }
   })
-  mainWindow.on('closed', () => { mainWindow = null; app.quit() })
+  // Intercept close (Alt+F4, taskbar close) — hide instead of quit
+  // User can only truly quit via the system tray "Quit" option
+  mainWindow.on('close', (e) => {
+    e.preventDefault()
+    mainWindow.hide()
+    tray?.displayBalloon({
+      title: 'InterviewAI is still running',
+      content: 'Right-click the tray icon to quit, or press Ctrl+Shift+H to show.',
+      iconType: 'info',
+    })
+  })
   if (!isDev) Menu.setApplicationMenu(null)
 }
 
@@ -306,6 +317,67 @@ function stopSpeechRec() {
   mainWindow?.webContents.send('mic:state', { active: false })
 }
 
+// ─── System Tray ─────────────────────────────────────────────────────────────
+// Tray is the only way to show the window after it is hidden, or to quit the app.
+function createTray() {
+  const iconFile = process.platform === 'win32' ? 'icon.ico' : 'icon.png'
+  const iconPath = isDev
+    ? path.join(__dirname, '../public', iconFile)
+    : path.join(process.resourcesPath, 'app/.next/standalone/public', iconFile)
+
+  try {
+    let icon
+    try {
+      icon = nativeImage.createFromPath(iconPath)
+      if (icon.isEmpty()) throw new Error('empty icon')
+    } catch {
+      // Fallback: tiny 1×1 transparent PNG so tray still appears
+      icon = nativeImage.createEmpty()
+    }
+
+    tray = new Tray(icon.resize({ width: 16, height: 16 }))
+    tray.setToolTip('InterviewAI  —  Ctrl+Shift+H to show/hide')
+
+    const buildMenu = () => Menu.buildFromTemplate([
+      {
+        label: mainWindow?.isVisible() ? 'Hide window' : 'Show window',
+        click: () => {
+          if (mainWindow?.isVisible()) { mainWindow.hide() }
+          else { mainWindow?.show(); mainWindow?.focus() }
+          // Rebuild so label reflects current state
+          tray.setContextMenu(buildMenu())
+        },
+      },
+      { type: 'separator' },
+      {
+        label: 'Quit InterviewAI',
+        click: () => {
+          // Allow the close event to proceed normally then quit
+          mainWindow?.removeAllListeners('close')
+          app.quit()
+        },
+      },
+    ])
+
+    tray.setContextMenu(buildMenu())
+
+    // Left-click tray icon → toggle window visibility
+    tray.on('click', () => {
+      if (mainWindow?.isVisible()) {
+        mainWindow.hide()
+      } else {
+        mainWindow?.show()
+        mainWindow?.focus()
+      }
+      tray.setContextMenu(buildMenu())
+    })
+
+    console.log('System tray created')
+  } catch (e) {
+    console.error('Failed to create system tray:', e.message)
+  }
+}
+
 // ─── IPC Handlers ─────────────────────────────────────────────────────────────
 
 // Overlay lifecycle — no-ops in new design (main window IS the overlay)
@@ -331,8 +403,19 @@ ipcMain.on('main:show',      () => { mainWindow?.show(); mainWindow?.focus() })
 
 // Window controls (called from drag handle buttons in UI)
 ipcMain.on('window:minimize', () => mainWindow?.minimize())
-ipcMain.on('window:hide',     () => mainWindow?.hide())
-ipcMain.on('window:close',    () => { mainWindow?.destroy(); app.quit() })
+ipcMain.on('window:hide',     () => {
+  mainWindow?.hide()
+  tray?.displayBalloon({
+    title: 'InterviewAI hidden',
+    content: 'Press Ctrl+Shift+H or click the tray icon to bring it back.',
+    iconType: 'info',
+  })
+})
+ipcMain.on('window:close', () => {
+  // Actual quit — remove the 'close' interceptor first
+  mainWindow?.removeAllListeners('close')
+  app.quit()
+})
 
 // Window positioning
 ipcMain.on('overlay:move-window', (_e, dir) => moveWindow(dir))
@@ -414,13 +497,19 @@ app.whenReady().then(async () => {
   }
 
   createMainWindow(url)
+  createTray()
 
   // ── Global shortcuts — ALL Ctrl+Shift+{key} ───────────────────────────────
 
   // Toggle window visibility
   globalShortcut.register('CommandOrControl+Shift+H', () => {
     if (!mainWindow) return
-    mainWindow.isVisible() ? mainWindow.hide() : mainWindow.show()
+    if (mainWindow.isVisible()) {
+      mainWindow.hide()
+    } else {
+      mainWindow.show()
+      mainWindow.focus()
+    }
   })
 
   // Mic toggle
@@ -481,5 +570,6 @@ app.on('will-quit', () => {
   if (nextServerProcess) { nextServerProcess.kill(); nextServerProcess = null }
   stopSpeechRec()
 })
-app.on('window-all-closed', () => { if (process.platform !== 'darwin') app.quit() })
+// Don't quit when all windows are closed — the tray keeps the app alive
+app.on('window-all-closed', () => { /* stay in tray */ })
 app.on('activate', () => { if (!mainWindow) createMainWindow(`http://localhost:${PORT}`) })
