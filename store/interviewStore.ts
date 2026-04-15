@@ -15,6 +15,7 @@ interface InterviewState {
   creditsUsed: number
   duration: number
   sessionContext: SessionContext | null
+  overlayOpacity: number
 
   startSession: (interviewType: string) => void
   endSession: () => void
@@ -24,6 +25,7 @@ interface InterviewState {
   tickDuration: () => void
   setSessionContext: (ctx: SessionContext | null) => void
   clearSessionContext: () => void
+  setOverlayOpacity: (opacity: number) => void
 }
 
 export const useInterviewStore = create<InterviewState>()(
@@ -37,6 +39,7 @@ export const useInterviewStore = create<InterviewState>()(
       creditsUsed: 0,
       duration: 0,
       sessionContext: null,
+      overlayOpacity: 95,
 
       startSession: (interviewType) => {
         const id = `session_${Date.now()}`
@@ -70,6 +73,7 @@ export const useInterviewStore = create<InterviewState>()(
       setSessionContext: (ctx) => set({ sessionContext: ctx }),
 
       clearSessionContext: () => set({ sessionContext: null }),
+      setOverlayOpacity: (opacity: number) => set({ overlayOpacity: opacity }),
 
       reset: () =>
         set({
@@ -81,6 +85,7 @@ export const useInterviewStore = create<InterviewState>()(
           creditsUsed: 0,
           duration: 0,
           sessionContext: null,
+          overlayOpacity: 95,
         }),
 
       tickDuration: () => {
@@ -93,13 +98,8 @@ export const useInterviewStore = create<InterviewState>()(
     {
       name: 'interview-storage',
       partialize: (state) => ({
-        sessionId: state.sessionId,
-        qaHistory: state.qaHistory,
-        currentQuestion: state.currentQuestion,
-        currentAnswer: state.currentAnswer,
-        isActive: state.isActive,
-        creditsUsed: state.creditsUsed,
-        duration: state.duration,
+        // Only persist UI preferences — NOT session/user-specific data
+        overlayOpacity: state.overlayOpacity,
       }),
     }
   )

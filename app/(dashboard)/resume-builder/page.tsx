@@ -128,7 +128,7 @@ export default function ResumeBuilderPage() {
   if (status !== 'authenticated') {
     return (
       <div className="flex items-center justify-center min-h-[40vh]">
-        <div className="w-7 h-7 border-2 border-[#F7931A] border-t-transparent rounded-full animate-spin" />
+        <div className="w-7 h-7 border-2 border-[#6366F1] border-t-transparent rounded-full animate-spin" />
       </div>
     )
   }
@@ -149,10 +149,10 @@ export default function ResumeBuilderPage() {
             </span>
           )}
           {/* Upload existing resume */}
-          <label className={`inline-flex items-center gap-2 px-4 py-2 rounded-xl border text-sm font-semibold cursor-pointer transition-all ${importing ? 'opacity-60 cursor-not-allowed border-[#F7931A]/30 text-[#F7931A]' : 'border-[#F7931A]/40 text-[#F7931A] hover:bg-[#F7931A]/10'}`}>
+          <label className={`inline-flex items-center gap-2 px-4 py-2 rounded-xl border text-sm font-semibold cursor-pointer transition-all ${importing ? 'opacity-60 cursor-not-allowed border-[#6366F1]/30 text-[#6366F1]' : 'border-[#6366F1]/40 text-[#6366F1] hover:bg-[#6366F1]/10'}`}>
             {importing ? (
               <>
-                <span className="w-3.5 h-3.5 border-2 border-[#F7931A] border-t-transparent rounded-full animate-spin" />
+                <span className="w-3.5 h-3.5 border-2 border-[#6366F1] border-t-transparent rounded-full animate-spin" />
                 Parsing...
               </>
             ) : (
@@ -173,7 +173,7 @@ export default function ResumeBuilderPage() {
           <button
             type="button"
             onClick={() => setShowPreview(!showPreview)}
-            className="lg:hidden inline-flex items-center gap-2 px-4 py-2 rounded-xl border border-white/10 text-[#94A3B8] text-sm hover:text-white hover:border-[#F7931A]/30 transition-all"
+            className="lg:hidden inline-flex items-center gap-2 px-4 py-2 rounded-xl border border-white/10 text-[#94A3B8] text-sm hover:text-white hover:border-[#6366F1]/30 transition-all"
           >
             {showPreview ? <EyeOff size={15} /> : <Eye size={15} />}
             {showPreview ? 'Edit' : 'Preview'}

@@ -26,11 +26,8 @@ export default function Navbar() {
         {/* Logo */}
         <Link href="/" className="flex items-center gap-2 flex-shrink-0" onClick={() => setMobileOpen(false)}>
           <span className="text-2xl" aria-hidden>🐦</span>
-          <span
-            className="text-xl font-bold tracking-tight bg-clip-text text-transparent"
-            style={{ backgroundImage: 'linear-gradient(90deg, #F7931A, #FF6B2B)' }}
-          >
-            InterviewAI
+          <span className="text-xl font-bold tracking-tight text-white">
+            Interview<span style={{ color: '#6366F1' }}>AI</span>
           </span>
         </Link>
 
@@ -58,7 +55,7 @@ export default function Navbar() {
           <Link
             href="/signup"
             className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-semibold text-white transition-all hover:opacity-90 hover:scale-[1.02]"
-            style={{ backgroundImage: 'linear-gradient(135deg, #F7931A, #FF6B2B)' }}
+            style={{ backgroundImage: 'linear-gradient(135deg, #6366F1, #8B5CF6)' }}
           >
             Get Started →
           </Link>
@@ -103,7 +100,7 @@ export default function Navbar() {
               <Link
                 href="/signup"
                 className="block px-4 py-3 rounded-xl text-sm font-semibold text-white text-center"
-                style={{ background: 'linear-gradient(135deg, #F7931A, #FF6B2B)' }}
+                style={{ background: 'linear-gradient(135deg, #6366F1, #8B5CF6)' }}
                 onClick={() => setMobileOpen(false)}
               >
                 Get Started Free →

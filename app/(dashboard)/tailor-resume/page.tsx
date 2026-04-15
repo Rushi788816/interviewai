@@ -255,7 +255,7 @@ export default function TailorResumePage() {
         {/* Header */}
         <div>
           <h1 className="text-xl sm:text-2xl font-bold text-white flex items-center gap-2">
-            <Wand2 size={22} className="text-[#F7931A]" />
+            <Wand2 size={22} className="text-[#6366F1]" />
             Tailor Resume to Job
           </h1>
           <p className="text-[#64748B] text-sm mt-1">
@@ -303,7 +303,7 @@ export default function TailorResumePage() {
                   onChange={e => setResumeText(e.target.value)}
                   placeholder="Paste your resume text here..."
                   rows={4}
-                  className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-2.5 text-sm text-white placeholder:text-[#475569] focus:border-[#F7931A]/50 focus:outline-none resize-none transition-colors"
+                  className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-2.5 text-sm text-white placeholder:text-[#475569] focus:border-[#6366F1]/50 focus:outline-none resize-none transition-colors"
                 />
               </>
             )}
@@ -319,7 +319,7 @@ export default function TailorResumePage() {
               onChange={e => setJobDescription(e.target.value.slice(0, 2000))}
               placeholder="Paste the full job description here..."
               rows={5}
-              className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-2.5 text-sm text-white placeholder:text-[#475569] focus:border-[#F7931A]/50 focus:outline-none resize-none transition-colors"
+              className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-2.5 text-sm text-white placeholder:text-[#475569] focus:border-[#6366F1]/50 focus:outline-none resize-none transition-colors"
             />
             <p className="text-right text-[10px] text-[#374151] mt-1">{jobDescription.length}/2000</p>
           </div>
@@ -330,7 +330,7 @@ export default function TailorResumePage() {
             onClick={handleTailor}
             disabled={loading || !resumeText.trim() || !jobDescription.trim() || balance < 5}
             className="w-full flex items-center justify-center gap-2 py-3 rounded-xl font-bold text-white text-sm transition-all hover:opacity-90 disabled:opacity-50"
-            style={{ background: 'linear-gradient(135deg, #F7931A, #FF6B2B)' }}
+            style={{ background: 'linear-gradient(135deg, #6366F1, #8B5CF6)' }}
           >
             <Sparkles size={15} />
             {loading ? 'Tailoring...' : 'Tailor My Resume (5 credits)'}
@@ -341,7 +341,7 @@ export default function TailorResumePage() {
         {/* Loading state */}
         {loading && (
           <div className="rounded-2xl border border-white/8 bg-[#111827] p-10 flex flex-col items-center gap-3">
-            <div className="w-8 h-8 border-2 border-[#F7931A] border-t-transparent rounded-full animate-spin" />
+            <div className="w-8 h-8 border-2 border-[#6366F1] border-t-transparent rounded-full animate-spin" />
             <p className="text-sm text-[#64748B]">Analyzing JD and tailoring your resume...</p>
           </div>
         )}
@@ -351,16 +351,16 @@ export default function TailorResumePage() {
           <div className="space-y-4">
 
             {/* ATS Score banner */}
-            <div className="rounded-2xl border border-[#F7931A]/20 bg-[#F7931A]/5 p-4 flex flex-col sm:flex-row sm:items-center gap-4">
+            <div className="rounded-2xl border border-[#6366F1]/20 bg-[#6366F1]/5 p-4 flex flex-col sm:flex-row sm:items-center gap-4">
               <div className="flex items-center gap-3 flex-1">
-                <div className="w-10 h-10 rounded-xl bg-[#F7931A]/15 border border-[#F7931A]/30 flex items-center justify-center flex-shrink-0">
-                  <TrendingUp size={18} className="text-[#F7931A]" />
+                <div className="w-10 h-10 rounded-xl bg-[#6366F1]/15 border border-[#6366F1]/30 flex items-center justify-center flex-shrink-0">
+                  <TrendingUp size={18} className="text-[#6366F1]" />
                 </div>
                 <div>
                   <p className="text-xs text-[#94A3B8] mb-0.5">Estimated ATS Score</p>
                   <div className="flex items-center gap-2">
                     <span className="text-lg font-bold text-[#64748B] line-through">{result.ats_score_before}</span>
-                    <span className="text-[#F7931A]">→</span>
+                    <span className="text-[#6366F1]">→</span>
                     <span className="text-2xl font-bold text-white">{result.ats_score_after}</span>
                     <span className="px-2 py-0.5 rounded-full text-xs font-bold bg-emerald-500/15 text-emerald-400 border border-emerald-500/25">
                       +{scoreDiff} pts
@@ -386,7 +386,7 @@ export default function TailorResumePage() {
               <div className="flex flex-wrap items-center gap-2">
                 <span className="text-xs text-[#64748B]">Keywords added:</span>
                 {result.skills.added.map(k => (
-                  <span key={k} className="px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-[#F7931A]/10 border border-[#F7931A]/25 text-[#F7931A]">{k}</span>
+                  <span key={k} className="px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-[#6366F1]/10 border border-[#6366F1]/25 text-[#6366F1]">{k}</span>
                 ))}
               </div>
             )}
@@ -478,7 +478,7 @@ export default function TailorResumePage() {
                   type="button"
                   onClick={parseForDownload}
                   disabled={parsing}
-                  className="w-full flex items-center justify-center gap-2 py-3 rounded-xl font-bold text-white text-sm transition-all hover:opacity-90 disabled:opacity-50 border border-[#F7931A]/40 bg-[#F7931A]/10 text-[#F7931A]"
+                  className="w-full flex items-center justify-center gap-2 py-3 rounded-xl font-bold text-white text-sm transition-all hover:opacity-90 disabled:opacity-50 border border-[#6366F1]/40 bg-[#6366F1]/10 text-[#6366F1]"
                 >
                   <FileText size={15} />
                   {parsing ? 'Building resume...' : 'Prepare with Our Template'}
@@ -496,7 +496,7 @@ export default function TailorResumePage() {
                           onClick={() => setSelectedTemplate(t.id)}
                           className={`py-1.5 px-1 rounded-lg border text-[10px] font-semibold transition-all ${
                             selectedTemplate === t.id
-                              ? 'border-[#F7931A]/50 bg-[#F7931A]/10 text-[#F7931A]'
+                              ? 'border-[#6366F1]/50 bg-[#6366F1]/10 text-[#6366F1]'
                               : 'border-white/8 bg-white/3 text-[#64748B] hover:border-white/15 hover:text-white'
                           }`}
                         >
@@ -513,7 +513,7 @@ export default function TailorResumePage() {
                       onClick={downloadPdf}
                       disabled={exportingPdf}
                       className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl font-bold text-white text-sm transition-all hover:opacity-90 disabled:opacity-50"
-                      style={{ background: 'linear-gradient(135deg, #F7931A, #FF6B2B)' }}
+                      style={{ background: 'linear-gradient(135deg, #6366F1, #8B5CF6)' }}
                     >
                       <Download size={15} />
                       {exportingPdf ? 'Exporting...' : 'Download PDF'}

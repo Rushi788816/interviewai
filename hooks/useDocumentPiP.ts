@@ -53,7 +53,7 @@ export function useDocumentPiP(onClose?: () => void): PiPState {
           }
           ::-webkit-scrollbar { width: 4px; }
           ::-webkit-scrollbar-track { background: transparent; }
-          ::-webkit-scrollbar-thumb { background: #F7931A66; border-radius: 4px; }
+          ::-webkit-scrollbar-thumb { background: #6366F166; border-radius: 4px; }
         `
         pip.document.head.appendChild(style)
 

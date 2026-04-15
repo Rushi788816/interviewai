@@ -6,7 +6,7 @@ export default function DesiModeSection() {
           Sound like{' '}
           <span
             className="bg-clip-text text-transparent"
-            style={{ backgroundImage: 'linear-gradient(90deg, #F7931A, #FF6B2B)' }}
+            style={{ backgroundImage: 'linear-gradient(135deg, #6366F1, #8B5CF6)' }}
           >
             you
           </span>

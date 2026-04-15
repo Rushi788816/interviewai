@@ -102,22 +102,41 @@
     #tb-controls {
       display: flex;
       align-items: center;
-      gap: 4px;
+      gap: 6px;
       -webkit-app-region: no-drag;
       flex-shrink: 0;
     }
-    #opacity-wrap { display: flex; align-items: center; gap: 3px; }
-    #opacity-icon { font-size: 9px; opacity: 0.5; }
+    #opacity-wrap {
+      display: flex; 
+      align-items: center; 
+      gap: 4px; 
+      background: rgba(0,0,0,0.4);
+      padding: 4px 8px;
+      border-radius: 12px;
+      border: 1px solid rgba(255,255,255,0.08);
+    }
+    #opacity-icon { font-size: 10px; opacity: 0.8; }
+    #opacity-value {
+      font-size: 10px;
+      font-weight: 600;
+      min-width: 24px;
+      text-align: center;
+      color: #F7931A;
+    }
     #opacity-slider {
       -webkit-appearance: none; appearance: none;
-      width: 48px; height: 3px; border-radius: 2px;
+      width: 70px; height: 4px; border-radius: 2px;
       background: rgba(255,255,255,0.15); outline: none; cursor: pointer;
     }
     #opacity-slider::-webkit-slider-thumb {
       -webkit-appearance: none;
-      width: 10px; height: 10px; border-radius: 50%;
-      background: #F7931A; cursor: pointer;
-      box-shadow: 0 0 5px rgba(247,147,26,0.5);
+      width: 14px; height: 14px; border-radius: 50%;
+      background: linear-gradient(45deg, #F7931A, #FF6B2B);
+      cursor: pointer;
+      box-shadow: 0 2px 8px rgba(247,147,26,0.4);
+    }
+    #opacity-slider:hover {
+      background: rgba(255,255,255,0.25);
     }
     /* Font size controls */
     #font-controls {
@@ -614,9 +633,10 @@
           <button class="ctrl-btn" id="font-up-btn" title="Increase font (Ctrl+=)">A+</button>
         </div>
         <!-- Opacity -->
-        <div id="opacity-wrap" title="Transparency">
-          <span id="opacity-icon">◑</span>
-          <input type="range" id="opacity-slider" min="15" max="100" value="95" />
+        <div id="opacity-wrap" title="Adjust invisible screen opacity (15-100%)">
+          <span id="opacity-icon">◉</span>
+          <span id="opacity-value">95%</span>
+          <input type="range" id="opacity-slider" min="15" max="100" value="95" step="5" />
         </div>
         <button class="ctrl-btn" id="clear-btn" title="Clear answer (Ctrl+Shift+R)">⌫</button>
         <button class="ctrl-btn" id="minimize-btn" title="Hide (Ctrl+Shift+H)">─</button>
@@ -994,8 +1014,12 @@
     }
 
     // ── Opacity ───────────────────────────────────────────────────────────────
+    let currentOpacity = 95
     opacitySlider.addEventListener('input', () => {
-      api?.setOpacity(parseInt(opacitySlider.value) / 100)
+      const val = parseInt(opacitySlider.value)
+      currentOpacity = val
+      opacityValue.textContent = val + '%'
+      api?.setOpacity(val / 100)
     })
 
     // ── Button handlers ───────────────────────────────────────────────────────

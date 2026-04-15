@@ -1,8 +1,8 @@
 const stats = [
-  { value: '10000+', label: 'Interviews' },
-  { value: '5000+', label: 'Candidates' },
-  { value: '52+', label: 'Languages' },
-  { value: '55%', label: 'Cheaper' },
+  { value: '52+', label: 'Languages Supported' },
+  { value: '30', label: 'Free Credits on Signup' },
+  { value: '3', label: 'Interview Modes' },
+  { value: '100%', label: 'Private & Secure' },
 ]
 
 export default function StatsRow() {
@@ -21,7 +21,7 @@ export default function StatsRow() {
               <div key={label}>
                 <p
                   className="text-3xl md:text-4xl font-bold bg-clip-text text-transparent mb-2"
-                  style={{ backgroundImage: 'linear-gradient(90deg, #F7931A, #FF6B2B)' }}
+                  style={{ backgroundImage: 'linear-gradient(135deg, #6366F1, #8B5CF6)' }}
                 >
                   {value}
                 </p>

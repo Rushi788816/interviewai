@@ -17,7 +17,7 @@ export default function FeaturesGrid() {
             Everything you need to{' '}
             <span
               className="bg-clip-text text-transparent"
-              style={{ backgroundImage: 'linear-gradient(90deg, #F7931A, #FF6B2B)' }}
+              style={{ backgroundImage: 'linear-gradient(135deg, #6366F1, #8B5CF6)' }}
             >
               answer with confidence
             </span>
@@ -31,11 +31,11 @@ export default function FeaturesGrid() {
           {/* Hero card — Invisible Mode */}
           <div
             id="invisible-mode"
-            className="rounded-2xl border p-6 transition-all hover:shadow-[0_0_24px_rgba(247,147,26,0.12)] hover:border-[#F7931A]/30 sm:col-span-2 lg:col-span-1"
+            className="rounded-2xl border p-6 transition-all hover:shadow-[0_0_24px_rgba(99,102,241,0.12)] hover:border-[#6366F1]/30 sm:col-span-2 lg:col-span-1"
             style={{
               backgroundColor: '#111827',
-              borderColor: 'rgba(247,147,26,0.18)',
-              boxShadow: '0 0 0 1px rgba(247,147,26,0.08)',
+              borderColor: 'rgba(99,102,241,0.18)',
+              boxShadow: '0 0 0 1px rgba(99,102,241,0.08)',
             }}
           >
             <div className="text-3xl mb-3" aria-hidden>👻</div>
@@ -46,7 +46,7 @@ export default function FeaturesGrid() {
             <Link
               href="/interview"
               className="text-sm font-semibold transition-colors"
-              style={{ color: '#F7931A' }}
+              style={{ color: '#6366F1' }}
             >
               How it works →
             </Link>

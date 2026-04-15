@@ -48,7 +48,7 @@ export async function POST(req: NextRequest) {
         text: `Name: ${safeName}\nEmail: ${safeEmail}\nSubject: ${safeSubject}\n\n${safeMessage}`,
         html: `
           <div style="font-family:sans-serif;max-width:560px">
-            <h2 style="color:#F7931A">New Contact Form Submission</h2>
+            <h2 style="color:#6366F1">New Contact Form Submission</h2>
             <table style="width:100%;border-collapse:collapse">
               <tr><td style="padding:4px 0;color:#888">Name</td><td style="padding:4px 8px"><strong>${safeName}</strong></td></tr>
               <tr><td style="padding:4px 0;color:#888">Email</td><td style="padding:4px 8px"><a href="mailto:${safeEmail}">${safeEmail}</a></td></tr>

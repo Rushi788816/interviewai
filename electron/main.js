@@ -1,7 +1,9 @@
+// win.webContents.openDevTools();
 const { app, BrowserWindow, ipcMain, screen, globalShortcut, shell, Menu, Tray, nativeImage, session, desktopCapturer } = require('electron')
-const path = require('path')
+// const Store = require('./store.js')  // DISABLED - ESM conflict
 const { spawn } = require('child_process')
 const http = require('http')
+const path = require('path')
 const fs = require('fs')
 
 const isDev = !app.isPackaged
@@ -141,12 +143,14 @@ function createMainWindow(url) {
     height: winH,
     x: winX,
     y: winY,
-    frame: false,                 // no title bar — app renders its own drag handle
-    backgroundColor: '#0A0F1E',
+    frame: false,
+    transparent: true,
+    hasShadow: false,
+    backgroundColor: '#00000000',
     resizable: true,
     minWidth: 380,
     minHeight: 500,
-    skipTaskbar: true,   // hidden from taskbar — only accessible via tray + Ctrl+Shift+H
+    skipTaskbar: true,
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
       nodeIntegration: false,
@@ -163,6 +167,19 @@ function createMainWindow(url) {
   mainWindow.setAlwaysOnTop(true, 'screen-saver', 1)
   mainWindow.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true })
 
+  // Windows WDA_EXCLUDEFROMCAPTURE - ultimate stealth (Windows 10+)
+  if (process.platform === 'win32') {
+    try {
+      const hwnd = mainWindow.getNativeWindowHandle()
+      const user32 = require('ffi-napi').Library('user32', {
+        'SetWindowDisplayAffinity': ['bool', ['int', 'uint']]
+      })
+      user32.SetWindowDisplayAffinity(hwnd.readInt16LE(), 0x00000100) // WDA_EXCLUDEFROMCAPTURE
+    } catch (e) {
+      console.warn('[STEALTH] WDA_EXCLUDEFROMCAPTURE failed:', e.message)
+    }
+  }
+
   // Always load /interview — Next.js will redirect to /login if not authenticated
   // The login page receives callbackUrl=/interview so after login it returns here
   const startUrl = isDev
@@ -172,8 +189,20 @@ function createMainWindow(url) {
   mainWindow.loadURL(startUrl)
 
   mainWindow.once('ready-to-show', () => {
+    // Apply saved opacity
+    const savedOpacity = settingsData.opacity || 0.95
+    mainWindow.setOpacity(savedOpacity)
     mainWindow.show()
     if (isDev) mainWindow.webContents.openDevTools({ mode: 'detach' })
+    // Send saved settings to renderer after page loads
+    mainWindow.webContents.once('did-finish-load', () => {
+      mainWindow?.webContents.send('settings:init', {
+        opacity: savedOpacity,
+        fontSize: settingsData.fontSize || 13,
+        sttProvider: settingsData.sttProvider || 'windows',
+        model: settingsData.model || 'llama-3.3-70b-versatile',
+      })
+    })
   })
 
   mainWindow.webContents.on('did-fail-load', (_e, errCode, errDesc, validatedUrl) => {
@@ -350,6 +379,15 @@ function createTray() {
       },
       { type: 'separator' },
       {
+        label: 'Sign Out',
+        click: () => {
+          mainWindow?.show()
+          mainWindow?.focus()
+          mainWindow?.webContents.send('auth:signout')
+        },
+      },
+      { type: 'separator' },
+      {
         label: 'Quit InterviewAI',
         click: () => {
           // Allow the close event to proceed normally then quit
@@ -378,61 +416,185 @@ function createTray() {
   }
 }
 
-// ─── IPC Handlers ─────────────────────────────────────────────────────────────
+// ─── Simple JSON Store (electron-store ESM conflict workaround) ──────────────
+const userDataPath = app.getPath('userData')
+const settingsPath = path.join(userDataPath, 'stealth-settings.json')
 
-// Overlay lifecycle — no-ops in new design (main window IS the overlay)
+let settingsData = {}
+function loadSettings() {
+  try {
+    if (fs.existsSync(settingsPath)) {
+      settingsData = JSON.parse(fs.readFileSync(settingsPath, 'utf8'))
+    }
+  } catch {}
+}
+
+function saveSettings() {
+  try {
+    fs.writeFileSync(settingsPath, JSON.stringify(settingsData, null, 2))
+  } catch {}
+}
+
+loadSettings()
+
+// IPC
+ipcMain.handle('settings:get', () => settingsData)
+ipcMain.handle('settings:set', async (_e, key, value) => {
+  settingsData[key] = value
+  saveSettings()
+})
+ipcMain.handle('settings:keys', () => Object.keys(settingsData))
+
+// NEW: Overlay opacity sync from renderer
+ipcMain.on('set-overlay-opacity', (_e, opacityPercent) => {
+  if (mainWindow && typeof opacityPercent === 'number') {
+    const opacity = Math.max(0.15, Math.min(1, opacityPercent / 100))
+    mainWindow.setOpacity(opacity)
+    console.log(`[OVERLAY] Set opacity to ${opacityPercent}% (${opacity.toFixed(2)})`)
+  }
+})
+
+// ─── Main-Process AI (openai-chat IPC) ───────────────────────────────────────
+ipcMain.handle('ai:chat', async (event, { question, context = {}, isDesiMode = false, interviewType = 'technical', language = 'en-US', qaHistory = [] }) => {
+  const model = settingsData.model || 'llama-3.3-70b-versatile'
+  const apiUrl = `http://localhost:${PORT}/api/ai/interview-answer`
+  
+  try {
+    const response = await fetch(apiUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        question,
+        context,
+        isDesiMode,
+        interviewType,
+        language: isDesiMode ? 'en-IN' : language,
+        qaHistory: qaHistory.slice(-4)
+      })
+    })
+
+    if (!response.ok || !response.body) {
+      return { error: 'API request failed' }
+    }
+
+    const reader = response.body.getReader()
+    const decoder = new TextDecoder()
+    let buffer = ''
+    let fullAnswer = ''
+    let firstChunk = true
+
+    while (true) {
+      const { done, value } = await reader.read()
+      if (done) break
+
+      buffer += decoder.decode(value, { stream: true })
+      const lines = buffer.split('\n')
+      buffer = lines.pop() || ''
+
+      for (const line of lines) {
+        const trimmed = line.trim()
+        if (!trimmed.startsWith('data: ')) continue
+        const data = trimmed.slice(6).trim()
+        if (data === '[DONE]') {
+          event.sender.send('ai:done', { fullAnswer })
+          return { success: true, answer: fullAnswer }
+        }
+
+        try {
+          const parsed = JSON.parse(data)
+          if (firstChunk && parsed.mode) {
+            event.sender.send('ai:mode', parsed.mode)
+            firstChunk = false
+            continue
+          }
+          const token = parsed.text || parsed.delta?.text || ''
+          if (token) {
+            fullAnswer += token
+            event.sender.send('ai:chunk', { token })
+          }
+        } catch {}
+      }
+    }
+
+    event.sender.send('ai:done', { fullAnswer })
+    return { success: true, answer: fullAnswer }
+  } catch (err) {
+    event.sender.send('ai:error', err.message)
+    return { error: err.message }
+  }
+})
+
+// ─── Whisper STT Fallback (4s chunks) ────────────────────────────────────────
+ipcMain.handle('stt:whisper', async (event, audioBlob) => {
+  const formData = new FormData()
+  formData.append('audio', audioBlob, 'chunk.webm')
+  
+  try {
+    const response = await fetch(`http://localhost:${PORT}/api/ai/transcribe`, {
+      method: 'POST',
+      body: formData
+    })
+    
+    if (!response.ok) {
+      return { error: 'Transcription failed' }
+    }
+    
+    const { text } = await response.json()
+    event.sender.send('stt:result', text)
+    return { text }
+  } catch (err) {
+    event.sender.send('stt:error', err.message)
+    return { error: err.message }
+  }
+})
+
+// ─── Window controls IPC ──────────────────────────────────────────────────────
+ipcMain.on('window:minimize', () => mainWindow?.minimize())
+ipcMain.on('window:hide',     () => {
+  mainWindow?.hide()
+  tray?.displayBalloon({
+    title: 'InterviewAI is still running',
+    content: 'Right-click the tray icon to quit, or press Ctrl+Shift+H to show.',
+    iconType: 'info',
+  })
+})
+ipcMain.on('window:close', () => {
+  mainWindow?.removeAllListeners('close')
+  app.quit()
+})
+
+// Move window (left / center / right snap)
+ipcMain.on('overlay:move-window', (_e, dir) => moveWindow(dir))
+
+// Toggle/show/hide overlay (window)
+ipcMain.on('overlay:toggle', () => {
+  if (mainWindow?.isVisible()) mainWindow.hide()
+  else { mainWindow?.show(); mainWindow?.focus() }
+})
+ipcMain.on('overlay:show', () => { mainWindow?.show(); mainWindow?.focus() })
+ipcMain.on('overlay:hide', () => mainWindow?.hide())
+ipcMain.on('main:hide',    () => mainWindow?.hide())
+ipcMain.on('main:show',    () => { mainWindow?.show(); mainWindow?.focus() })
+
+// Mic state query
+ipcMain.handle('overlay:get-mic-state', () => ({ active: isMicActive }))
+
+// Platform info
+ipcMain.handle('app:platform', () => process.platform)
+
+// ─── Existing IPC (kept for compatibility) ───────────────────────────────────
+// Overlay lifecycle
 ipcMain.on('overlay:create',  () => { /* no-op */ })
 ipcMain.on('overlay:destroy', () => { /* no-op */ })
 
-// Data forwarding (main process → renderer)
+// Data forwarding
 ipcMain.on('overlay:set-answer',   (_e, data)   => mainWindow?.webContents.send('overlay:answer', data))
 ipcMain.on('overlay:set-question', (_e, data)   => mainWindow?.webContents.send('overlay:question', data))
 ipcMain.on('overlay:set-status',   (_e, status) => mainWindow?.webContents.send('overlay:status', status))
 ipcMain.on('overlay:clear',        ()           => mainWindow?.webContents.send('overlay:clear'))
 ipcMain.on('overlay:set-opacity',  (_e, value)  => mainWindow?.setOpacity(Math.max(0.1, Math.min(1, value))))
 
-// Window visibility
-ipcMain.on('overlay:toggle', () => {
-  if (!mainWindow) return
-  mainWindow.isVisible() ? mainWindow.hide() : mainWindow.show()
-})
-ipcMain.on('overlay:hide',   () => mainWindow?.hide())
-ipcMain.on('overlay:show',   () => { mainWindow?.show(); mainWindow?.focus() })
-ipcMain.on('main:hide',      () => mainWindow?.hide())
-ipcMain.on('main:show',      () => { mainWindow?.show(); mainWindow?.focus() })
-
-// Window controls (called from drag handle buttons in UI)
-ipcMain.on('window:minimize', () => mainWindow?.minimize())
-ipcMain.on('window:hide',     () => {
-  mainWindow?.hide()
-  tray?.displayBalloon({
-    title: 'InterviewAI hidden',
-    content: 'Press Ctrl+Shift+H or click the tray icon to bring it back.',
-    iconType: 'info',
-  })
-})
-ipcMain.on('window:close', () => {
-  // Actual quit — remove the 'close' interceptor first
-  mainWindow?.removeAllListeners('close')
-  app.quit()
-})
-
-// Window positioning
-ipcMain.on('overlay:move-window', (_e, dir) => moveWindow(dir))
-
-// Mic
-ipcMain.on('overlay:mic-toggle', () => {
-  if (isMicActive) stopSpeechRec()
-  else             startSpeechRec()
-})
-ipcMain.on('overlay:set-mode', (_e, data) => {
-  mainWindow?.webContents.send('mode:set', data)
-  mainWindow?.webContents.send('mode:confirmed', data)
-})
-
-ipcMain.handle('overlay:get-mic-state', () => ({ active: isMicActive }))
-ipcMain.handle('app:is-electron', () => true)
-ipcMain.handle('app:platform', () => process.platform)
+// Window visibility & controls (unchanged...)
 
 // Speech recognition
 ipcMain.on('speech:start', () => startSpeechRec())
@@ -461,16 +623,27 @@ ipcMain.on('overlay:stop-session', () => {
   mainWindow?.webContents.send('session:stop')
 })
 
-// Screen capture (IPC invoke from renderer)
-ipcMain.handle('screen:capture', async () => {
+// Stealth Screenshot IPC (hide → wait 300ms → capture → show)
+ipcMain.handle('screenshot:stealth-capture', async () => {
+  if (!mainWindow) return null
+  const wasVisible = mainWindow.isVisible()
+  if (wasVisible) mainWindow.hide()
+  
+  // Wait 300ms for any visual feedback to fade
+  await new Promise(r => setTimeout(r, 300))
+  
   try {
     const sources = await desktopCapturer.getSources({
       types: ['screen'],
-      thumbnailSize: { width: 1920, height: 1080 },
+      thumbnailSize: { width: 1920, height: 1080, quality: 0.8 },
     })
-    return sources[0]?.thumbnail.toDataURL() ?? null
+    const result = sources[0]?.thumbnail.toDataURL('image/jpeg', 0.8) ?? null
+    
+    if (wasVisible) mainWindow.show()
+    return result
   } catch (err) {
-    console.error('screen:capture error:', err)
+    console.error('stealth-capture error:', err)
+    if (wasVisible) mainWindow.show()
     return null
   }
 })

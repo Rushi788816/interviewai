@@ -34,7 +34,7 @@ function QACard({ qa, index }: { qa: QA; index: number }) {
         onClick={() => setOpen(o => !o)}
         className="w-full flex items-start gap-3 p-4 text-left hover:bg-white/3 transition-colors"
       >
-        <span className="mt-0.5 flex-shrink-0 w-6 h-6 rounded-full bg-[#F7931A]/15 border border-[#F7931A]/30 flex items-center justify-center text-[11px] font-bold text-[#F7931A]">
+        <span className="mt-0.5 flex-shrink-0 w-6 h-6 rounded-full bg-[#6366F1]/15 border border-[#6366F1]/30 flex items-center justify-center text-[11px] font-bold text-[#6366F1]">
           {index + 1}
         </span>
         <span className="flex-1 text-sm text-[#E2E8F0] font-medium leading-snug">{qa.question}</span>
@@ -87,7 +87,7 @@ export default function SessionReplayPage() {
 
   if (loading) return (
     <div className="min-h-screen bg-[#0a0a0f] flex items-center justify-center">
-      <div className="w-8 h-8 border-2 border-[#F7931A] border-t-transparent rounded-full animate-spin" />
+      <div className="w-8 h-8 border-2 border-[#6366F1] border-t-transparent rounded-full animate-spin" />
     </div>
   )
 
@@ -95,7 +95,7 @@ export default function SessionReplayPage() {
     <div className="min-h-screen bg-[#0a0a0f] flex items-center justify-center px-4">
       <div className="text-center space-y-4">
         <p className="text-[#94A3B8]">{error || 'Session not found'}</p>
-        <Link href="/dashboard" className="text-[#F7931A] text-sm hover:underline">← Back to Dashboard</Link>
+        <Link href="/dashboard" className="text-[#6366F1] text-sm hover:underline">← Back to Dashboard</Link>
       </div>
     </div>
   )
@@ -133,7 +133,7 @@ export default function SessionReplayPage() {
         {/* Meta chips */}
         <div className="flex flex-wrap gap-2">
           {session.jobRole && (
-            <span className="px-3 py-1 rounded-full text-xs font-semibold bg-[#F7931A]/10 border border-[#F7931A]/25 text-[#F7931A]">
+            <span className="px-3 py-1 rounded-full text-xs font-semibold bg-[#6366F1]/10 border border-[#6366F1]/25 text-[#6366F1]">
               {session.jobRole}
             </span>
           )}
@@ -178,7 +178,7 @@ export default function SessionReplayPage() {
           <Link
             href="/interview"
             className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold text-white"
-            style={{ background: 'linear-gradient(135deg, #F7931A, #FF6B2B)' }}
+            style={{ background: 'linear-gradient(135deg, #6366F1, #8B5CF6)' }}
           >
             <Mic size={14} />
             Start New Session

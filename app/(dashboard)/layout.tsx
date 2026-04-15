@@ -64,7 +64,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   if (status === 'loading') {
     return (
       <div className="flex min-h-screen items-center justify-center bg-[#0A0F1E]">
-        <div className="w-8 h-8 border-2 border-[#F7931A] border-t-transparent rounded-full animate-spin" />
+        <div className="w-8 h-8 border-2 border-[#6366F1] border-t-transparent rounded-full animate-spin" />
       </div>
     )
   }
@@ -88,7 +88,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           // @ts-ignore — Electron-specific CSS
           WebkitAppRegion: 'drag',
         }}>
-          <span style={{ fontSize: '12px', color: '#F7931A', fontWeight: 700, letterSpacing: '0.03em' }}>
+          <span style={{ fontSize: '12px', color: '#6366F1', fontWeight: 700, letterSpacing: '0.03em' }}>
             🐦 InterviewAI
           </span>
           {/* Window controls — must be no-drag so clicks register */}
@@ -119,14 +119,14 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           <span>🐦</span>
           <span
             className="bg-clip-text text-transparent"
-            style={{ backgroundImage: 'linear-gradient(90deg, #F7931A, #FF6B2B)' }}
+            style={{ backgroundImage: 'linear-gradient(90deg, #6366F1, #8B5CF6)' }}
           >
             InterviewAI
           </span>
         </Link>
         <button
           type="button"
-          className="p-2 rounded-xl border border-white/10 text-[#94A3B8] hover:text-white hover:border-[#F7931A]/30 transition-colors"
+          className="p-2 rounded-xl border border-white/10 text-[#94A3B8] hover:text-white hover:border-[#6366F1]/30 transition-colors"
           onClick={() => setMenuOpen((o) => !o)}
           aria-label="Menu"
         >
@@ -146,8 +146,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                   href={href}
                   className="rounded-xl px-4 py-3.5 text-sm font-medium transition-all"
                   style={{
-                    backgroundColor: active ? 'rgba(247,147,26,0.10)' : 'transparent',
-                    color: active ? '#F7931A' : '#D1D5DB',
+                    backgroundColor: active ? 'rgba(99,102,241,0.10)' : 'transparent',
+                    color: active ? '#6366F1' : '#D1D5DB',
                   }}
                 >
                   {label}

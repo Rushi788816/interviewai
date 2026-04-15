@@ -79,7 +79,7 @@ export default function PrivacyPage() {
           ].map(({ n, title, body, items, note }) => (
             <section key={n}>
               <h2 className="text-2xl font-bold mb-6 flex items-center gap-3">
-                <span className="w-8 h-8 rounded-lg bg-[#F7931A]/20 border-2 border-[#F7931A]/50 flex items-center justify-center text-sm font-bold text-[#F7931A]">{n}</span>
+                <span className="w-8 h-8 rounded-lg bg-[#6366F1]/20 border-2 border-[#6366F1]/50 flex items-center justify-center text-sm font-bold text-[#6366F1]">{n}</span>
                 {title}
               </h2>
               {body && <p className="text-[#94A3B8] leading-relaxed mb-4">{body}</p>}
@@ -90,19 +90,19 @@ export default function PrivacyPage() {
             </section>
           ))}
 
-          <section className="pt-12 mt-12 border-t border-[#F7931A]/20">
+          <section className="pt-12 mt-12 border-t border-[#6366F1]/20">
             <h2 className="text-2xl font-bold mb-6 flex items-center gap-3">
-              <span className="w-8 h-8 rounded-lg bg-[#F7931A]/20 border-2 border-[#F7931A]/50 flex items-center justify-center text-sm font-bold text-[#F7931A]">7</span>
+              <span className="w-8 h-8 rounded-lg bg-[#6366F1]/20 border-2 border-[#6366F1]/50 flex items-center justify-center text-sm font-bold text-[#6366F1]">7</span>
               Contact
             </h2>
-            <div className="bg-gradient-to-r from-[#F7931A]/10 to-[#FF6B2B]/10 p-8 rounded-2xl border border-[#F7931A]/20">
+            <div className="bg-gradient-to-r from-[#6366F1]/10 to-[#8B5CF6]/10 p-8 rounded-2xl border border-[#6366F1]/20">
               <p className="text-lg mb-4">
                 Questions about our Privacy Policy? Email us at:
               </p>
               <a
                 href="mailto:privacy@interviewai.app"
                 className="inline-flex items-center gap-2 px-6 py-3 text-white rounded-xl font-semibold hover:opacity-90 transition-all"
-                style={{ background: 'linear-gradient(135deg, #F7931A, #FF6B2B)' }}
+                style={{ background: 'linear-gradient(135deg, #6366F1, #8B5CF6)' }}
               >
                 privacy@interviewai.app
               </a>

@@ -19,6 +19,9 @@ model User {
   onboarded         Boolean            @default(false)
   jobRole           String?
   goal              String?
+  referralCode      String?            @unique @default(cuid())
+  referredBy        String?
+  referralCount     Int                @default(0)
   createdAt         DateTime           @default(now())
   updatedAt         DateTime           @updatedAt
   interviewSessions InterviewSession[]

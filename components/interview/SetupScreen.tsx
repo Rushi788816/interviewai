@@ -1,6 +1,7 @@
 'use client'
 
-import { useCallback, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
+import { useInterviewStore } from '@/store/interviewStore'
 import type { SessionContext } from '@/types'
 import { sanitizeReadableText } from '@/lib/sanitizeText'
 
@@ -157,7 +158,7 @@ function ParsedResumeCard({
     <div style={{ marginBottom: '16px' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '8px' }}>
         <span style={{ fontSize: '14px' }}>{icon}</span>
-        <span style={{ fontSize: '11px', fontWeight: '700', color: '#F7931A', textTransform: 'uppercase', letterSpacing: '0.08em' }}>{title}</span>
+        <span style={{ fontSize: '11px', fontWeight: '700', color: '#6366F1', textTransform: 'uppercase', letterSpacing: '0.08em' }}>{title}</span>
       </div>
       {children}
     </div>
@@ -166,8 +167,8 @@ function ParsedResumeCard({
   const Chip = ({ text }: { text: string }) => (
     <span style={{
       display: 'inline-block',
-      background: 'rgba(247,147,26,0.1)',
-      border: '1px solid rgba(247,147,26,0.25)',
+      background: 'rgba(99,102,241,0.1)',
+      border: '1px solid rgba(99,102,241,0.25)',
       borderRadius: '20px',
       padding: '3px 10px',
       fontSize: '12px',
@@ -268,7 +269,7 @@ function ParsedResumeCard({
                     {exp.title}
                   </p>
                   {exp.company && (
-                    <p style={{ margin: '0 0 2px', fontSize: '12px', color: '#F7931A' }}>{exp.company}</p>
+                    <p style={{ margin: '0 0 2px', fontSize: '12px', color: '#6366F1' }}>{exp.company}</p>
                   )}
                   {exp.period && (
                     <p style={{ margin: '0 0 6px', fontSize: '11px', color: '#64748B' }}>{exp.period}</p>
@@ -376,7 +377,10 @@ export default function SetupScreen({ onComplete, onSkip, initialContext }: Setu
   const [isDragging, setIsDragging] = useState(false)
   const [resumeValidationError, setResumeValidationError] = useState('')
   const [pasteMode, setPasteMode] = useState(false)
+  const [overlayOpacity, setOverlayOpacity] = useState(95)
   const fileInputRef = useRef<HTMLInputElement>(null)
+
+  const interviewStore = useInterviewStore()
 
   const jdLen = jobDescription.length
   const progressPct = Math.round((step / 3) * 100)
@@ -408,11 +412,11 @@ export default function SetupScreen({ onComplete, onSkip, initialContext }: Setu
         setParsedResume(parseResume(clean))
         setExtractionError('')
       } else {
-        setExtractionError(data.warning || 'Could not extract text from this PDF. Please paste your resume below.')
+        setExtractionError(data.warning || 'Could not read your PDF. Please try a different file or paste your resume text manually.')
       }
     } catch (error) {
       console.error('File extraction error:', error)
-      setExtractionError('Extraction failed. Please paste your resume text manually below.')
+      setExtractionError('Could not read your PDF. Please try a different file or paste your resume text manually.')
     } finally {
       setIsExtracting(false)
     }
@@ -460,10 +464,17 @@ export default function SetupScreen({ onComplete, onSkip, initialContext }: Setu
         resumeText: sanitizeReadableText(resumeText, 8000),
         resumeFileName,
       })
+      // Sync opacity to Electron main process
+      window.electronAPI?.setOpacity?.(overlayOpacity / 100)
     }
   }
 
   const goBack = () => { if (step > 1) setStep(s => s - 1) }
+
+  // Live preview opacity
+  useEffect(() => {
+    document.documentElement.style.setProperty('--overlay-opacity', `${overlayOpacity / 100}`)
+  }, [overlayOpacity])
 
   const stepLabels = ['Role', 'Job Description', 'Resume'] as const
 
@@ -481,13 +492,13 @@ export default function SetupScreen({ onComplete, onSkip, initialContext }: Setu
               <span style={{
                 display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
                 width: '18px', height: '18px', borderRadius: '50%', fontSize: '10px', fontWeight: '700',
-                background: step === i + 1 ? '#F7931A' : step > i + 1 ? '#4ade80' : 'rgba(255,255,255,0.08)',
+                background: step === i + 1 ? '#6366F1' : step > i + 1 ? '#4ade80' : 'rgba(255,255,255,0.08)',
                 color: step >= i + 1 ? '#000' : '#64748B',
               }}>
                 {step > i + 1 ? '✓' : i + 1}
               </span>
               <span style={{
-                color: step === i + 1 ? '#F7931A' : step > i + 1 ? '#4ade80' : 'rgba(255,255,255,0.35)',
+                color: step === i + 1 ? '#6366F1' : step > i + 1 ? '#4ade80' : 'rgba(255,255,255,0.35)',
                 fontWeight: step === i + 1 ? '600' : '400',
               }}>
                 {label}
@@ -525,16 +536,16 @@ export default function SetupScreen({ onComplete, onSkip, initialContext }: Setu
                 padding: '12px 16px', color: '#fff', fontSize: '14px',
                 outline: 'none', boxSizing: 'border-box',
               }}
-              onFocus={e => { e.target.style.borderColor = 'rgba(247,147,26,0.5)' }}
+              onFocus={e => { e.target.style.borderColor = 'rgba(99,102,241,0.5)' }}
               onBlur={e => { e.target.style.borderColor = 'rgba(255,255,255,0.1)' }}
             />
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
               {ROLE_CHIPS.map(chip => (
                 <button key={chip} type="button" onClick={() => setJobRole(chip)} style={{
-                  background: jobRole === chip ? 'rgba(247,147,26,0.15)' : 'transparent',
-                  border: `1px solid ${jobRole === chip ? 'rgba(247,147,26,0.5)' : 'rgba(255,255,255,0.1)'}`,
+                  background: jobRole === chip ? 'rgba(99,102,241,0.15)' : 'transparent',
+                  border: `1px solid ${jobRole === chip ? 'rgba(99,102,241,0.5)' : 'rgba(255,255,255,0.1)'}`,
                   borderRadius: '20px', padding: '6px 14px', fontSize: '12px',
-                  color: jobRole === chip ? '#F7931A' : '#94A3B8',
+                  color: jobRole === chip ? '#6366F1' : '#94A3B8',
                   cursor: 'pointer', fontWeight: jobRole === chip ? '600' : '400', transition: 'all 0.15s',
                 }}>
                   {chip}
@@ -568,7 +579,7 @@ export default function SetupScreen({ onComplete, onSkip, initialContext }: Setu
                 padding: '12px 16px', color: '#fff', fontSize: '14px',
                 outline: 'none', resize: 'vertical', boxSizing: 'border-box', fontFamily: 'inherit',
               }}
-              onFocus={e => { e.target.style.borderColor = 'rgba(247,147,26,0.5)' }}
+              onFocus={e => { e.target.style.borderColor = 'rgba(99,102,241,0.5)' }}
               onBlur={e => { e.target.style.borderColor = 'rgba(255,255,255,0.1)' }}
             />
             <p style={{ margin: 0, fontSize: '12px', color: '#64748B', textAlign: 'right' }}>
@@ -584,8 +595,8 @@ export default function SetupScreen({ onComplete, onSkip, initialContext }: Setu
               <label style={{ color: '#CBD5E1', fontSize: '14px', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '6px' }}>
                 Upload Your Resume <span style={{ color: '#f87171' }}>*</span>
                 <span style={{
-                  background: 'rgba(247,147,26,0.12)', border: '1px solid rgba(247,147,26,0.3)',
-                  borderRadius: '10px', padding: '2px 8px', fontSize: '11px', color: '#F7931A', fontWeight: '500',
+                  background: 'rgba(99,102,241,0.12)', border: '1px solid rgba(99,102,241,0.3)',
+                  borderRadius: '10px', padding: '2px 8px', fontSize: '11px', color: '#6366F1', fontWeight: '500',
                 }}>Required</span>
               </label>
               <p style={{ margin: '4px 0 0', fontSize: '12px', color: '#64748B' }}>
@@ -625,8 +636,8 @@ export default function SetupScreen({ onComplete, onSkip, initialContext }: Setu
                     disabled={isExtracting}
                     style={{
                       width: '100%',
-                      background: isDragging ? 'rgba(247,147,26,0.08)' : 'rgba(247,147,26,0.03)',
-                      border: `2px dashed ${isDragging ? 'rgba(247,147,26,0.6)' : 'rgba(247,147,26,0.25)'}`,
+                      background: isDragging ? 'rgba(99,102,241,0.08)' : 'rgba(99,102,241,0.03)',
+                      border: `2px dashed ${isDragging ? 'rgba(99,102,241,0.6)' : 'rgba(99,102,241,0.25)'}`,
                       borderRadius: '12px', padding: '36px 20px',
                       textAlign: 'center', cursor: isExtracting ? 'wait' : 'pointer',
                       color: '#94A3B8', fontSize: '14px', transition: 'all 0.2s',
@@ -637,10 +648,10 @@ export default function SetupScreen({ onComplete, onSkip, initialContext }: Setu
                       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '10px' }}>
                         <span style={{
                           display: 'inline-block', width: '24px', height: '24px',
-                          border: '2px solid rgba(247,147,26,0.3)', borderTopColor: '#F7931A',
+                          border: '2px solid rgba(99,102,241,0.3)', borderTopColor: '#6366F1',
                           borderRadius: '50%', animation: 'spin 0.8s linear infinite',
                         }} />
-                        <span style={{ color: '#F7931A', fontSize: '13px', fontWeight: '500' }}>
+                        <span style={{ color: '#6366F1', fontSize: '13px', fontWeight: '500' }}>
                           Extracting text from your resume...
                         </span>
                         {resumeFileName && (
@@ -686,14 +697,14 @@ export default function SetupScreen({ onComplete, onSkip, initialContext }: Setu
                           padding: '12px 16px', color: '#fff', fontSize: '13px',
                           outline: 'none', resize: 'vertical', boxSizing: 'border-box', fontFamily: 'inherit',
                         }}
-                        onFocus={e => { e.target.style.borderColor = 'rgba(247,147,26,0.5)' }}
+                        onFocus={e => { e.target.style.borderColor = 'rgba(99,102,241,0.5)' }}
                         onBlur={e => { e.target.style.borderColor = 'rgba(255,255,255,0.1)' }}
                       />
                       <div style={{ display: 'flex', gap: '8px' }}>
                         <button type="button" onClick={handlePasteSubmit}
                           disabled={resumeText.trim().length < 50}
                           style={{
-                            flex: 1, background: resumeText.trim().length < 50 ? 'rgba(247,147,26,0.2)' : 'linear-gradient(to right,#EA580C,#F7931A)',
+                            flex: 1, background: resumeText.trim().length < 50 ? 'rgba(99,102,241,0.2)' : 'linear-gradient(to right,#4F46E5,#6366F1)',
                             border: 'none', borderRadius: '8px', padding: '9px',
                             color: 'white', fontSize: '13px', fontWeight: '600',
                             cursor: resumeText.trim().length < 50 ? 'not-allowed' : 'pointer',
@@ -756,12 +767,12 @@ export default function SetupScreen({ onComplete, onSkip, initialContext }: Setu
           onClick={goNext}
           disabled={btnDisabled}
           style={{
-            background: btnDisabled ? 'rgba(247,147,26,0.25)' : 'linear-gradient(to right, #EA580C, #F7931A)',
+            background: btnDisabled ? 'rgba(99,102,241,0.25)' : 'linear-gradient(to right, #4F46E5, #6366F1)',
             border: 'none', borderRadius: '10px',
             padding: step === 3 ? '11px 32px' : '10px 28px',
             color: 'white', fontSize: step === 3 ? '14px' : '13px',
             fontWeight: '700', cursor: btnDisabled ? 'not-allowed' : 'pointer',
-            boxShadow: btnDisabled ? 'none' : '0 0 24px rgba(247,147,26,0.35)',
+            boxShadow: btnDisabled ? 'none' : '0 0 24px rgba(99,102,241,0.35)',
             opacity: btnDisabled ? 0.55 : 1, transition: 'all 0.2s',
           }}
         >
@@ -769,9 +780,40 @@ export default function SetupScreen({ onComplete, onSkip, initialContext }: Setu
         </button>
       </div>
 
+      {/* NEW: Opacity adjustment - only show on step 3 */}
+      {step === 3 && (
+        <div style={{
+          display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '12px',
+          background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)',
+          borderRadius: '12px', padding: '12px 20px', margin: '0 auto',
+        }}>
+          <label style={{ fontSize: '13px', color: '#CBD5E1', fontWeight: '500', whiteSpace: 'nowrap' }}>
+            Overlay Opacity:
+          </label>
+          <input
+            type="range"
+            min="15"
+            max="100"
+            step="5"
+            value={overlayOpacity}
+            onChange={(e) => setOverlayOpacity(Number(e.target.value))}
+            style={{
+              flex: 1, maxWidth: '200px', height: '6px', borderRadius: '3px',
+              background: 'rgba(255,255,255,0.1)', outline: 'none', cursor: 'pointer',
+              accentColor: '#6366F1',
+            }}
+          />
+          <span style={{ 
+            fontSize: '13px', color: '#6366F1', fontWeight: '600', minWidth: '36px', textAlign: 'center'
+          }}>
+            {overlayOpacity}%
+          </span>
+        </div>
+      )}
+
       {/* File info below button on step 3 */}
       {step === 3 && resumeFile && hasResume && (
-        <p style={{ textAlign: 'center', margin: '-12px 0 0', fontSize: '11px', color: '#475569' }}>
+        <p style={{ textAlign: 'center', margin: '12px 0 0', fontSize: '11px', color: '#475569' }}>
           {resumeFileName} · {formatFileSize(resumeFile.size)}
         </p>
       )}
@@ -781,7 +823,7 @@ export default function SetupScreen({ onComplete, onSkip, initialContext }: Setu
         <div style={{ height: '4px', background: 'rgba(255,255,255,0.06)', borderRadius: '4px', overflow: 'hidden' }}>
           <div style={{
             height: '100%', width: `${progressPct}%`,
-            background: 'linear-gradient(to right, #EA580C, #F7931A)',
+            background: 'linear-gradient(to right, #4F46E5, #6366F1)',
             borderRadius: '4px', transition: 'width 0.3s ease',
           }} />
         </div>

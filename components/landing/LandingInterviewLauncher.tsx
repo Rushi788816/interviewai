@@ -31,7 +31,7 @@ export default function LandingInterviewLauncher() {
         onClick={onClick}
         className="fixed bottom-6 right-6 z-50 rounded-xl px-5 py-3 text-sm font-semibold text-white shadow-lg transition-opacity hover:opacity-90"
         style={{
-          backgroundImage: 'linear-gradient(90deg, #F7931A, #FF6B2B)',
+          backgroundImage: 'linear-gradient(90deg, #6366F1, #8B5CF6)',
           boxShadow: '0 8px 32px rgba(108, 99, 255, 0.4)',
         }}
       >

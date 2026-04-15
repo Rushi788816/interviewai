@@ -54,8 +54,8 @@ export default function OnboardingPage() {
         <div className="flex items-center justify-center gap-2 mb-8">
           {STEPS.map((s, i) => (
             <div key={s} className="flex items-center gap-2">
-              {i > 0 && <div className={`w-6 h-px ${i <= step ? 'bg-[#F7931A]' : 'bg-white/10'}`} />}
-              <div className={`w-2 h-2 rounded-full transition-all ${i < step ? 'bg-[#F7931A]' : i === step ? 'bg-white w-3 h-3' : 'bg-white/15'}`} />
+              {i > 0 && <div className={`w-6 h-px ${i <= step ? 'bg-[#6366F1]' : 'bg-white/10'}`} />}
+              <div className={`w-2 h-2 rounded-full transition-all ${i < step ? 'bg-[#6366F1]' : i === step ? 'bg-white w-3 h-3' : 'bg-white/15'}`} />
             </div>
           ))}
         </div>
@@ -64,7 +64,7 @@ export default function OnboardingPage() {
         {step === 0 && (
           <div className="text-center space-y-6">
             <div className="w-20 h-20 rounded-3xl mx-auto flex items-center justify-center text-4xl"
-              style={{ background: 'linear-gradient(135deg, #F7931A, #FF6B2B)', boxShadow: '0 12px 40px rgba(247,147,26,0.3)' }}>
+              style={{ background: 'linear-gradient(135deg, #6366F1, #8B5CF6)', boxShadow: '0 12px 40px rgba(99,102,241,0.3)' }}>
               🎤
             </div>
             <div>
@@ -82,7 +82,7 @@ export default function OnboardingPage() {
                 { icon: FileText, label: 'You Speak',    sub: 'Sound natural' },
               ].map(({ icon: Icon, label, sub }) => (
                 <div key={label} className="rounded-xl border border-white/8 bg-white/3 p-3 text-center">
-                  <Icon size={18} className="text-[#F7931A] mx-auto mb-1.5" />
+                  <Icon size={18} className="text-[#6366F1] mx-auto mb-1.5" />
                   <p className="text-xs font-semibold text-white">{label}</p>
                   <p className="text-[10px] text-[#64748B]">{sub}</p>
                 </div>
@@ -92,7 +92,7 @@ export default function OnboardingPage() {
               type="button"
               onClick={() => setStep(1)}
               className="w-full flex items-center justify-center gap-2 py-3.5 rounded-xl font-bold text-white text-sm"
-              style={{ background: 'linear-gradient(135deg, #F7931A, #FF6B2B)' }}
+              style={{ background: 'linear-gradient(135deg, #6366F1, #8B5CF6)' }}
             >
               Get Started <ArrowRight size={16} />
             </button>
@@ -114,13 +114,13 @@ export default function OnboardingPage() {
                   onClick={() => setGoal(g.id)}
                   className={`w-full flex items-center gap-3 p-4 rounded-xl border text-left transition-all ${
                     goal === g.id
-                      ? 'border-[#F7931A]/50 bg-[#F7931A]/8'
+                      ? 'border-[#6366F1]/50 bg-[#6366F1]/8'
                       : 'border-white/8 bg-white/3 hover:border-white/15'
                   }`}
                 >
                   <span className="text-2xl">{g.emoji}</span>
-                  <span className={`text-sm font-medium ${goal === g.id ? 'text-[#F7931A]' : 'text-white'}`}>{g.label}</span>
-                  {goal === g.id && <CheckCircle size={16} className="text-[#F7931A] ml-auto" />}
+                  <span className={`text-sm font-medium ${goal === g.id ? 'text-[#6366F1]' : 'text-white'}`}>{g.label}</span>
+                  {goal === g.id && <CheckCircle size={16} className="text-[#6366F1] ml-auto" />}
                 </button>
               ))}
             </div>
@@ -129,7 +129,7 @@ export default function OnboardingPage() {
               onClick={() => setStep(2)}
               disabled={!canNext}
               className="w-full flex items-center justify-center gap-2 py-3.5 rounded-xl font-bold text-white text-sm disabled:opacity-40 transition-opacity"
-              style={{ background: 'linear-gradient(135deg, #F7931A, #FF6B2B)' }}
+              style={{ background: 'linear-gradient(135deg, #6366F1, #8B5CF6)' }}
             >
               Continue <ArrowRight size={16} />
             </button>
@@ -151,7 +151,7 @@ export default function OnboardingPage() {
                   onClick={() => setJobRole(r)}
                   className={`py-2.5 px-3 rounded-xl border text-sm font-medium text-left transition-all ${
                     jobRole === r
-                      ? 'border-[#F7931A]/50 bg-[#F7931A]/8 text-[#F7931A]'
+                      ? 'border-[#6366F1]/50 bg-[#6366F1]/8 text-[#6366F1]'
                       : 'border-white/8 bg-white/3 text-[#94A3B8] hover:border-white/15 hover:text-white'
                   }`}
                 >
@@ -163,7 +163,7 @@ export default function OnboardingPage() {
                 onClick={() => setJobRole('custom')}
                 className={`py-2.5 px-3 rounded-xl border text-sm font-medium text-left transition-all col-span-2 ${
                   jobRole === 'custom'
-                    ? 'border-[#F7931A]/50 bg-[#F7931A]/8 text-[#F7931A]'
+                    ? 'border-[#6366F1]/50 bg-[#6366F1]/8 text-[#6366F1]'
                     : 'border-white/8 bg-white/3 text-[#94A3B8] hover:border-white/15 hover:text-white'
                 }`}
               >
@@ -177,7 +177,7 @@ export default function OnboardingPage() {
                 value={customRole}
                 onChange={e => setCustomRole(e.target.value)}
                 placeholder="e.g. iOS Developer"
-                className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-2.5 text-sm text-white placeholder:text-[#475569] focus:border-[#F7931A]/50 focus:outline-none"
+                className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-2.5 text-sm text-white placeholder:text-[#475569] focus:border-[#6366F1]/50 focus:outline-none"
               />
             )}
             <button
@@ -185,7 +185,7 @@ export default function OnboardingPage() {
               onClick={() => setStep(3)}
               disabled={!canNext}
               className="w-full flex items-center justify-center gap-2 py-3.5 rounded-xl font-bold text-white text-sm disabled:opacity-40 transition-opacity"
-              style={{ background: 'linear-gradient(135deg, #F7931A, #FF6B2B)' }}
+              style={{ background: 'linear-gradient(135deg, #6366F1, #8B5CF6)' }}
             >
               Continue <ArrowRight size={16} />
             </button>
@@ -204,8 +204,8 @@ export default function OnboardingPage() {
                 You start with <span className="text-white font-bold">30 free credits</span>. Each AI answer uses 1 credit.
               </p>
             </div>
-            <div className="rounded-2xl border border-[#F7931A]/20 bg-[#F7931A]/5 p-4 text-left space-y-2">
-              <p className="text-xs font-bold text-[#F7931A] uppercase tracking-wider">Quick Start</p>
+            <div className="rounded-2xl border border-[#6366F1]/20 bg-[#6366F1]/5 p-4 text-left space-y-2">
+              <p className="text-xs font-bold text-[#6366F1] uppercase tracking-wider">Quick Start</p>
               {[
                 '1. Click "Interview Assistant" from your dashboard',
                 '2. Upload your resume + paste the job description',
@@ -219,7 +219,7 @@ export default function OnboardingPage() {
               onClick={finish}
               disabled={loading}
               className="w-full flex items-center justify-center gap-2 py-3.5 rounded-xl font-bold text-white text-sm"
-              style={{ background: 'linear-gradient(135deg, #F7931A, #FF6B2B)' }}
+              style={{ background: 'linear-gradient(135deg, #6366F1, #8B5CF6)' }}
             >
               {loading ? 'Setting up...' : 'Go to Dashboard →'}
             </button>

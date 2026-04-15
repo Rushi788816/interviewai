@@ -1,6 +1,6 @@
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
-import { groq } from '@/lib/anthropic'
+import { groq } from '@/lib/groq'
 import { prisma } from '@/lib/prisma'
 import { sanitizeReadableText } from '@/lib/sanitizeText'
 

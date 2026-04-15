@@ -19,7 +19,7 @@ export default function MockInterviewPage() {
   if (status !== 'authenticated' || !session?.user || creditsLoading) {
     return (
       <div className="min-h-screen bg-[#0a0a0f] flex items-center justify-center">
-        <div className="w-8 h-8 border-2 border-[#F7931A] border-t-transparent rounded-full animate-spin" />
+        <div className="w-8 h-8 border-2 border-[#6366F1] border-t-transparent rounded-full animate-spin" />
       </div>
     )
   }
@@ -41,13 +41,13 @@ export default function MockInterviewPage() {
             <Link
               href="/credits"
               className="w-full py-3 rounded-xl font-bold text-white text-sm hover:opacity-90 transition-all"
-              style={{ background: 'linear-gradient(135deg, #F7931A, #FF6B2B)' }}
+              style={{ background: 'linear-gradient(135deg, #6366F1, #8B5CF6)' }}
             >
               Get More Credits →
             </Link>
             <Link
               href="/interview"
-              className="w-full py-3 rounded-xl font-semibold text-[#94A3B8] text-sm border border-white/10 hover:text-white hover:border-[#F7931A]/40 transition-all"
+              className="w-full py-3 rounded-xl font-semibold text-[#94A3B8] text-sm border border-white/10 hover:text-white hover:border-[#6366F1]/40 transition-all"
             >
               Try Interview Assistant (Free)
             </Link>

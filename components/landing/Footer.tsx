@@ -8,11 +8,8 @@ export default function Footer() {
           <div>
             <div className="flex items-center gap-2 mb-4">
               <span className="text-2xl">🐦</span>
-              <span
-                className="text-lg font-bold bg-clip-text text-transparent"
-                style={{ backgroundImage: 'linear-gradient(90deg, #F7931A, #FF6B2B)' }}
-              >
-                InterviewAI
+              <span className="text-lg font-bold text-white">
+                Interview<span style={{ color: '#6366F1' }}>AI</span>
               </span>
             </div>
             <p className="text-sm mb-6 leading-relaxed" style={{ color: '#94A3B8' }}>

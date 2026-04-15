@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { groq } from '@/lib/anthropic'
+import { groq } from '@/lib/groq'
 
 export async function POST(req: NextRequest) {
   try {

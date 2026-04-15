@@ -26,7 +26,7 @@ function QACard({ qa, index }: { qa: QA; index: number }) {
         onClick={() => setOpen(o => !o)}
         className="w-full flex items-start gap-3 p-4 text-left hover:bg-white/3 transition-colors"
       >
-        <span className="mt-0.5 flex-shrink-0 w-6 h-6 rounded-full bg-[#F7931A]/15 border border-[#F7931A]/30 flex items-center justify-center text-[11px] font-bold text-[#F7931A]">
+        <span className="mt-0.5 flex-shrink-0 w-6 h-6 rounded-full bg-[#6366F1]/15 border border-[#6366F1]/30 flex items-center justify-center text-[11px] font-bold text-[#6366F1]">
           {index + 1}
         </span>
         <span className="flex-1 text-sm text-[#E2E8F0] font-medium leading-snug">{qa.question}</span>
@@ -36,7 +36,7 @@ function QACard({ qa, index }: { qa: QA; index: number }) {
       </button>
       {open && (
         <div className="border-t border-white/6 p-4 pt-3">
-          <p className="text-[10px] font-bold text-[#F7931A] uppercase tracking-wider mb-2">Ideal Answer</p>
+          <p className="text-[10px] font-bold text-[#6366F1] uppercase tracking-wider mb-2">Ideal Answer</p>
           <p className="text-sm text-[#CBD5E1] leading-relaxed">{qa.answer}</p>
         </div>
       )}
@@ -111,7 +111,7 @@ export default function QuestionBankPage() {
         {/* Header */}
         <div>
           <h1 className="text-xl sm:text-2xl font-bold text-white flex items-center gap-2">
-            <BookOpen size={22} className="text-[#F7931A]" />
+            <BookOpen size={22} className="text-[#6366F1]" />
             Question Bank
           </h1>
           <p className="text-[#64748B] text-sm mt-1">
@@ -133,7 +133,7 @@ export default function QuestionBankPage() {
                   onClick={() => setCategory(cat.id)}
                   className={`flex flex-col items-center gap-1 p-3 rounded-xl border text-center transition-all ${
                     category === cat.id
-                      ? 'border-[#F7931A]/50 bg-[#F7931A]/8 text-[#F7931A]'
+                      ? 'border-[#6366F1]/50 bg-[#6366F1]/8 text-[#6366F1]'
                       : 'border-white/8 bg-white/3 text-[#64748B] hover:border-white/15 hover:text-white'
                   }`}
                 >
@@ -155,7 +155,7 @@ export default function QuestionBankPage() {
               value={jobRole}
               onChange={e => setJobRole(e.target.value)}
               placeholder="e.g. Senior Frontend Engineer"
-              className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-2.5 text-sm text-white placeholder:text-[#475569] focus:border-[#F7931A]/50 focus:outline-none transition-colors"
+              className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-2.5 text-sm text-white placeholder:text-[#475569] focus:border-[#6366F1]/50 focus:outline-none transition-colors"
             />
           </div>
 
@@ -169,7 +169,7 @@ export default function QuestionBankPage() {
               onChange={e => setJobDescription(e.target.value.slice(0, 1500))}
               placeholder="Paste the job description here..."
               rows={3}
-              className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-2.5 text-sm text-white placeholder:text-[#475569] focus:border-[#F7931A]/50 focus:outline-none transition-colors resize-none"
+              className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-2.5 text-sm text-white placeholder:text-[#475569] focus:border-[#6366F1]/50 focus:outline-none transition-colors resize-none"
             />
           </div>
 
@@ -204,7 +204,7 @@ export default function QuestionBankPage() {
             onClick={generate}
             disabled={loading || balance < 2}
             className="w-full flex items-center justify-center gap-2 py-3 rounded-xl font-bold text-white text-sm transition-all hover:opacity-90 disabled:opacity-50"
-            style={{ background: 'linear-gradient(135deg, #F7931A, #FF6B2B)' }}
+            style={{ background: 'linear-gradient(135deg, #6366F1, #8B5CF6)' }}
           >
             <Sparkles size={15} />
             {loading ? 'Generating...' : `Generate Questions (2 credits)`}

@@ -58,7 +58,7 @@ export default function ContactPage() {
       <Navbar />
       <main className="max-w-6xl mx-auto px-4 py-16">
         <div className="text-center mb-20">
-          <h1 className="text-4xl md:text-5xl font-bold mb-6 bg-gradient-to-r from-[#F7931A] to-[#FF6B2B] bg-clip-text text-transparent">
+          <h1 className="text-4xl md:text-5xl font-bold mb-6 bg-gradient-to-r from-[#6366F1] to-[#8B5CF6] bg-clip-text text-transparent">
             Contact Us
           </h1>
           <p className="text-xl text-[#94A3B8] max-w-2xl mx-auto">
@@ -87,7 +87,7 @@ export default function ContactPage() {
                       value={formData.name}
                       onChange={handleChange}
                       required
-                      className="w-full px-4 py-3 bg-[#0A0F1E] border border-[#94A3B8]/30 rounded-2xl text-white placeholder-[#94A3B8]/70 focus:border-[#F7931A]/50 focus:outline-none focus:ring-2 focus:ring-[#F7931A]/20 transition-all"
+                      className="w-full px-4 py-3 bg-[#0A0F1E] border border-[#94A3B8]/30 rounded-2xl text-white placeholder-[#94A3B8]/70 focus:border-[#6366F1]/50 focus:outline-none focus:ring-2 focus:ring-[#6366F1]/20 transition-all"
                       placeholder="Your name"
                     />
                   </div>
@@ -100,7 +100,7 @@ export default function ContactPage() {
                       value={formData.email}
                       onChange={handleChange}
                       required
-                      className="w-full px-4 py-3 bg-[#0A0F1E] border border-[#94A3B8]/30 rounded-2xl text-white placeholder-[#94A3B8]/70 focus:border-[#F7931A]/50 focus:outline-none focus:ring-2 focus:ring-[#F7931A]/20 transition-all"
+                      className="w-full px-4 py-3 bg-[#0A0F1E] border border-[#94A3B8]/30 rounded-2xl text-white placeholder-[#94A3B8]/70 focus:border-[#6366F1]/50 focus:outline-none focus:ring-2 focus:ring-[#6366F1]/20 transition-all"
                       placeholder="your@email.com"
                     />
                   </div>
@@ -111,7 +111,7 @@ export default function ContactPage() {
                       name="subject"
                       value={formData.subject}
                       onChange={handleChange}
-                      className="w-full px-4 py-3 bg-[#0A0F1E] border border-[#94A3B8]/30 rounded-2xl text-white focus:border-[#F7931A]/50 focus:outline-none focus:ring-2 focus:ring-[#F7931A]/20 transition-all"
+                      className="w-full px-4 py-3 bg-[#0A0F1E] border border-[#94A3B8]/30 rounded-2xl text-white focus:border-[#6366F1]/50 focus:outline-none focus:ring-2 focus:ring-[#6366F1]/20 transition-all"
                     >
                       {subjects.map((subject) => (
                         <option key={subject} value={subject}>{subject}</option>
@@ -127,7 +127,7 @@ export default function ContactPage() {
                       onChange={handleChange}
                       required
                       rows={6}
-                      className="w-full px-4 py-3 bg-[#0A0F1E] border border-[#94A3B8]/30 rounded-2xl text-white placeholder-[#94A3B8]/70 focus:border-[#F7931A]/50 focus:outline-none focus:ring-2 focus:ring-[#F7931A]/20 transition-all resize-vertical"
+                      className="w-full px-4 py-3 bg-[#0A0F1E] border border-[#94A3B8]/30 rounded-2xl text-white placeholder-[#94A3B8]/70 focus:border-[#6366F1]/50 focus:outline-none focus:ring-2 focus:ring-[#6366F1]/20 transition-all resize-vertical"
                       placeholder="Tell us how we can help you..."
                     />
                   </div>
@@ -146,16 +146,16 @@ export default function ContactPage() {
 
           {/* Contact Info */}
           <div className="space-y-8 lg:self-start">
-            <div className="bg-gradient-to-br from-[#F7931A]/10 to-[#FF6B2B]/10 p-8 rounded-3xl border border-[#F7931A]/20">
+            <div className="bg-gradient-to-br from-[#6366F1]/10 to-[#8B5CF6]/10 p-8 rounded-3xl border border-[#6366F1]/20">
               <h3 className="text-2xl font-bold mb-6">Get in touch</h3>
               <div className="space-y-6">
                 <div className="flex items-center gap-4 p-4 rounded-xl bg-[#111827]/50 border border-white/10 hover:bg-[#111827] transition-colors">
-                  <div className="w-12 h-12 rounded-2xl flex items-center justify-center text-xl" style={{ background: 'linear-gradient(135deg, #F7931A, #FF6B2B)' }}>
+                  <div className="w-12 h-12 rounded-2xl flex items-center justify-center text-xl" style={{ background: 'linear-gradient(135deg, #6366F1, #8B5CF6)' }}>
                     📧
                   </div>
                   <div>
                     <p className="font-semibold text-white">Email</p>
-                    <a href="mailto:support@interviewai.app" className="text-[#94A3B8] hover:text-[#F7931A] transition-colors">
+                    <a href="mailto:support@interviewai.app" className="text-[#94A3B8] hover:text-[#6366F1] transition-colors">
                       support@interviewai.app
                     </a>
                   </div>
@@ -167,7 +167,7 @@ export default function ContactPage() {
                   </div>
                   <div>
                     <p className="font-semibold text-white">Instagram</p>
-                    <a href="https://instagram.com/interviewai.official" target="_blank" rel="noopener noreferrer" className="text-[#94A3B8] hover:text-[#F7931A] transition-colors">
+                    <a href="https://instagram.com/interviewai.official" target="_blank" rel="noopener noreferrer" className="text-[#94A3B8] hover:text-[#6366F1] transition-colors">
                       @interviewai.official
                     </a>
                   </div>

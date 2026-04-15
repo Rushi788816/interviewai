@@ -66,20 +66,20 @@ export default function PricingPage() {
       <div className="fixed inset-0 pointer-events-none overflow-hidden">
         <div
           className="absolute top-1/4 left-1/2 -translate-x-1/2 w-[800px] h-[500px] rounded-full blur-[140px] opacity-15"
-          style={{ background: "radial-gradient(ellipse, #F7931A, transparent 70%)" }}
+          style={{ background: "radial-gradient(ellipse, #6366F1, transparent 70%)" }}
         />
       </div>
 
       <main className="relative max-w-6xl mx-auto px-4 pt-32 pb-24">
         {/* Header */}
         <div className="text-center mb-16">
-          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-[#F7931A]/30 bg-[#F7931A]/10 text-[#F7931A] text-sm font-semibold mb-6">
-            <span className="w-2 h-2 rounded-full bg-[#F7931A] animate-pulse" />
+          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-[#6366F1]/30 bg-[#6366F1]/10 text-[#6366F1] text-sm font-semibold mb-6">
+            <span className="w-2 h-2 rounded-full bg-[#6366F1] animate-pulse" />
             Simple, honest pricing
           </div>
           <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold text-white mb-5 leading-tight">
             Pay once.{' '}
-            <span className="bg-clip-text text-transparent" style={{ backgroundImage: 'linear-gradient(90deg, #F7931A, #FF6B2B)' }}>
+            <span className="bg-clip-text text-transparent" style={{ backgroundImage: 'linear-gradient(90deg, #6366F1, #8B5CF6)' }}>
               Ace forever.
             </span>
           </h1>
@@ -90,7 +90,7 @@ export default function PricingPage() {
 
         {/* Coming soon banner */}
         <div className="mb-10 flex justify-center px-2">
-          <div className="flex flex-col sm:flex-row items-center gap-3 px-5 py-4 rounded-2xl border border-[#F7931A]/20 bg-[#F7931A]/5 w-full sm:w-auto text-center sm:text-left">
+          <div className="flex flex-col sm:flex-row items-center gap-3 px-5 py-4 rounded-2xl border border-[#6366F1]/20 bg-[#6366F1]/5 w-full sm:w-auto text-center sm:text-left">
             <span className="text-xl">🚀</span>
             <div>
               <p className="text-white font-semibold text-sm">Payments launching soon</p>
@@ -99,7 +99,7 @@ export default function PricingPage() {
             <Link
               href="/signup"
               className="sm:ml-4 px-4 py-2 rounded-xl text-sm font-semibold text-white transition-opacity hover:opacity-90 w-full sm:w-auto"
-              style={{ background: 'linear-gradient(135deg, #F7931A, #FF6B2B)' }}
+              style={{ background: 'linear-gradient(135deg, #6366F1, #8B5CF6)' }}
             >
               Get Free Credits →
             </Link>
@@ -113,15 +113,15 @@ export default function PricingPage() {
               key={plan.id}
               className={`relative rounded-3xl border p-8 transition-all duration-300 flex flex-col ${
                 plan.mostPopular
-                  ? 'border-[#F7931A]/60 shadow-[0_0_40px_rgba(247,147,26,0.15)] scale-[1.02]'
-                  : 'border-white/10 hover:border-[#F7931A]/30 hover:shadow-[0_0_24px_rgba(247,147,26,0.08)]'
+                  ? 'border-[#6366F1]/60 shadow-[0_0_40px_rgba(99,102,241,0.15)] scale-[1.02]'
+                  : 'border-white/10 hover:border-[#6366F1]/30 hover:shadow-[0_0_24px_rgba(99,102,241,0.08)]'
               }`}
               style={{ backgroundColor: '#111827' }}
             >
               {plan.mostPopular && (
                 <div
                   className="absolute -top-3.5 left-1/2 -translate-x-1/2 px-4 py-1 rounded-full text-xs font-bold text-white"
-                  style={{ background: 'linear-gradient(135deg, #F7931A, #FF6B2B)' }}
+                  style={{ background: 'linear-gradient(135deg, #6366F1, #8B5CF6)' }}
                 >
                   MOST POPULAR
                 </div>
@@ -142,8 +142,8 @@ export default function PricingPage() {
                 <div
                   className="inline-flex items-center gap-1.5 mt-2 px-3 py-1 rounded-full text-sm font-semibold"
                   style={{
-                    backgroundColor: plan.mostPopular ? 'rgba(247,147,26,0.15)' : 'rgba(255,255,255,0.05)',
-                    color: plan.mostPopular ? '#F7931A' : '#94A3B8',
+                    backgroundColor: plan.mostPopular ? 'rgba(99,102,241,0.15)' : 'rgba(255,255,255,0.05)',
+                    color: plan.mostPopular ? '#6366F1' : '#94A3B8',
                   }}
                 >
                   🪙 {plan.credits}
@@ -158,8 +158,8 @@ export default function PricingPage() {
                       className="mt-0.5 w-4 h-4 rounded-full flex items-center justify-center flex-shrink-0"
                       style={{
                         background: plan.mostPopular
-                          ? 'linear-gradient(135deg, #F7931A, #FF6B2B)'
-                          : 'rgba(247,147,26,0.15)',
+                          ? 'linear-gradient(135deg, #6366F1, #8B5CF6)'
+                          : 'rgba(99,102,241,0.15)',
                       }}
                     >
                       <Check size={10} className="text-white" />
@@ -175,7 +175,7 @@ export default function PricingPage() {
                 className="w-full py-3.5 rounded-2xl text-center text-sm font-bold transition-all block hover:opacity-90 hover:scale-[1.02]"
                 style={
                   plan.mostPopular
-                    ? { background: 'linear-gradient(135deg, #F7931A, #FF6B2B)', color: 'white' }
+                    ? { background: 'linear-gradient(135deg, #6366F1, #8B5CF6)', color: 'white' }
                     : { backgroundColor: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', color: '#E2E8F0' }
                 }
               >
@@ -243,7 +243,7 @@ export default function PricingPage() {
         </div>
 
         {/* CTA banner */}
-        <div className="text-center rounded-3xl border border-[#F7931A]/20 bg-[#F7931A]/5 p-12">
+        <div className="text-center rounded-3xl border border-[#6366F1]/20 bg-[#6366F1]/5 p-12">
           <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">
             Ready to ace your next interview?
           </h2>
@@ -252,8 +252,8 @@ export default function PricingPage() {
           </p>
           <Link
             href="/signup"
-            className="inline-flex items-center gap-2 px-10 py-4 rounded-2xl text-lg font-bold text-white shadow-2xl transition-all hover:scale-[1.02] hover:shadow-[0_0_40px_rgba(247,147,26,0.4)]"
-            style={{ background: 'linear-gradient(135deg, #F7931A, #FF6B2B)' }}
+            className="inline-flex items-center gap-2 px-10 py-4 rounded-2xl text-lg font-bold text-white shadow-2xl transition-all hover:scale-[1.02] hover:shadow-[0_0_40px_rgba(99,102,241,0.4)]"
+            style={{ background: 'linear-gradient(135deg, #6366F1, #8B5CF6)' }}
           >
             ✨ Start Free Trial →
           </Link>

@@ -20,7 +20,7 @@ export default function InterviewPage() {
 
   if (status === "loading") return (
     <div style={{ minHeight: "100vh", background: "#030304", display: "flex", alignItems: "center", justifyContent: "center" }}>
-      <div style={{ width: "32px", height: "32px", border: "2px solid #F7931A", borderTopColor: "transparent", borderRadius: "50%", animation: "spin 1s linear infinite" }} />
+      <div style={{ width: "32px", height: "32px", border: "2px solid #6366F1", borderTopColor: "transparent", borderRadius: "50%", animation: "spin 1s linear infinite" }} />
     </div>
   )
 

@@ -17,7 +17,7 @@ export default function ComparePage() {
           <p className="text-xl text-[#94A3B8] max-w-3xl mx-auto mb-8">
             See why thousands of candidates choose InterviewAI over expensive alternatives
           </p>
-          <div className="text-3xl font-bold bg-gradient-to-r from-[#F7931A] to-[#FF6B2B] bg-clip-text text-transparent mb-4">
+          <div className="text-3xl font-bold bg-gradient-to-r from-[#6366F1] to-[#8B5CF6] bg-clip-text text-transparent mb-4">
             Save up to <span>85%</span> compared to other AI interview tools
           </div>
         </div>
@@ -27,10 +27,10 @@ export default function ComparePage() {
             <thead>
               <tr className="border-b border-white/10">
                 <th className="py-4 px-4 font-semibold text-white w-56">Feature</th>
-                <th className="py-4 px-4 font-semibold text-[#F7931A] border-l border-[#F7931A]/20 bg-[#111827] relative">
-                  <div className="inline-flex items-center gap-1 bg-[#F7931A]/10 px-3 py-1 rounded-full text-xs font-bold border border-[#F7931A]/30">
+                <th className="py-4 px-4 font-semibold text-[#6366F1] border-l border-[#6366F1]/20 bg-[#111827] relative">
+                  <div className="inline-flex items-center gap-1 bg-[#6366F1]/10 px-3 py-1 rounded-full text-xs font-bold border border-[#6366F1]/30">
                     InterviewAI
-                    <span className="text-xs font-bold text-white bg-[#F7931A] rounded-full px-2 py-0.5">Most Affordable</span>
+                    <span className="text-xs font-bold text-white bg-[#6366F1] rounded-full px-2 py-0.5">Most Affordable</span>
                   </div>
                 </th>
                 <th className="py-4 px-4 font-semibold text-zinc-400">Parakeet AI</th>
@@ -53,7 +53,7 @@ export default function ComparePage() {
               ].map((row, index) => (
                 <tr key={index}>
                   <td className="py-4 px-4 text-[#94A3B8] font-medium">{row[0]}</td>
-                  <td className="py-4 px-4 border-l border-[#F7931A]/20 bg-[#111827]/50">{row[1]}</td>
+                  <td className="py-4 px-4 border-l border-[#6366F1]/20 bg-[#111827]/50">{row[1]}</td>
                   <td className="py-4 px-4">{row[2]}</td>
                   <td className="py-4 px-4">{row[3]}</td>
                   <td className="py-4 px-4">{row[4]}</td>
@@ -70,11 +70,11 @@ export default function ComparePage() {
             { pct: '81%', vs: 'LockedIn AI', desc: 'India pricing' },
             { pct: '75%', vs: 'Interview Warmup', desc: 'More features' },
           ].map(({ pct, vs, desc }) => (
-            <div key={vs} className="rounded-2xl border border-white/10 p-8 text-center group hover:border-[#F7931A]/50 transition-all">
-              <div className="text-3xl mb-4 font-bold text-[#F7931A]">{pct}</div>
+            <div key={vs} className="rounded-2xl border border-white/10 p-8 text-center group hover:border-[#6366F1]/50 transition-all">
+              <div className="text-3xl mb-4 font-bold text-[#6366F1]">{pct}</div>
               <h3 className="text-xl font-bold mb-2">vs {vs}</h3>
-              <p className="text-[#94A3B8] mb-6">{desc}, <span className="text-[#F7931A]">{pct} cheaper</span></p>
-              <div className="w-full h-px bg-gradient-to-r from-transparent via-[#F7931A]/50 to-transparent" />
+              <p className="text-[#94A3B8] mb-6">{desc}, <span className="text-[#6366F1]">{pct} cheaper</span></p>
+              <div className="w-full h-px bg-gradient-to-r from-transparent via-[#6366F1]/50 to-transparent" />
             </div>
           ))}
         </div>
@@ -87,7 +87,7 @@ export default function ComparePage() {
           <a
             href="/signup"
             className="inline-flex items-center gap-3 px-8 py-4 rounded-2xl text-xl font-bold text-white shadow-2xl hover:opacity-90 transition-all"
-            style={{ background: 'linear-gradient(135deg, #F7931A, #FF6B2B)', boxShadow: '0 0 40px rgba(247,147,26,0.25)' }}
+            style={{ background: 'linear-gradient(135deg, #6366F1, #8B5CF6)', boxShadow: '0 0 40px rgba(99,102,241,0.25)' }}
           >
             Start Free →
           </a>

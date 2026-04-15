@@ -25,10 +25,10 @@ const PLANS = [
     price: '₹1,199',
     credits: 150,
     icon: Star,
-    color: '#F7931A',
-    bg: 'rgba(247,147,26,0.08)',
-    border: 'rgba(247,147,26,0.35)',
-    glow: 'rgba(247,147,26,0.35)',
+    color: '#6366F1',
+    bg: 'rgba(99,102,241,0.08)',
+    border: 'rgba(99,102,241,0.35)',
+    glow: 'rgba(99,102,241,0.35)',
     popular: true,
     features: ['150 AI answers', '3 Mock Interview sessions', 'ATS Score checks', '4–5 interviews'],
   },
@@ -57,17 +57,46 @@ export default function CreditsPage() {
   const handleBuy = async (planId: string) => {
     setLoading(planId)
     try {
-      const r = await fetch('/api/stripe/checkout', {
+      const r = await fetch('/api/razorpay/checkout', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ planId }),
       })
-      const d = await r.json() as { url?: string; error?: string }
-      if (!r.ok || !d.url) {
+      const d = await r.json() as { orderId?: string; amount?: number; currency?: string; keyId?: string; error?: string }
+      if (!r.ok || !d.orderId) {
         addToast(d.error || 'Failed to create checkout', 'error')
         return
       }
-      window.location.href = d.url
+      // Open Razorpay checkout
+      const RazorpayClass = (window as any).Razorpay
+      if (!RazorpayClass) {
+        addToast('Payment gateway not loaded. Please refresh and try again.', 'error')
+        return
+      }
+      const rzp = new RazorpayClass({
+        key: d.keyId,
+        amount: d.amount,
+        currency: d.currency,
+        order_id: d.orderId,
+        name: 'InterviewAI',
+        description: `${planId} plan`,
+        handler: async (response: any) => {
+          const vr = await fetch('/api/razorpay/verify', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ ...response, planId }),
+          })
+          const vd = await vr.json()
+          if (vd.success) {
+            addToast('Payment successful! Credits added.', 'success')
+            refresh()
+          } else {
+            addToast(vd.error || 'Payment verification failed', 'error')
+          }
+        },
+        theme: { color: '#6366F1' },
+      })
+      rzp.open()
     } catch {
       addToast('Something went wrong', 'error')
     } finally {
@@ -96,7 +125,7 @@ export default function CreditsPage() {
         {/* Header */}
         <div>
           <h1 className="text-xl sm:text-2xl font-bold text-white flex items-center gap-2">
-            <Coins size={22} className="text-[#F7931A]" />
+            <Coins size={22} className="text-[#6366F1]" />
             Buy Credits
           </h1>
           <p className="text-[#64748B] text-sm mt-1">
@@ -140,7 +169,7 @@ export default function CreditsPage() {
               >
                 {plan.popular && (
                   <div className="absolute -top-3 left-1/2 -translate-x-1/2">
-                    <span className="px-3 py-1 rounded-full text-[10px] font-bold text-white" style={{ background: 'linear-gradient(135deg, #F7931A, #FF6B2B)' }}>
+                    <span className="px-3 py-1 rounded-full text-[10px] font-bold text-white" style={{ background: 'linear-gradient(135deg, #6366F1, #8B5CF6)' }}>
                       MOST POPULAR
                     </span>
                   </div>
@@ -177,7 +206,7 @@ export default function CreditsPage() {
         </div>
 
         <p className="text-center text-xs text-[#374151]">
-          Payments are processed securely by Stripe. GST applicable for Indian users.
+          Payments are processed securely by Razorpay. GST applicable for Indian users.
         </p>
       </div>
     </div>

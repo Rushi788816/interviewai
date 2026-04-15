@@ -15,6 +15,8 @@ import {
   Check,
   Clock,
   Zap,
+  Gift,
+  Copy,
 } from "lucide-react"
 
 export default function SettingsPage() {
@@ -28,6 +30,8 @@ export default function SettingsPage() {
   >([])
   const [saving, setSaving] = useState(false)
   const [success, setSuccess] = useState(false)
+  const [referralCodeInput, setReferralCodeInput] = useState('')
+  const [referralApplying, setReferralApplying] = useState(false)
   const [sessionsLoading, setSessionsLoading] = useState(true)
 
   useEffect(() => {
@@ -80,7 +84,7 @@ export default function SettingsPage() {
   if (status === 'loading') {
     return (
       <div className="min-h-screen bg-[#0A0F1E] flex items-center justify-center">
-        <div className="w-8 h-8 border-2 border-[#F7931A] border-t-transparent rounded-full animate-spin" />
+        <div className="w-8 h-8 border-2 border-[#6366F1] border-t-transparent rounded-full animate-spin" />
       </div>
     )
   }
@@ -126,7 +130,7 @@ export default function SettingsPage() {
       {/* SECTION 1 — PROFILE */}
       <section className="bg-[#111827] border border-white/10 rounded-2xl p-6">
         <div className="flex items-center gap-3 mb-6">
-          <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: 'rgba(247,147,26,0.12)', color: '#F7931A' }}>
+          <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: 'rgba(99,102,241,0.12)', color: '#6366F1' }}>
             <User size={18} />
           </div>
           <div>
@@ -139,7 +143,7 @@ export default function SettingsPage() {
         <div className="flex flex-col sm:flex-row sm:items-center gap-4 mb-6">
           <div
             className="w-16 h-16 rounded-full flex items-center justify-center text-white text-2xl font-bold flex-shrink-0"
-            style={{ background: 'linear-gradient(135deg, #F7931A, #FF6B2B)' }}
+            style={{ background: 'linear-gradient(135deg, #6366F1, #8B5CF6)' }}
           >
             {initial}
           </div>
@@ -154,7 +158,7 @@ export default function SettingsPage() {
           <div>
             <label className="block text-sm font-medium text-[#94A3B8] mb-2">Full Name</label>
             <input
-              className="w-full bg-[#0A0F1E] border border-white/10 rounded-xl px-4 py-3 text-white text-sm outline-none focus:border-[#F7931A]/40 focus:ring-1 focus:ring-[#F7931A]/20 transition-all"
+              className="w-full bg-[#0A0F1E] border border-white/10 rounded-xl px-4 py-3 text-white text-sm outline-none focus:border-[#6366F1]/40 focus:ring-1 focus:ring-[#6366F1]/20 transition-all"
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="Enter your name"
@@ -184,7 +188,7 @@ export default function SettingsPage() {
               onClick={saveName}
               disabled={saving}
               className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold text-white transition-all hover:opacity-90 disabled:opacity-60 disabled:cursor-not-allowed"
-              style={{ background: 'linear-gradient(135deg, #F7931A, #FF6B2B)' }}
+              style={{ background: 'linear-gradient(135deg, #6366F1, #8B5CF6)' }}
             >
               <Save size={15} />
               {saving ? "Saving…" : "Save Changes"}
@@ -212,7 +216,7 @@ export default function SettingsPage() {
         </div>
 
         {/* Balance banner */}
-        <div className="rounded-2xl border border-[#F7931A]/20 p-5 mb-6" style={{ background: 'rgba(247,147,26,0.05)' }}>
+        <div className="rounded-2xl border border-[#6366F1]/20 p-5 mb-6" style={{ background: 'rgba(99,102,241,0.05)' }}>
           <div className="flex items-center gap-4">
             <Coins size={28} className="text-amber-400 flex-shrink-0" />
             <div className="flex-1">
@@ -221,7 +225,7 @@ export default function SettingsPage() {
             </div>
             <div className="text-right">
               <span className="inline-flex items-center gap-1.5 text-xs text-[#94A3B8] bg-white/5 px-3 py-1.5 rounded-full">
-                <Zap size={11} className="text-[#F7931A]" />
+                <Zap size={11} className="text-[#6366F1]" />
                 Never expires
               </span>
             </div>
@@ -235,14 +239,14 @@ export default function SettingsPage() {
               key={plan.id}
               className="relative rounded-2xl border p-5 flex flex-col"
               style={{
-                backgroundColor: plan.mostPopular ? 'rgba(247,147,26,0.04)' : 'transparent',
-                borderColor: plan.mostPopular ? 'rgba(247,147,26,0.4)' : 'rgba(255,255,255,0.08)',
+                backgroundColor: plan.mostPopular ? 'rgba(99,102,241,0.04)' : 'transparent',
+                borderColor: plan.mostPopular ? 'rgba(99,102,241,0.4)' : 'rgba(255,255,255,0.08)',
               }}
             >
               {plan.mostPopular && (
                 <div
                   className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-0.5 rounded-full text-xs font-bold text-white whitespace-nowrap"
-                  style={{ background: 'linear-gradient(135deg, #F7931A, #FF6B2B)' }}
+                  style={{ background: 'linear-gradient(135deg, #6366F1, #8B5CF6)' }}
                 >
                   MOST POPULAR
                 </div>
@@ -253,7 +257,7 @@ export default function SettingsPage() {
                   {plan.price}
                   <span className="text-sm font-normal text-[#94A3B8]"> + GST</span>
                 </div>
-                <p className="text-sm font-semibold mt-1" style={{ color: plan.mostPopular ? '#F7931A' : '#94A3B8' }}>
+                <p className="text-sm font-semibold mt-1" style={{ color: plan.mostPopular ? '#6366F1' : '#94A3B8' }}>
                   🪙 {plan.credits}
                 </p>
               </div>
@@ -270,7 +274,7 @@ export default function SettingsPage() {
                 className="w-full py-2.5 rounded-xl text-xs font-bold text-center block transition-all hover:opacity-90 hover:scale-[1.02]"
                 style={
                   plan.mostPopular
-                    ? { background: 'linear-gradient(135deg, #F7931A, #FF6B2B)', color: 'white' }
+                    ? { background: 'linear-gradient(135deg, #6366F1, #8B5CF6)', color: 'white' }
                     : { backgroundColor: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', color: '#E2E8F0' }
                 }
               >
@@ -340,7 +344,7 @@ export default function SettingsPage() {
                       </span>
                     </td>
                     <td className="px-4 py-3">
-                      <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-[#F7931A]/10 text-[#F7931A] border border-[#F7931A]/20">
+                      <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-[#6366F1]/10 text-[#6366F1] border border-[#6366F1]/20">
                         {s.mode}
                       </span>
                     </td>
@@ -357,6 +361,90 @@ export default function SettingsPage() {
           </table>
         </div>
         )}
+      </section>
+
+      {/* SECTION 3b — REFER & EARN */}
+      <section className="bg-[#111827] border border-white/10 rounded-2xl p-6">
+        <div className="flex items-center gap-3 mb-6">
+          <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: 'rgba(99,102,241,0.12)', color: '#6366F1' }}>
+            <Gift size={18} />
+          </div>
+          <div>
+            <h2 className="text-base font-bold text-white">Refer &amp; Earn</h2>
+            <p className="text-[#94A3B8] text-xs">Share your link. When a friend signs up, you both get 20 free credits.</p>
+          </div>
+        </div>
+
+        {/* User's referral code */}
+        {session?.user && (
+          <div className="mb-5">
+            <label className="block text-sm font-medium text-[#94A3B8] mb-2">Your Referral Link</label>
+            <div className="flex gap-2">
+              <input
+                readOnly
+                value={`https://interviewai.in/signup?ref=${(session.user as any).id || 'your-code'}`}
+                className="flex-1 bg-[#0A0F1E] border border-white/10 rounded-xl px-4 py-3 text-[#94A3B8] text-sm outline-none"
+              />
+              <button
+                type="button"
+                onClick={() => {
+                  const code = (session.user as any).id || 'your-code'
+                  navigator.clipboard.writeText(`https://interviewai.in/signup?ref=${code}`)
+                  addToast('Referral link copied!', 'success')
+                }}
+                className="inline-flex items-center gap-2 px-4 py-3 rounded-xl text-sm font-semibold text-white transition-all hover:opacity-90"
+                style={{ background: 'linear-gradient(135deg, #6366F1, #8B5CF6)' }}
+              >
+                <Copy size={14} />
+                Copy Link
+              </button>
+            </div>
+            <p className="text-xs text-[#4B5563] mt-2">You and your friend each receive 20 free credits when they sign up using your link.</p>
+          </div>
+        )}
+
+        {/* Apply referral code */}
+        <div>
+          <label className="block text-sm font-medium text-[#94A3B8] mb-2">Have a referral code? Enter it below</label>
+          <div className="flex gap-2">
+            <input
+              type="text"
+              value={referralCodeInput}
+              onChange={(e) => setReferralCodeInput(e.target.value)}
+              placeholder="Enter referral code"
+              className="flex-1 bg-[#0A0F1E] border border-white/10 rounded-xl px-4 py-3 text-white placeholder-[#4B5563] text-sm outline-none focus:border-[#6366F1]/40 focus:ring-1 focus:ring-[#6366F1]/20 transition-all"
+            />
+            <button
+              type="button"
+              disabled={referralApplying || !referralCodeInput.trim()}
+              onClick={async () => {
+                setReferralApplying(true)
+                try {
+                  const res = await fetch('/api/referral/apply', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ referralCode: referralCodeInput.trim() }),
+                  })
+                  const d = await res.json()
+                  if (d.success) {
+                    addToast('Referral applied! 20 credits added.', 'success')
+                    setReferralCodeInput('')
+                  } else {
+                    addToast(d.error || 'Failed to apply referral', 'error')
+                  }
+                } catch {
+                  addToast('Something went wrong', 'error')
+                } finally {
+                  setReferralApplying(false)
+                }
+              }}
+              className="inline-flex items-center gap-2 px-4 py-3 rounded-xl text-sm font-semibold text-white transition-all hover:opacity-90 disabled:opacity-60 disabled:cursor-not-allowed"
+              style={{ background: 'rgba(99,102,241,0.15)', border: '1px solid rgba(99,102,241,0.3)', color: '#6366F1' }}
+            >
+              {referralApplying ? 'Applying…' : 'Apply Code'}
+            </button>
+          </div>
+        </div>
       </section>
 
       {/* SECTION 4 — ACCOUNT */}

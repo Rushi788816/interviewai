@@ -1,7 +1,7 @@
 "use client"
 import { useState, useEffect, useRef, useCallback } from "react"
 import { createPortal } from "react-dom"
-import { useSession } from "next-auth/react"
+import { useSession, signOut } from "next-auth/react"
 import { useSpeechRecognition } from "@/hooks/useSpeechRecognition"
 import { useSystemAudio } from "@/hooks/useSystemAudio"
 import { useInterviewStore } from "@/store/interviewStore"
@@ -37,11 +37,18 @@ declare global {
       onStopSession?: (cb: () => void) => void
       // Ctrl+Shift+E → send current question to AI
       onSendQuestion?: (cb: () => void) => void
-      // Ctrl+Shift+S → screenshot captured, auto-send to AI immediately
+      // Ctrl+Shift+S → screenshot captured, attaches to input box (user sends manually)
       onScreenshotAndSend?: (cb: (dataUrl: string) => void) => void
       moveWindow?: (dir: "left" | "right") => void
       minimizeWindow?: () => void
       hideWindow?: () => void
+      setOpacity?: (value: number) => void
+      setSetting?: (key: string, value: any) => Promise<void>
+      getSettings?: () => Promise<Record<string, any>>
+      onSettingsInit?: (cb: (settings: Record<string, any>) => void) => void
+      removeAllListeners?: (channel: string) => void
+      onSignOut?: (cb: () => void) => void
+      captureScreenshotStealth?: () => Promise<string | null>
     }
   }
 }
@@ -72,6 +79,10 @@ export default function InterviewAssistant({ userId, credits: creditsProp, showF
   const [manualQuestion, setManualQuestion] = useState("")
   const [showShortcuts, setShowShortcuts] = useState(false)
   const [audioSource, setAudioSource] = useState<"mic" | "system">("mic")
+  const [overlayOpacity, setOverlayOpacity] = useState(95)
+  const [isElectronApp, setIsElectronApp] = useState(false)
+  const [showHistory, setShowHistory] = useState(false)
+  const [useHistoryContext, setUseHistoryContext] = useState(false)
 
   // ── Refs ────────────────────────────────────────────────────────────────────
   const answerScrollRef = useRef<HTMLDivElement>(null)
@@ -90,11 +101,35 @@ export default function InterviewAssistant({ userId, credits: creditsProp, showF
   }, [])
 
   useEffect(() => {
+    setIsElectronApp(!!eAPI()?.isElectron)
+  }, [])
+
+  useEffect(() => {
     const api = eAPI()
     if (!api?.onModeSet) return
     api.onModeSet((data) => {
       setIsDesiMode(data.isDesiMode)
       if (data.language) setLanguage(data.language)
+    })
+  }, [])
+
+  // Handle sign-out signal from tray menu
+  useEffect(() => {
+    const api = eAPI()
+    if (!api?.onSignOut) return
+    api.onSignOut(() => { void signOut({ callbackUrl: '/login' }) })
+  }, [])
+
+  // Load saved opacity from Electron settings
+  useEffect(() => {
+    const api = eAPI()
+    if (!api?.isElectron) return
+    api.onSettingsInit?.((s: any) => {
+      if (s?.opacity) setOverlayOpacity(Math.round(s.opacity * 100))
+    })
+    // Also load immediately if already saved
+    api.getSettings?.().then((s: any) => {
+      if (s?.opacity) setOverlayOpacity(Math.round(s.opacity * 100))
     })
   }, [])
 
@@ -125,7 +160,7 @@ export default function InterviewAssistant({ userId, credits: creditsProp, showF
           interviewType,
           language: isDesiMode ? "en-IN" : language,
           sessionContext: storeContext,
-          qaHistory: qaHistory?.slice(-4) ?? [],
+          qaHistory: useHistoryContext ? (qaHistory?.slice(-5) ?? []) : [],
         }),
       })
 
@@ -179,7 +214,7 @@ export default function InterviewAssistant({ userId, credits: creditsProp, showF
       setIsStreamingAnswer(false)
       addToast("Connection error. Please check your internet and try again.", "error")
     }
-  }, [isDesiMode, interviewType, language, storeContext, qaHistory, addToast, addQAPair])
+  }, [isDesiMode, interviewType, language, storeContext, qaHistory, useHistoryContext, addToast, addQAPair])
 
   // ── Shared silence handler (used by both STT sources) ───────────────────────
   const onSilenceHandler = useCallback(async ({ finalTranscript }: { finalTranscript: string }) => {
@@ -188,6 +223,7 @@ export default function InterviewAssistant({ userId, credits: creditsProp, showF
     if (words.length < 3) return
     if (sessionPhase !== "running") return
     setLiveQuestion(finalTranscript)
+    setManualQuestion("")
     await fetchAIAnswer(finalTranscript)
   }, [sessionPhase, fetchAIAnswer])
 
@@ -235,6 +271,22 @@ export default function InterviewAssistant({ userId, credits: creditsProp, showF
 
   // ── Screenshot capture ───────────────────────────────────────────────────────
   const captureScreen = useCallback(async () => {
+    // In Electron use desktopCapturer (no browser permission needed)
+    if (eAPI()?.captureScreenshotStealth) {
+      try {
+        const dataUrl = await eAPI()!.captureScreenshotStealth!()
+        if (dataUrl) {
+          setScreenshots(prev => [...prev.slice(-4), dataUrl])
+          addToast("Screenshot captured — attach a question and click Send", "success")
+        } else {
+          addToast("Screen capture failed — no screen source found", "error")
+        }
+      } catch {
+        addToast("Screen capture failed", "error")
+      }
+      return
+    }
+    // Web fallback — browser getDisplayMedia
     try {
       const stream = await navigator.mediaDevices.getDisplayMedia({ video: true })
       const video = document.createElement("video")
@@ -268,6 +320,11 @@ export default function InterviewAssistant({ userId, credits: creditsProp, showF
     reader.readAsDataURL(file)
   }, [addToast])
 
+  // ── Sync voice transcript → question input ───────────────────────────────────
+  useEffect(() => {
+    if (isListening && transcript) setManualQuestion(transcript)
+  }, [transcript, isListening])
+
   // ── Manual question send (text + optional screenshots) ───────────────────────
   const sendManualQuestion = useCallback(async () => {
     const q = manualQuestion.trim()
@@ -278,8 +335,10 @@ export default function InterviewAssistant({ userId, credits: creditsProp, showF
     const imgs = [...screenshots]
     setManualQuestion("")
     setScreenshots([])
+    // Reset transcript so silence timer doesn't fire the same question again
+    resetTranscript()
     await fetchAIAnswer(questionText, imgs)
-  }, [manualQuestion, screenshots, sessionPhase, fetchAIAnswer, addToast])
+  }, [manualQuestion, screenshots, sessionPhase, fetchAIAnswer, resetTranscript, addToast])
 
   // Keep refs current so keyboard handler always has latest versions
   useEffect(() => { sendManualRef.current = sendManualQuestion }, [sendManualQuestion])
@@ -382,35 +441,34 @@ export default function InterviewAssistant({ userId, credits: creditsProp, showF
   useEffect(() => {
     const api = eAPI()
     if (!api?.onStopSession) return
+    api.removeAllListeners?.('session:stop')
     api.onStopSession(() => { void handleStopRef.current() })
+    return () => { api.removeAllListeners?.('session:stop') }
   }, [])
 
   // Ctrl+Shift+E — send current question to AI
   useEffect(() => {
     const api = eAPI()
     if (!api?.onSendQuestion) return
+    api.removeAllListeners?.('overlay:send-question')
     api.onSendQuestion(() => { void sendManualRef.current() })
+    return () => { api.removeAllListeners?.('overlay:send-question') }
   }, [])
 
-  // Ctrl+Shift+S — screenshot captured in main process, auto-send to AI immediately
-  const sessionPhaseRef = useRef(sessionPhase)
-  useEffect(() => { sessionPhaseRef.current = sessionPhase }, [sessionPhase])
-  const fetchAIAnswerRef = useRef(fetchAIAnswer)
-  useEffect(() => { fetchAIAnswerRef.current = fetchAIAnswer }, [fetchAIAnswer])
-
+  // Ctrl+Shift+S — screenshot captured in main process → ATTACH to input, do NOT auto-send
   useEffect(() => {
     const api = eAPI()
     if (!api?.onScreenshotAndSend) return
+    // Remove any stale listeners (hot-reload / re-mount safety)
+    api.removeAllListeners?.('overlay:screenshot-send')
     api.onScreenshotAndSend((dataUrl: string) => {
-      if (sessionPhaseRef.current !== "running") {
-        addToast("Start the session first, then use Ctrl+Shift+S", "error")
-        return
-      }
-      const qText = manualInputRef.current?.value?.trim() || "Analyze this screenshot and provide guidance on solving this"
-      setLiveQuestion(qText)
-      setManualQuestion("")
-      void fetchAIAnswerRef.current(qText, [dataUrl])
+      setScreenshots(prev => [...prev.slice(-4), dataUrl])
+      addToast("Screenshot attached — type a question and click Send", "success")
+      manualInputRef.current?.focus()
     })
+    return () => {
+      api.removeAllListeners?.('overlay:screenshot-send')
+    }
   }, [addToast])
 
   const handleDesiToggle = () => {
@@ -430,30 +488,292 @@ export default function InterviewAssistant({ userId, credits: creditsProp, showF
     else addToast("Overlay opened — share only this tab to keep it hidden", "info")
   }
 
-  const mainContainerStyle = { maxWidth: "1100px", margin: "0 auto", display: "flex", flexDirection: "column" as const, gap: "16px" }
+  const pill = (active: boolean, accent = "#F7931A") => ({
+    background: active ? `rgba(${accent === "#F7931A" ? "247,147,26" : "129,140,248"},0.15)` : "transparent",
+    border: `1px solid ${active ? accent : "rgba(255,255,255,0.1)"}`,
+    borderRadius: "20px", padding: "4px 11px", fontSize: "12px",
+    color: active ? accent : "#94A3B8", fontWeight: active ? "600" : "400" as any,
+    cursor: "pointer" as const,
+  })
 
-  return (
-    <div style={mainContainerStyle}>
-      {showSetup ? (
-        <div style={{ background: "#0F1115", border: "1px solid rgba(255,255,255,0.08)", borderRadius: "16px", padding: "28px" }}>
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "24px", flexWrap: "wrap" as const, gap: "12px" }}>
-            <div>
-              <h2 style={{ color: "#fff", fontSize: "22px", fontWeight: "700" as const, margin: "0 0 6px", display: "flex", alignItems: "center", gap: "8px" }}>
-                🎯 Setup Your Interview Session
-              </h2>
-              <p style={{ color: "#64748B", fontSize: "13px", margin: 0 }}>Help AI give you personalized answers</p>
+  // ── Shared UI blocks ─────────────────────────────────────────────────────────
+  const screenshotThumbnails = screenshots.length > 0 && (
+    <div style={{ display: "flex", gap: "6px", flexWrap: "wrap" as const }}>
+      {screenshots.map((src, i) => (
+        <div key={i} style={{ position: "relative" as const }}>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={src} alt={`Screenshot ${i + 1}`} style={{ height: "52px", width: "auto", maxWidth: "110px", objectFit: "cover", borderRadius: "6px", border: "2px solid rgba(247,147,26,0.4)" }} />
+          <button onClick={() => setScreenshots(prev => prev.filter((_, j) => j !== i))} style={{ position: "absolute", top: "-5px", right: "-5px", background: "#ef4444", border: "none", borderRadius: "50%", width: "16px", height: "16px", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", padding: 0 }}>
+            <X size={9} color="white" />
+          </button>
+        </div>
+      ))}
+    </div>
+  )
+
+  const handleClear = useCallback(() => {
+    setManualQuestion("")
+    setScreenshots([])
+    setStreamingAnswer("")
+    setLiveQuestion("")
+    resetTranscript()
+  }, [resetTranscript])
+
+  const actionButtons = (
+    <div style={{ display: "flex", gap: "6px", flexWrap: "wrap" as const, alignItems: "center" }}>
+      <button onClick={() => fileInputRef.current?.click()} style={{ background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.12)", borderRadius: "8px", padding: "6px 11px", color: "#94A3B8", fontSize: "12px", cursor: "pointer", display: "flex", alignItems: "center", gap: "4px" }}>
+        <Upload size={12} /> Upload
+      </button>
+      <button onClick={() => void captureScreen()} style={{ background: "rgba(99,102,241,0.08)", border: "1px solid rgba(99,102,241,0.3)", borderRadius: "8px", padding: "6px 11px", color: "#818cf8", fontSize: "12px", cursor: "pointer", display: "flex", alignItems: "center", gap: "4px" }}>
+        <Camera size={12} /> Capture
+      </button>
+      <button
+        onClick={handleClear}
+        title="Clear question and answer"
+        style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: "8px", padding: "6px 11px", color: "#64748B", fontSize: "12px", cursor: "pointer", display: "flex", alignItems: "center", gap: "4px" }}
+      >
+        <X size={12} /> Clear
+      </button>
+      <button
+        onClick={() => void sendManualRef.current()}
+        disabled={sessionPhase !== "running" || (manualQuestion.trim() === "" && screenshots.length === 0)}
+        title={isElectronApp ? "Send (Ctrl+Shift+E)" : "Send (Ctrl+Enter)"}
+        style={{ background: (manualQuestion.trim() || screenshots.length > 0) && sessionPhase === "running" ? "linear-gradient(135deg,#F7931A,#EA580C)" : "rgba(255,255,255,0.05)", border: "none", borderRadius: "8px", padding: "6px 14px", color: (manualQuestion.trim() || screenshots.length > 0) && sessionPhase === "running" ? "white" : "#475569", fontSize: "12px", cursor: sessionPhase === "running" ? "pointer" : "not-allowed", display: "flex", alignItems: "center", gap: "5px", fontWeight: "600", marginLeft: "auto", opacity: sessionPhase !== "running" ? 0.5 : 1 }}
+      >
+        <Send size={12} /> Send <span style={{ opacity: 0.6, fontSize: "10px" }}>{isElectronApp ? "Ctrl+⇧+E" : "Ctrl+↵"}</span>
+      </button>
+      <input ref={fileInputRef} type="file" accept="image/*" style={{ display: "none" }} onChange={e => { const f = e.target.files?.[0]; if (f) handleFileSelect(f); e.target.value = "" }} />
+    </div>
+  )
+
+  const setupScreen = (
+    <div style={{ background: "#0F1115", border: "1px solid rgba(255,255,255,0.08)", borderRadius: "16px", padding: "28px" }}>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "24px", flexWrap: "wrap" as const, gap: "12px" }}>
+        <div>
+          <h2 style={{ color: "#fff", fontSize: "22px", fontWeight: "700" as const, margin: "0 0 6px" }}>🎯 Setup Your Interview Session</h2>
+          <p style={{ color: "#64748B", fontSize: "13px", margin: 0 }}>Help AI give you personalized answers</p>
+        </div>
+        <button onClick={() => setShowSetup(false)} style={{ background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: "20px", padding: "7px 16px", color: "#64748B", fontSize: "12px", cursor: "pointer" }}>
+          Skip Setup
+        </button>
+      </div>
+      <SetupScreen
+        onComplete={(ctx: SessionContext) => { setSessionContextStore(ctx); setSessionContextLocal(ctx); setShowSetup(false) }}
+        onSkip={() => setShowSetup(false)}
+        initialContext={storeContext}
+      />
+    </div>
+  )
+
+  // ── ELECTRON compact layout ──────────────────────────────────────────────────
+  if (isElectronApp) {
+    return (
+      <div style={{ display: "flex", flexDirection: "column", height: "100%", gap: "0", padding: "8px 10px 10px", boxSizing: "border-box" as const, overflowY: "auto" }}>
+
+        {showSetup ? setupScreen : <>
+
+          {/* ── Top controls strip ─────────────────────────────────────── */}
+          <div style={{ display: "flex", flexWrap: "wrap" as const, gap: "5px", marginBottom: "8px", alignItems: "center" }}>
+            {/* Interview type */}
+            {(["technical", "behavioral", "coding"] as const).map(t => (
+              <button key={t} onClick={() => setInterviewType(t)} style={pill(interviewType === t)}>
+                {t === "technical" ? "⚙ Tech" : t === "behavioral" ? "🤝 Behav" : "💻 Code"}
+              </button>
+            ))}
+            <div style={{ width: "1px", height: "18px", background: "rgba(255,255,255,0.1)", margin: "0 2px" }} />
+            {/* Desi mode */}
+            <button onClick={handleDesiToggle} style={pill(isDesiMode)}>🇮🇳 Desi</button>
+            {/* Language */}
+            <select value={language} onChange={e => setLanguage(e.target.value)} style={{ background: "#0a0a0f", border: "1px solid rgba(255,255,255,0.12)", borderRadius: "8px", padding: "4px 8px", color: "#94A3B8", fontSize: "11px", cursor: "pointer" }}>
+              <option value="en-US">EN-US</option>
+              <option value="en-IN">EN-IN</option>
+              <option value="hi-IN">Hindi</option>
+              <option value="ta-IN">Tamil</option>
+              <option value="te-IN">Telugu</option>
+            </select>
+            {/* Logout */}
+            <button
+              onClick={() => void signOut({ callbackUrl: '/login' })}
+              title="Sign out"
+              style={{ marginLeft: "auto", background: "rgba(239,68,68,0.1)", border: "1px solid rgba(239,68,68,0.25)", borderRadius: "8px", padding: "4px 9px", color: "#f87171", fontSize: "11px", cursor: "pointer", fontWeight: "600" }}
+            >⏏ Sign Out</button>
+          </div>
+
+          {/* ── Audio source + Session controls ───────────────────────── */}
+          <div style={{ display: "flex", alignItems: "center", gap: "6px", marginBottom: "8px", flexWrap: "wrap" as const }}>
+            {/* Audio source */}
+            <button onClick={() => handleAudioSourceSwitch("mic")} title="Microphone" style={{ ...pill(audioSource === "mic"), padding: "4px 10px", fontSize: "11px" }}>🎤 Mic</button>
+            <button onClick={() => handleAudioSourceSwitch("system")} title="System audio" style={{ ...pill(audioSource === "system", "#818cf8"), padding: "4px 10px", fontSize: "11px" }}>🔊 Sys</button>
+            {/* Timer */}
+            <span style={{ color: sessionPhase !== "idle" ? "#F7931A" : "#475569", fontSize: "16px", fontWeight: "700", fontFamily: "monospace", marginLeft: "4px" }}>{formatTime(elapsedSeconds)}</span>
+            {/* Session buttons */}
+            <div style={{ display: "flex", gap: "5px", marginLeft: "auto" }}>
+              {sessionPhase === "idle" && (
+                <button onClick={handleToggleSession} style={{ background: "linear-gradient(to right,#EA580C,#F7931A)", border: "none", borderRadius: "8px", padding: "5px 14px", color: "white", fontSize: "12px", fontWeight: "700", cursor: "pointer" }}>▶ Start</button>
+              )}
+              {sessionPhase === "running" && (
+                <button onClick={handleToggleSession} style={{ background: "rgba(251,191,36,0.15)", border: "1px solid rgba(251,191,36,0.4)", borderRadius: "8px", padding: "5px 10px", color: "#FCD34D", fontSize: "12px", cursor: "pointer", display: "flex", alignItems: "center", gap: "3px" }}>
+                  <Pause size={11} /> Pause
+                </button>
+              )}
+              {sessionPhase === "paused" && (
+                <button onClick={handleToggleSession} style={{ background: "rgba(34,197,94,0.15)", border: "1px solid rgba(34,197,94,0.4)", borderRadius: "8px", padding: "5px 10px", color: "#4ade80", fontSize: "12px", cursor: "pointer", display: "flex", alignItems: "center", gap: "3px" }}>
+                  <Play size={11} /> Resume
+                </button>
+              )}
+              {sessionPhase !== "idle" && (
+                <button onClick={handleStop} style={{ background: "rgba(239,68,68,0.15)", border: "1px solid rgba(239,68,68,0.4)", borderRadius: "8px", padding: "5px 10px", color: "#f87171", fontSize: "12px", cursor: "pointer", display: "flex", alignItems: "center", gap: "3px" }}>
+                  <Square size={11} /> Stop
+                </button>
+              )}
             </div>
-            <button onClick={() => setShowSetup(false)} style={{ background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: "20px", padding: "7px 16px", color: "#64748B", fontSize: "12px", cursor: "pointer" }}>
-              Skip Setup
+          </div>
+
+          {audioError && <p style={{ color: "#f87171", fontSize: "10px", margin: "0 0 6px", padding: "5px 8px", background: "rgba(239,68,68,0.08)", borderRadius: "6px" }}>{audioError}</p>}
+          {audioSource === "system" && !isListening && (
+            <p style={{ color: "#64748B", fontSize: "10px", margin: "0 0 6px", lineHeight: "1.5" }}>
+              💡 In the share dialog, check <strong style={{ color: "#94A3B8" }}>"Share system audio"</strong>
+            </p>
+          )}
+
+          {/* ── AI Answer (main area, always visible) ─────────────────── */}
+          <div style={{ background: "#0B1120", border: `1px solid ${isStreamingAnswer ? "rgba(34,197,94,0.5)" : "rgba(34,197,94,0.2)"}`, borderRadius: "10px", padding: "12px", marginBottom: "8px", display: "flex", flexDirection: "column" as const, minHeight: "200px", flex: 1, transition: "border-color 0.3s" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: "6px", marginBottom: "8px" }}>
+              {isStreamingAnswer
+                ? <div style={{ width: "7px", height: "7px", borderRadius: "50%", background: "#4ade80", boxShadow: "0 0 8px rgba(74,222,128,0.7)", flexShrink: 0 }} />
+                : <div style={{ width: "7px", height: "7px", borderRadius: "50%", background: "rgba(74,222,128,0.25)", flexShrink: 0 }} />}
+              <span style={{ color: "#4ade80", fontSize: "10px", textTransform: "uppercase" as const, letterSpacing: "0.1em", fontWeight: "700" }}>AI Answer</span>
+              {liveQuestion && <span style={{ color: "#475569", fontSize: "10px", marginLeft: "4px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" as const, maxWidth: "160px" }}>· {liveQuestion.slice(0, 40)}{liveQuestion.length > 40 ? "…" : ""}</span>}
+              {isStreamingAnswer && <span style={{ marginLeft: "auto", background: "rgba(34,197,94,0.1)", border: "1px solid rgba(34,197,94,0.3)", borderRadius: "8px", padding: "1px 7px", fontSize: "10px", color: "#4ade80", flexShrink: 0 }}>● live</span>}
+            </div>
+            <div ref={answerScrollRef} style={{ flex: 1, overflowY: "auto", fontSize: `${fontSize}px` }}>
+              {streamingAnswer ? (
+                <StructuredAnswer text={streamingAnswer} isStreaming={isStreamingAnswer} fontSize={fontSize} mode={answerMode} />
+              ) : (
+                <p style={{ color: "#374151", fontSize: `${fontSize}px`, lineHeight: "1.7", margin: 0, fontStyle: "italic" }}>
+                  {sessionPhase === "idle" ? "▶ Start session above to begin" : "Speak or type a question — AI answer streams here in real time"}
+                </p>
+              )}
+            </div>
+          </div>
+
+          {/* ── Question (voice auto-fills + manual edit) ──────────────── */}
+          <div style={{ background: "#0F1115", border: `1px solid ${isListening ? "rgba(247,147,26,0.35)" : "rgba(255,255,255,0.09)"}`, borderRadius: "10px", padding: "10px 12px", marginBottom: "6px", transition: "border-color 0.3s" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: "6px", marginBottom: "6px" }}>
+              {isListening
+                ? <div style={{ width: "6px", height: "6px", borderRadius: "50%", background: "#F7931A", boxShadow: "0 0 7px rgba(247,147,26,0.7)", flexShrink: 0 }} />
+                : <MicOff size={10} color="#475569" />}
+              <span style={{ color: "#64748B", fontSize: "10px", textTransform: "uppercase" as const, letterSpacing: "0.08em", fontWeight: "600" }}>
+                Question {screenshots.length > 0 && <span style={{ color: "#F7931A" }}>· {screenshots.length} screenshot{screenshots.length > 1 ? "s" : ""}</span>}
+              </span>
+              <button onClick={toggleListening} disabled={sessionPhase === "idle"} title="Toggle mic" style={{ marginLeft: "auto", background: isListening ? "rgba(247,147,26,0.15)" : "rgba(255,255,255,0.05)", border: `1px solid ${isListening ? "rgba(247,147,26,0.4)" : "rgba(255,255,255,0.1)"}`, borderRadius: "6px", padding: "2px 8px", cursor: sessionPhase === "idle" ? "not-allowed" : "pointer", display: "flex", alignItems: "center", gap: "3px", opacity: sessionPhase === "idle" ? 0.4 : 1 }}>
+                {isListening ? <Mic size={11} color="#F7931A" /> : <MicOff size={11} color="#64748B" />}
+              </button>
+            </div>
+            {screenshotThumbnails}
+            <textarea
+              ref={manualInputRef}
+              value={manualQuestion}
+              onChange={e => setManualQuestion(e.target.value)}
+              onKeyDown={e => { if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) { e.preventDefault(); void sendManualRef.current() } }}
+              placeholder={isListening ? "Listening… speak your question" : "Type a question or turn on mic to speak…"}
+              rows={2}
+              style={{ width: "100%", boxSizing: "border-box" as const, background: "transparent", border: "none", color: "#fff", fontSize: `${fontSize}px`, resize: "none" as const, outline: "none", fontFamily: "inherit", marginTop: screenshots.length > 0 ? "8px" : 0 }}
+            />
+            {interimTranscript && (
+              <p style={{ color: "#475569", fontSize: `${Math.max(fontSize - 1, 10)}px`, margin: "2px 0 0", fontStyle: "italic" }}>
+                {interimTranscript}…
+              </p>
+            )}
+            <div style={{ borderTop: "1px solid rgba(255,255,255,0.06)", marginTop: "6px", paddingTop: "6px" }}>
+              {actionButtons}
+            </div>
+          </div>
+
+          {/* ── Font size + Opacity ────────────────────────────────────── */}
+          <div style={{ display: "flex", gap: "8px", alignItems: "center", marginBottom: "6px", flexWrap: "wrap" as const }}>
+            {/* Font size */}
+            <div style={{ display: "flex", alignItems: "center", gap: "3px", background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: "16px", padding: "3px 8px" }}>
+              <span style={{ color: "#64748B", fontSize: "10px" }}>Aa</span>
+              <button onClick={() => setFontSize(f => Math.max(f - 2, 10))} style={{ background: "transparent", border: "none", color: "#94A3B8", cursor: "pointer", padding: "1px 3px", display: "flex" }}><ZoomOut size={12} /></button>
+              <span style={{ color: "#F7931A", fontSize: "11px", fontWeight: "700", minWidth: "24px", textAlign: "center" }}>{fontSize}px</span>
+              <button onClick={() => setFontSize(f => Math.min(f + 2, 22))} style={{ background: "transparent", border: "none", color: "#94A3B8", cursor: "pointer", padding: "1px 3px", display: "flex" }}><ZoomIn size={12} /></button>
+            </div>
+            {/* Opacity */}
+            <div style={{ display: "flex", alignItems: "center", gap: "5px", background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: "16px", padding: "3px 8px", flex: 1 }}>
+              <span style={{ color: "#64748B", fontSize: "10px" }}>👁</span>
+              <input
+                type="range" min={15} max={100} step={5} value={overlayOpacity}
+                onChange={e => { const v = Number(e.target.value); setOverlayOpacity(v); eAPI()?.setOpacity?.(v / 100); eAPI()?.setSetting?.("opacity", v / 100) }}
+                style={{ flex: 1, accentColor: "#F7931A", cursor: "pointer" }}
+              />
+              <span style={{ color: "#F7931A", fontSize: "11px", fontWeight: "700", minWidth: "30px" }}>{overlayOpacity}%</span>
+            </div>
+            {/* Credits */}
+            <span style={{ background: "rgba(247,147,26,0.12)", border: "1px solid rgba(247,147,26,0.25)", borderRadius: "16px", padding: "3px 9px", fontSize: "11px", color: "#F7931A", fontWeight: "600" }}>🪙 {displayCredits}</span>
+          </div>
+
+          {/* ── Memory Context Toggle ─────────────────────────────────── */}
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", background: "rgba(255,255,255,0.03)", borderRadius: "8px", padding: "7px 10px", border: "1px solid rgba(255,255,255,0.06)" }}>
+            <span style={{ color: "#94A3B8", fontSize: "11px" }}>🧠 Use past Q&A as context</span>
+            <button
+              onClick={() => setUseHistoryContext(v => !v)}
+              disabled={qaHistory?.length === 0}
+              style={{
+                width: "36px", height: "20px", borderRadius: "10px", border: "none", cursor: qaHistory?.length === 0 ? "not-allowed" : "pointer",
+                background: useHistoryContext ? "#F7931A" : "rgba(255,255,255,0.12)",
+                position: "relative", transition: "background 0.2s", flexShrink: 0,
+                opacity: qaHistory?.length === 0 ? 0.4 : 1,
+              }}
+              title={qaHistory?.length === 0 ? "No history yet" : useHistoryContext ? "Memory ON — AI sees past Q&A" : "Memory OFF — each question answered independently"}
+            >
+              <span style={{
+                position: "absolute", top: "3px", width: "14px", height: "14px", borderRadius: "50%",
+                background: "#fff", transition: "left 0.2s",
+                left: useHistoryContext ? "19px" : "3px",
+              }} />
             </button>
           </div>
-          <SetupScreen
-            onComplete={(ctx: SessionContext) => { setSessionContextStore(ctx); setSessionContextLocal(ctx); setShowSetup(false) }}
-            onSkip={() => setShowSetup(false)}
-            initialContext={storeContext}
-          />
-        </div>
-      ) : (
+
+          {/* ── Q&A History (collapsible) ──────────────────────────────── */}
+          {qaHistory?.length > 0 && (
+            <div style={{ background: "#0F1115", border: "1px solid rgba(255,255,255,0.06)", borderRadius: "10px", overflow: "hidden" }}>
+              <button onClick={() => setShowHistory(h => !h)} style={{ width: "100%", background: "transparent", border: "none", padding: "8px 12px", display: "flex", alignItems: "center", gap: "6px", cursor: "pointer", color: "#64748B", fontSize: "11px", textAlign: "left" as const }}>
+                <span>📋 Q&A History ({qaHistory.length})</span>
+                <span style={{ marginLeft: "auto" }}>{showHistory ? "▲" : "▼"}</span>
+              </button>
+              {showHistory && (
+                <div style={{ padding: "0 12px 10px", maxHeight: "130px", overflowY: "auto" as const, display: "flex", flexDirection: "column" as const, gap: "6px" }}>
+                  {qaHistory.slice(-4).reverse().map((item: any, i: number) => (
+                    <div key={i} style={{ background: "rgba(255,255,255,0.03)", borderRadius: "7px", padding: "7px 10px" }}>
+                      <p style={{ color: "#60a5fa", fontSize: "11px", margin: "0 0 2px" }}>Q: {item.question?.slice(0, 70)}{item.question?.length > 70 ? "…" : ""}</p>
+                      <p style={{ color: "#94A3B8", fontSize: "11px", margin: 0 }}>A: {item.answer?.slice(0, 90)}{item.answer?.length > 90 ? "…" : ""}</p>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Shortcuts hint */}
+          <p style={{ color: "#374151", fontSize: "10px", textAlign: "center" as const, margin: "8px 0 0", lineHeight: "1.6" }}>
+            Ctrl+⇧+H hide · Ctrl+⇧+E send · Ctrl+⇧+S screenshot · Ctrl+⇧+Q stop
+          </p>
+
+          {/* Document PiP portal */}
+          {pip.isOpen && pip.container && createPortal(
+            <PiPContent question={liveQuestion} answer={streamingAnswer} isStreaming={isStreamingAnswer} qaHistory={qaHistory} credits={displayCredits} sessionActive={sessionPhase === "running"} isDesiMode={isDesiMode} fontSize={fontSize} answerMode={answerMode} />,
+            pip.container
+          )}
+        </>}
+      </div>
+    )
+  }
+
+  // ── BROWSER layout ───────────────────────────────────────────────────────────
+  return (
+    <div style={{ maxWidth: "1100px", margin: "0 auto", display: "flex", flexDirection: "column" as const, gap: "16px" }}>
+      {showSetup ? setupScreen : (
         <>
           {/* Page Header */}
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: "12px" }}>
@@ -462,24 +782,15 @@ export default function InterviewAssistant({ userId, credits: creditsProp, showF
               <p style={{ color: "#94A3B8", fontSize: "13px", margin: 0 }}>AI answers stream privately to your screen in real-time</p>
             </div>
             <div style={{ display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap" }}>
-              {/* Font size controls */}
               <div style={{ display: "flex", alignItems: "center", gap: "4px", background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: "20px", padding: "4px 10px" }}>
                 <span style={{ color: "#64748B", fontSize: "11px", marginRight: "4px" }}>Aa</span>
-                <button onClick={() => setFontSize(f => Math.max(f - 2, 10))} title="Ctrl+-" style={{ background: "transparent", border: "none", color: "#94A3B8", cursor: "pointer", padding: "2px 4px", display: "flex", alignItems: "center" }}>
-                  <ZoomOut size={14} />
-                </button>
+                <button onClick={() => setFontSize(f => Math.max(f - 2, 10))} style={{ background: "transparent", border: "none", color: "#94A3B8", cursor: "pointer", padding: "2px 4px", display: "flex" }}><ZoomOut size={14} /></button>
                 <span style={{ color: "#F7931A", fontSize: "12px", fontWeight: "700", minWidth: "26px", textAlign: "center" }}>{fontSize}px</span>
-                <button onClick={() => setFontSize(f => Math.min(f + 2, 22))} title="Ctrl+=" style={{ background: "transparent", border: "none", color: "#94A3B8", cursor: "pointer", padding: "2px 4px", display: "flex", alignItems: "center" }}>
-                  <ZoomIn size={14} />
-                </button>
+                <button onClick={() => setFontSize(f => Math.min(f + 2, 22))} style={{ background: "transparent", border: "none", color: "#94A3B8", cursor: "pointer", padding: "2px 4px", display: "flex" }}><ZoomIn size={14} /></button>
               </div>
-              <div style={{ background: "rgba(247,147,26,0.15)", border: "1px solid rgba(247,147,26,0.3)", borderRadius: "20px", padding: "6px 14px", fontSize: "13px", color: "#F7931A", fontWeight: "600" }}>
-                🪙 {displayCredits} credits
-              </div>
+              <div style={{ background: "rgba(247,147,26,0.15)", border: "1px solid rgba(247,147,26,0.3)", borderRadius: "20px", padding: "6px 14px", fontSize: "13px", color: "#F7931A", fontWeight: "600" }}>🪙 {displayCredits} credits</div>
               {sessionPhase === "idle" && (
-                <button onClick={handleToggleSession} style={{ background: "linear-gradient(to right, #EA580C, #F7931A)", border: "none", borderRadius: "20px", padding: "8px 20px", color: "white", fontSize: "13px", fontWeight: "700", cursor: "pointer", boxShadow: "0 0 20px rgba(247,147,26,0.3)" }}>
-                  Start Session
-                </button>
+                <button onClick={handleToggleSession} style={{ background: "linear-gradient(to right,#EA580C,#F7931A)", border: "none", borderRadius: "20px", padding: "8px 20px", color: "white", fontSize: "13px", fontWeight: "700", cursor: "pointer", boxShadow: "0 0 20px rgba(247,147,26,0.3)" }}>Start Session</button>
               )}
             </div>
           </div>
@@ -489,8 +800,8 @@ export default function InterviewAssistant({ userId, credits: creditsProp, showF
             <div style={{ background: "rgba(247,147,26,0.06)", border: "1px solid rgba(247,147,26,0.2)", borderRadius: "10px", padding: "10px 16px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
               <div style={{ fontSize: "13px", color: "#F7931A" }}>
                 🎯 <strong>{storeContext.jobRole}</strong>
-                {storeContext.jobDescription && <span style={{ color: "#94A3B8" }}> · 📋 JD attached</span>}
-                {storeContext.resumeText && <span style={{ color: "#94A3B8" }}> · 📄 Resume attached</span>}
+                {storeContext.jobDescription && <span style={{ color: "#94A3B8" }}> · 📋 JD</span>}
+                {storeContext.resumeText && <span style={{ color: "#94A3B8" }}> · 📄 Resume</span>}
               </div>
               <button onClick={() => setShowSetup(true)} style={{ background: "transparent", border: "1px solid rgba(247,147,26,0.3)", borderRadius: "8px", padding: "4px 10px", color: "#F7931A", fontSize: "12px", cursor: "pointer" }}>Edit</button>
             </div>
@@ -498,82 +809,39 @@ export default function InterviewAssistant({ userId, credits: creditsProp, showF
 
           {/* Controls Row */}
           <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr 1fr", gap: "12px" }}>
-            {/* Interview Type */}
             <div style={{ background: "#0F1115", border: "1px solid rgba(255,255,255,0.08)", borderRadius: "12px", padding: "16px" }}>
               <p style={{ color: "#94A3B8", fontSize: "11px", textTransform: "uppercase", letterSpacing: "0.08em", margin: "0 0 10px", fontWeight: "600" }}>Interview Type</p>
               <div style={{ display: "flex", gap: "6px", flexWrap: "wrap" }}>
                 {(["technical", "behavioral", "coding"] as const).map(t => (
-                  <button key={t} onClick={() => setInterviewType(t)} style={{ background: interviewType === t ? "rgba(247,147,26,0.15)" : "transparent", border: `1px solid ${interviewType === t ? "#F7931A" : "rgba(255,255,255,0.1)"}`, borderRadius: "20px", padding: "5px 12px", fontSize: "12px", color: interviewType === t ? "#F7931A" : "#94A3B8", fontWeight: interviewType === t ? "600" : "400", cursor: "pointer" }}>
-                    {t.charAt(0).toUpperCase() + t.slice(1)}
-                  </button>
+                  <button key={t} onClick={() => setInterviewType(t)} style={pill(interviewType === t)}>{t.charAt(0).toUpperCase() + t.slice(1)}</button>
                 ))}
               </div>
             </div>
-
-            {/* Mode & Language */}
             <div style={{ background: "#0F1115", border: "1px solid rgba(255,255,255,0.08)", borderRadius: "12px", padding: "16px" }}>
               <p style={{ color: "#94A3B8", fontSize: "11px", textTransform: "uppercase", letterSpacing: "0.08em", margin: "0 0 10px", fontWeight: "600" }}>Mode & Language</p>
               <div style={{ display: "flex", gap: "8px", alignItems: "center", flexWrap: "wrap" }}>
-                <button onClick={handleDesiToggle} style={{ background: isDesiMode ? "rgba(247,147,26,0.1)" : "transparent", border: `1px solid ${isDesiMode ? "rgba(247,147,26,0.4)" : "rgba(255,255,255,0.1)"}`, borderRadius: "20px", padding: "5px 12px", fontSize: "12px", color: isDesiMode ? "#F7931A" : "#94A3B8", cursor: "pointer", fontWeight: isDesiMode ? "600" : "400" }}>
-                  🇮🇳 Desi Mode
-                </button>
+                <button onClick={handleDesiToggle} style={pill(isDesiMode)}>🇮🇳 Desi Mode</button>
                 <select value={language} onChange={e => setLanguage(e.target.value)} style={{ background: "#0a0a0f", border: "1px solid rgba(255,255,255,0.1)", borderRadius: "8px", padding: "5px 10px", color: "#94A3B8", fontSize: "12px", cursor: "pointer" }}>
-                  <option value="en-US">English (US)</option>
-                  <option value="en-IN">English (India)</option>
-                  <option value="hi-IN">Hindi</option>
-                  <option value="ta-IN">Tamil</option>
-                  <option value="te-IN">Telugu</option>
+                  <option value="en-US">English (US)</option><option value="en-IN">English (India)</option>
+                  <option value="hi-IN">Hindi</option><option value="ta-IN">Tamil</option><option value="te-IN">Telugu</option>
                 </select>
               </div>
-              {/* Audio source toggle */}
               <div style={{ display: "flex", gap: "6px", alignItems: "center", marginTop: "10px" }}>
-                <span style={{ color: "#64748B", fontSize: "11px", marginRight: "2px" }}>Input:</span>
-                <button
-                  onClick={() => handleAudioSourceSwitch("mic")}
-                  title="Capture your microphone (default)"
-                  style={{ background: audioSource === "mic" ? "rgba(247,147,26,0.15)" : "transparent", border: `1px solid ${audioSource === "mic" ? "#F7931A" : "rgba(255,255,255,0.1)"}`, borderRadius: "20px", padding: "4px 11px", fontSize: "12px", color: audioSource === "mic" ? "#F7931A" : "#94A3B8", fontWeight: audioSource === "mic" ? "600" : "400", cursor: "pointer" }}
-                >
-                  🎤 Mic
-                </button>
-                <button
-                  onClick={() => handleAudioSourceSwitch("system")}
-                  title="Capture system audio / speaker output (Chrome: tick 'Share system audio' in the dialog)"
-                  style={{ background: audioSource === "system" ? "rgba(99,102,241,0.15)" : "transparent", border: `1px solid ${audioSource === "system" ? "#818cf8" : "rgba(255,255,255,0.1)"}`, borderRadius: "20px", padding: "4px 11px", fontSize: "12px", color: audioSource === "system" ? "#818cf8" : "#94A3B8", fontWeight: audioSource === "system" ? "600" : "400", cursor: "pointer" }}
-                >
-                  🔊 System Audio
-                </button>
+                <span style={{ color: "#64748B", fontSize: "11px" }}>Input:</span>
+                <button onClick={() => handleAudioSourceSwitch("mic")} style={pill(audioSource === "mic")}>🎤 Mic</button>
+                <button onClick={() => handleAudioSourceSwitch("system")} style={pill(audioSource === "system", "#818cf8")}>🔊 System Audio</button>
               </div>
-              {audioSource === "system" && (
-                <p style={{ color: "#64748B", fontSize: "10px", margin: "6px 0 0", lineHeight: "1.5" }}>
-                  When the share dialog appears, check <strong style={{ color: "#94A3B8" }}>"Share system audio"</strong> to capture speaker output (e.g. interviewer on a call).
-                </p>
-              )}
-              {audioError && (
-                <p style={{ color: "#f87171", fontSize: "10px", margin: "6px 0 0" }}>{audioError}</p>
-              )}
+              {audioSource === "system" && <p style={{ color: "#64748B", fontSize: "10px", margin: "6px 0 0", lineHeight: "1.5" }}>Check <strong style={{ color: "#94A3B8" }}>"Share system audio"</strong> in the share dialog.</p>}
+              {audioError && <p style={{ color: "#f87171", fontSize: "10px", margin: "6px 0 0" }}>{audioError}</p>}
             </div>
-
-            {/* Session Timer */}
             <div style={{ background: "#0F1115", border: "1px solid rgba(255,255,255,0.08)", borderRadius: "12px", padding: "16px" }}>
               <p style={{ color: "#94A3B8", fontSize: "11px", textTransform: "uppercase", letterSpacing: "0.08em", margin: "0 0 10px", fontWeight: "600" }}>Session</p>
               <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
                 <span style={{ color: "white", fontSize: "22px", fontWeight: "700", fontFamily: "monospace" }}>{formatTime(elapsedSeconds)}</span>
                 <div style={{ display: "flex", gap: "6px" }}>
-                  {sessionPhase === "running" && (
-                    <button onClick={handleToggleSession} style={{ background: "rgba(251,191,36,0.15)", border: "1px solid rgba(251,191,36,0.4)", borderRadius: "8px", padding: "5px 10px", color: "#FCD34D", fontSize: "12px", cursor: "pointer", display: "flex", alignItems: "center", gap: "4px" }}>
-                      <Pause size={12} /> Pause
-                    </button>
-                  )}
-                  {sessionPhase === "paused" && (
-                    <button onClick={handleToggleSession} style={{ background: "rgba(34,197,94,0.15)", border: "1px solid rgba(34,197,94,0.4)", borderRadius: "8px", padding: "5px 10px", color: "#4ade80", fontSize: "12px", cursor: "pointer", display: "flex", alignItems: "center", gap: "4px" }}>
-                      <Play size={12} /> Resume
-                    </button>
-                  )}
-                  {sessionPhase !== "idle" && (
-                    <button onClick={handleStop} style={{ background: "rgba(239,68,68,0.15)", border: "1px solid rgba(239,68,68,0.4)", borderRadius: "8px", padding: "5px 10px", color: "#f87171", fontSize: "12px", cursor: "pointer", display: "flex", alignItems: "center", gap: "4px" }}>
-                      <Square size={12} /> Stop
-                    </button>
-                  )}
+                  {sessionPhase === "running" && <button onClick={handleToggleSession} style={{ background: "rgba(251,191,36,0.15)", border: "1px solid rgba(251,191,36,0.4)", borderRadius: "8px", padding: "5px 10px", color: "#FCD34D", fontSize: "12px", cursor: "pointer", display: "flex", alignItems: "center", gap: "4px" }}><Pause size={12} /> Pause</button>}
+                  {sessionPhase === "paused" && <button onClick={handleToggleSession} style={{ background: "rgba(34,197,94,0.15)", border: "1px solid rgba(34,197,94,0.4)", borderRadius: "8px", padding: "5px 10px", color: "#4ade80", fontSize: "12px", cursor: "pointer", display: "flex", alignItems: "center", gap: "4px" }}><Play size={12} /> Resume</button>}
+                  {sessionPhase !== "idle" && <button onClick={handleStop} style={{ background: "rgba(239,68,68,0.15)", border: "1px solid rgba(239,68,68,0.4)", borderRadius: "8px", padding: "5px 10px", color: "#f87171", fontSize: "12px", cursor: "pointer", display: "flex", alignItems: "center", gap: "4px" }}><Square size={12} /> Stop</button>}
                 </div>
               </div>
             </div>
@@ -581,11 +849,8 @@ export default function InterviewAssistant({ userId, credits: creditsProp, showF
 
           {/* Main Content: Question + Answer */}
           <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: "16px" }}>
-
-            {/* ── Left: Live Transcript + Manual Question + Screenshots ─────── */}
-            <div style={{ background: "#0F1115", border: "1px solid rgba(59,130,246,0.25)", borderRadius: "12px", padding: "20px", display: "flex", flexDirection: "column", gap: "12px" }}>
-
-              {/* Live transcript (auto from STT) */}
+            {/* Left: Transcript + Input */}
+            <div style={{ background: "#0F1115", border: "1px solid rgba(59,130,246,0.25)", borderRadius: "12px", padding: "20px", display: "flex", flexDirection: "column" as const, gap: "12px" }}>
               <div>
                 <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "10px" }}>
                   {isListening && <div style={{ width: "7px", height: "7px", borderRadius: "50%", background: "#F7931A", boxShadow: "0 0 8px rgba(247,147,26,0.6)" }} />}
@@ -596,174 +861,110 @@ export default function InterviewAssistant({ userId, credits: creditsProp, showF
                 </p>
                 {interimTranscript && <p style={{ color: "#94A3B8", fontSize: "13px", margin: "6px 0 0", fontStyle: "italic" }}>{interimTranscript}</p>}
               </div>
-
-              {/* Divider */}
               <div style={{ borderTop: "1px solid rgba(255,255,255,0.06)", paddingTop: "12px" }}>
                 <span style={{ color: "#64748B", fontSize: "10px", textTransform: "uppercase", letterSpacing: "0.08em", fontWeight: "600" }}>
-                  Task / Manual Question {screenshots.length > 0 && `· ${screenshots.length} screenshot${screenshots.length > 1 ? "s" : ""} attached`}
+                  Manual Question {screenshots.length > 0 && `· ${screenshots.length} screenshot${screenshots.length > 1 ? "s" : ""} attached`}
                 </span>
               </div>
-
-              {/* Editable manual question textarea */}
-              <textarea
-                ref={manualInputRef}
-                value={manualQuestion}
-                onChange={e => setManualQuestion(e.target.value)}
+              <textarea ref={manualInputRef} value={manualQuestion} onChange={e => setManualQuestion(e.target.value)}
                 onKeyDown={e => { if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) { e.preventDefault(); void sendManualRef.current() } }}
-                placeholder="Type a question or task... or just attach a screenshot below and click Send"
-                rows={3}
-                style={{
-                  width: "100%", boxSizing: "border-box",
-                  background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.1)",
-                  borderRadius: "10px", padding: "10px 12px",
-                  color: "#fff", fontSize: `${fontSize}px`, lineHeight: "1.6",
-                  resize: "vertical", outline: "none", fontFamily: "inherit",
-                }}
+                placeholder="Type a question or task... or attach a screenshot and click Send"
+                rows={3} style={{ width: "100%", boxSizing: "border-box", background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: "10px", padding: "10px 12px", color: "#fff", fontSize: `${fontSize}px`, lineHeight: "1.6", resize: "vertical", outline: "none", fontFamily: "inherit" }}
               />
-
-              {/* Screenshot thumbnails */}
-              {screenshots.length > 0 && (
-                <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
-                  {screenshots.map((src, i) => (
-                    <div key={i} style={{ position: "relative" }}>
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img src={src} alt={`Screenshot ${i + 1}`} style={{ height: "56px", width: "auto", maxWidth: "120px", objectFit: "cover", borderRadius: "6px", border: "1px solid rgba(255,255,255,0.15)" }} />
-                      <button
-                        onClick={() => setScreenshots(prev => prev.filter((_, j) => j !== i))}
-                        style={{ position: "absolute", top: "-6px", right: "-6px", background: "#ef4444", border: "none", borderRadius: "50%", width: "18px", height: "18px", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", padding: 0 }}
-                      >
-                        <X size={10} color="white" />
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              )}
-
-              {/* Action buttons */}
-              <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
-                <button
-                  onClick={() => fileInputRef.current?.click()}
-                  title="Upload image (Ctrl+U)"
-                  style={{ background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.12)", borderRadius: "8px", padding: "7px 12px", color: "#94A3B8", fontSize: "12px", cursor: "pointer", display: "flex", alignItems: "center", gap: "5px", fontWeight: "500" }}
-                >
-                  <Upload size={13} /> Upload Image
-                </button>
-                <button
-                  onClick={() => void captureScreen()}
-                  title="Capture screen (Ctrl+S)"
-                  style={{ background: "rgba(99,102,241,0.08)", border: "1px solid rgba(99,102,241,0.3)", borderRadius: "8px", padding: "7px 12px", color: "#818cf8", fontSize: "12px", cursor: "pointer", display: "flex", alignItems: "center", gap: "5px", fontWeight: "500" }}
-                >
-                  <Camera size={13} /> Capture Screen
-                </button>
-                <button
-                  onClick={() => void sendManualRef.current()}
-                  disabled={sessionPhase !== "running" || (manualQuestion.trim() === "" && screenshots.length === 0)}
-                  title={eAPI()?.isElectron ? "Send (Ctrl+Shift+E)" : "Send (Ctrl+Enter)"}
-                  style={{ background: manualQuestion.trim() || screenshots.length > 0 ? "linear-gradient(135deg, #F7931A, #EA580C)" : "rgba(255,255,255,0.05)", border: "none", borderRadius: "8px", padding: "7px 14px", color: manualQuestion.trim() || screenshots.length > 0 ? "white" : "#475569", fontSize: "12px", cursor: sessionPhase === "running" ? "pointer" : "not-allowed", display: "flex", alignItems: "center", gap: "5px", fontWeight: "600", marginLeft: "auto", opacity: sessionPhase !== "running" ? 0.5 : 1 }}
-                >
-                  <Send size={13} /> Send
-                  <span style={{ opacity: 0.6, fontSize: "10px" }}>{eAPI()?.isElectron ? "Ctrl+Shift+E" : "Ctrl+↵"}</span>
-                </button>
-                <input ref={fileInputRef} type="file" accept="image/*" style={{ display: "none" }} onChange={e => { const f = e.target.files?.[0]; if (f) handleFileSelect(f); e.target.value = "" }} />
-              </div>
+              {screenshotThumbnails}
+              {actionButtons}
             </div>
 
-            {/* ── Right: AI Answer ──────────────────────────────────────────── */}
-            <div style={{ background: "#0F1115", border: "1px solid rgba(34,197,94,0.25)", borderRadius: "12px", padding: "20px", minHeight: "180px", display: "flex", flexDirection: "column" }}>
+            {/* Right: AI Answer */}
+            <div style={{ background: "#0B1120", border: `1px solid ${isStreamingAnswer ? "rgba(34,197,94,0.5)" : "rgba(34,197,94,0.2)"}`, borderRadius: "12px", padding: "20px", minHeight: "280px", display: "flex", flexDirection: "column" as const }}>
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "14px" }}>
                 <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                  {isStreamingAnswer && <div style={{ width: "8px", height: "8px", borderRadius: "50%", background: "#4ade80", boxShadow: "0 0 8px rgba(74,222,128,0.6)" }} />}
+                  {isStreamingAnswer
+                    ? <div style={{ width: "8px", height: "8px", borderRadius: "50%", background: "#4ade80", boxShadow: "0 0 8px rgba(74,222,128,0.6)" }} />
+                    : <div style={{ width: "8px", height: "8px", borderRadius: "50%", background: "rgba(74,222,128,0.2)" }} />}
                   <span style={{ color: "#4ade80", fontSize: "11px", textTransform: "uppercase", letterSpacing: "0.1em", fontWeight: "600" }}>AI Answer</span>
                 </div>
-                {isStreamingAnswer && <span style={{ background: "rgba(34,197,94,0.1)", border: "1px solid rgba(34,197,94,0.3)", borderRadius: "10px", padding: "2px 8px", fontSize: "11px", color: "#4ade80" }}>streaming...</span>}
+                {isStreamingAnswer && <span style={{ background: "rgba(34,197,94,0.1)", border: "1px solid rgba(34,197,94,0.3)", borderRadius: "10px", padding: "2px 8px", fontSize: "11px", color: "#4ade80" }}>● streaming</span>}
               </div>
-
-              {/* Scrollable answer area */}
               <div ref={answerScrollRef} style={{ flex: 1, overflowY: "auto", fontSize: `${fontSize}px` }}>
                 {streamingAnswer ? (
                   <StructuredAnswer text={streamingAnswer} isStreaming={isStreamingAnswer} fontSize={fontSize} mode={answerMode} />
                 ) : (
                   <p style={{ color: "#64748B", fontSize: `${fontSize}px`, lineHeight: "1.7", margin: 0, fontStyle: "italic" }}>
-                    Speak a question or send a screenshot task — AI answer appears here.
+                    {sessionPhase === "idle" ? "Start a session above, then speak or type a question." : "Speak or type a question — AI answer appears here in real time."}
                   </p>
                 )}
               </div>
             </div>
           </div>
 
-          {/* Bottom Row: Mic + Stealth + Q&A History */}
+          {/* Bottom Row: Mic + History */}
           <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "120px 1fr", gap: "16px" }}>
-            {/* Mic Controls */}
             <div style={{ background: "#0F1115", border: "1px solid rgba(255,255,255,0.08)", borderRadius: "12px", padding: "16px", display: "flex", flexDirection: "column" as const, alignItems: "center", gap: "12px" }}>
-              <button onClick={handleToggleSession} disabled={sessionPhase === "idle"} style={{ width: "60px", height: "60px", borderRadius: "50%", background: isListening ? "linear-gradient(to bottom, #EA580C, #F7931A)" : "rgba(255,255,255,0.08)", border: "none", cursor: sessionPhase === "idle" ? "not-allowed" : "pointer", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: isListening ? "0 0 24px rgba(247,147,26,0.5)" : "none", opacity: sessionPhase === "idle" ? 0.4 : 1, transition: "all 0.3s" }}>
+              <button onClick={toggleListening} disabled={sessionPhase === "idle"} style={{ width: "60px", height: "60px", borderRadius: "50%", background: isListening ? "linear-gradient(to bottom,#EA580C,#F7931A)" : "rgba(255,255,255,0.08)", border: "none", cursor: sessionPhase === "idle" ? "not-allowed" : "pointer", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: isListening ? "0 0 24px rgba(247,147,26,0.5)" : "none", opacity: sessionPhase === "idle" ? 0.4 : 1, transition: "all 0.3s" }}>
                 {isListening ? <Mic size={24} color="white" /> : <MicOff size={24} color="#94A3B8" />}
               </button>
-              {eAPI()?.isElectron ? (
-                // Window is already OS-level invisible — no button needed
-                <span style={{ fontSize: "9px", color: "#4ade80", textAlign: "center", letterSpacing: "0.05em", lineHeight: "1.4" }}>🛡 Invisible to<br/>screen recorders</span>
-              ) : (
-                <>
-                  <button onClick={handleStealthMode} style={{ background: pip.isOpen ? "rgba(34,197,94,0.12)" : "rgba(247,147,26,0.08)", border: `1px solid ${pip.isOpen ? "rgba(34,197,94,0.4)" : "rgba(247,147,26,0.25)"}`, borderRadius: "8px", padding: "6px 10px", color: pip.isOpen ? "#4ade80" : "#F7931A", fontSize: "11px", cursor: "pointer", display: "flex", alignItems: "center", gap: "4px", width: "100%", justifyContent: "center", fontWeight: "600" }}>
-                    <Ghost size={12} /> {pip.isOpen ? "Close Stealth" : pip.isSupported ? "Stealth" : "Overlay"}
-                  </button>
-                  {pip.isSupported && <span style={{ fontSize: "9px", color: "#4ade80", textAlign: "center", letterSpacing: "0.05em" }}>● Screen-invisible</span>}
-                </>
-              )}
+              <button onClick={handleStealthMode} style={{ background: pip.isOpen ? "rgba(34,197,94,0.12)" : "rgba(247,147,26,0.08)", border: `1px solid ${pip.isOpen ? "rgba(34,197,94,0.4)" : "rgba(247,147,26,0.25)"}`, borderRadius: "8px", padding: "6px 10px", color: pip.isOpen ? "#4ade80" : "#F7931A", fontSize: "11px", cursor: "pointer", display: "flex", alignItems: "center", gap: "4px", width: "100%", justifyContent: "center", fontWeight: "600" }}>
+                <Ghost size={12} /> {pip.isOpen ? "Close" : pip.isSupported ? "Stealth" : "Overlay"}
+              </button>
+              {pip.isSupported && <span style={{ fontSize: "9px", color: "#4ade80", textAlign: "center" }}>● Screen-invisible</span>}
             </div>
-
-            {/* Q&A History */}
             <div style={{ background: "#0F1115", border: "1px solid rgba(255,255,255,0.08)", borderRadius: "12px", padding: "16px" }}>
-              <p style={{ color: "#94A3B8", fontSize: "11px", textTransform: "uppercase", letterSpacing: "0.08em", margin: "0 0 12px", fontWeight: "600" }}>
-                Q&A History ({qaHistory?.length ?? 0})
-              </p>
-              {qaHistory && qaHistory.length > 0 ? (
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "12px" }}>
+                <p style={{ color: "#94A3B8", fontSize: "11px", textTransform: "uppercase", letterSpacing: "0.08em", margin: 0, fontWeight: "600" }}>Q&A History ({qaHistory?.length ?? 0})</p>
+                <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                  <span style={{ color: "#64748B", fontSize: "11px" }}>🧠 Use as context</span>
+                  <button
+                    onClick={() => setUseHistoryContext(v => !v)}
+                    disabled={!qaHistory?.length}
+                    style={{
+                      width: "36px", height: "20px", borderRadius: "10px", border: "none", cursor: !qaHistory?.length ? "not-allowed" : "pointer",
+                      background: useHistoryContext ? "#F7931A" : "rgba(255,255,255,0.12)",
+                      position: "relative", transition: "background 0.2s", flexShrink: 0,
+                      opacity: !qaHistory?.length ? 0.4 : 1,
+                    }}
+                    title={!qaHistory?.length ? "No history yet" : useHistoryContext ? "Memory ON — AI sees past Q&A" : "Memory OFF — each question answered independently"}
+                  >
+                    <span style={{
+                      position: "absolute", top: "3px", width: "14px", height: "14px", borderRadius: "50%",
+                      background: "#fff", transition: "left 0.2s",
+                      left: useHistoryContext ? "19px" : "3px",
+                    }} />
+                  </button>
+                </div>
+              </div>
+              {qaHistory?.length > 0 ? (
                 <div style={{ display: "flex", flexDirection: "column" as const, gap: "8px", maxHeight: "160px", overflowY: "auto" }}>
                   {qaHistory.slice(-5).reverse().map((item: any, i: number) => (
                     <div key={i} style={{ background: "rgba(255,255,255,0.03)", borderRadius: "8px", padding: "10px 12px" }}>
-                      <p style={{ color: "#60a5fa", fontSize: "12px", margin: "0 0 3px", fontWeight: "500" }}>Q: {item.question?.slice(0, 80)}{item.question?.length > 80 ? "..." : ""}</p>
-                      <p style={{ color: "#94A3B8", fontSize: "12px", margin: 0 }}>A: {item.answer?.slice(0, 100)}{item.answer?.length > 100 ? "..." : ""}</p>
+                      <p style={{ color: "#60a5fa", fontSize: "12px", margin: "0 0 3px", fontWeight: "500" }}>Q: {item.question?.slice(0, 80)}{item.question?.length > 80 ? "…" : ""}</p>
+                      <p style={{ color: "#94A3B8", fontSize: "12px", margin: 0 }}>A: {item.answer?.slice(0, 100)}{item.answer?.length > 100 ? "…" : ""}</p>
                     </div>
                   ))}
                 </div>
               ) : (
-                <p style={{ color: "#64748B", fontSize: "13px", fontStyle: "italic" as const, margin: 0 }}>No questions answered yet. Start your session and speak.</p>
+                <p style={{ color: "#64748B", fontSize: "13px", fontStyle: "italic" as const, margin: 0 }}>No questions answered yet.</p>
               )}
             </div>
           </div>
 
-          {/* Keyboard Shortcuts Reference */}
+          {/* Shortcuts */}
           <div style={{ background: "#0F1115", border: "1px solid rgba(255,255,255,0.06)", borderRadius: "12px", overflow: "hidden" }}>
-            <button
-              onClick={() => setShowShortcuts(s => !s)}
-              style={{ width: "100%", background: "transparent", border: "none", padding: "12px 16px", display: "flex", alignItems: "center", gap: "8px", cursor: "pointer", color: "#64748B", fontSize: "12px", textAlign: "left" }}
-            >
-              <Keyboard size={13} />
-              Keyboard Shortcuts
-              <span style={{ marginLeft: "auto", fontSize: "10px" }}>{showShortcuts ? "▲ Hide" : "▼ Show"}</span>
+            <button onClick={() => setShowShortcuts(s => !s)} style={{ width: "100%", background: "transparent", border: "none", padding: "12px 16px", display: "flex", alignItems: "center", gap: "8px", cursor: "pointer", color: "#64748B", fontSize: "12px", textAlign: "left" }}>
+              <Keyboard size={13} /> Keyboard Shortcuts <span style={{ marginLeft: "auto", fontSize: "10px" }}>{showShortcuts ? "▲ Hide" : "▼ Show"}</span>
             </button>
             {showShortcuts && (
               <div style={{ padding: "0 16px 14px", display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: "6px 24px" }}>
-                {[
-                  ["Ctrl+Enter", "Send manual question"],
-                  ["Ctrl+M", "Toggle microphone"],
-                  ["Ctrl+S", "Capture screenshot"],
-                  ["Ctrl+D", "Remove last screenshot"],
-                  ["Ctrl+R", "Clear question & screenshots"],
-                  ["Ctrl+E", "Focus question input"],
-                  ["Ctrl+=", "Increase font size"],
-                  ["Ctrl+-", "Decrease font size"],
-                  ["Ctrl+↑↓", "Scroll AI answer"],
-                ].map(([key, desc]) => (
-                  <div key={key} style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                    <span style={{ background: "rgba(255,255,255,0.08)", border: "1px solid rgba(255,255,255,0.12)", borderRadius: "5px", padding: "2px 7px", fontSize: "10px", color: "#F7931A", fontFamily: "monospace", whiteSpace: "nowrap" }}>{key}</span>
-                    <span style={{ color: "#64748B", fontSize: "12px" }}>{desc}</span>
+                {[["Ctrl+Enter","Send question"],["Ctrl+M","Toggle mic"],["Ctrl+S","Capture screenshot"],["Ctrl+D","Remove last screenshot"],["Ctrl+R","Clear input"],["Ctrl+E","Focus input"],["Ctrl+=","Font size +"],["Ctrl+-","Font size −"],["Ctrl+↑↓","Scroll answer"]].map(([k,d]) => (
+                  <div key={k} style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                    <span style={{ background: "rgba(255,255,255,0.08)", border: "1px solid rgba(255,255,255,0.12)", borderRadius: "5px", padding: "2px 7px", fontSize: "10px", color: "#F7931A", fontFamily: "monospace", whiteSpace: "nowrap" }}>{k}</span>
+                    <span style={{ color: "#64748B", fontSize: "12px" }}>{d}</span>
                   </div>
                 ))}
               </div>
             )}
           </div>
 
-          {/* Document PiP portal */}
           {pip.isOpen && pip.container && createPortal(
             <PiPContent question={liveQuestion} answer={streamingAnswer} isStreaming={isStreamingAnswer} qaHistory={qaHistory} credits={displayCredits} sessionActive={sessionPhase === "running"} isDesiMode={isDesiMode} fontSize={fontSize} answerMode={answerMode} />,
             pip.container

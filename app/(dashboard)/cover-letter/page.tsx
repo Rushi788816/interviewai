@@ -83,7 +83,7 @@ export default function CoverLetterPage() {
         {/* Header */}
         <div>
           <h1 className="text-xl sm:text-2xl font-bold text-white flex items-center gap-2">
-            <FileText size={22} className="text-[#F7931A]" />
+            <FileText size={22} className="text-[#6366F1]" />
             Cover Letter Generator
           </h1>
           <p className="text-[#64748B] text-sm mt-1">
@@ -118,7 +118,7 @@ export default function CoverLetterPage() {
                     onChange={e => setResumeText(e.target.value)}
                     placeholder="Paste your resume text here..."
                     rows={3}
-                    className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-2.5 text-sm text-white placeholder:text-[#475569] focus:border-[#F7931A]/50 focus:outline-none resize-none transition-colors"
+                    className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-2.5 text-sm text-white placeholder:text-[#475569] focus:border-[#6366F1]/50 focus:outline-none resize-none transition-colors"
                   />
                 </>
               )}
@@ -130,13 +130,13 @@ export default function CoverLetterPage() {
                 <label className="text-xs font-semibold text-[#94A3B8] uppercase tracking-wider block mb-2">Job Role</label>
                 <input type="text" value={jobRole} onChange={e => setJobRole(e.target.value)}
                   placeholder="e.g. SDE II"
-                  className="w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2.5 text-sm text-white placeholder:text-[#475569] focus:border-[#F7931A]/50 focus:outline-none transition-colors" />
+                  className="w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2.5 text-sm text-white placeholder:text-[#475569] focus:border-[#6366F1]/50 focus:outline-none transition-colors" />
               </div>
               <div>
                 <label className="text-xs font-semibold text-[#94A3B8] uppercase tracking-wider block mb-2">Company</label>
                 <input type="text" value={company} onChange={e => setCompany(e.target.value)}
                   placeholder="e.g. Google"
-                  className="w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2.5 text-sm text-white placeholder:text-[#475569] focus:border-[#F7931A]/50 focus:outline-none transition-colors" />
+                  className="w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2.5 text-sm text-white placeholder:text-[#475569] focus:border-[#6366F1]/50 focus:outline-none transition-colors" />
               </div>
             </div>
 
@@ -150,7 +150,7 @@ export default function CoverLetterPage() {
                 onChange={e => setJobDescription(e.target.value.slice(0, 1500))}
                 placeholder="Paste the job description for a more targeted letter..."
                 rows={4}
-                className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-2.5 text-sm text-white placeholder:text-[#475569] focus:border-[#F7931A]/50 focus:outline-none resize-none transition-colors"
+                className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-2.5 text-sm text-white placeholder:text-[#475569] focus:border-[#6366F1]/50 focus:outline-none resize-none transition-colors"
               />
             </div>
 
@@ -165,7 +165,7 @@ export default function CoverLetterPage() {
                     onClick={() => setTone(t.id)}
                     className={`flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-1.5 py-2 rounded-xl border text-xs font-semibold transition-all ${
                       tone === t.id
-                        ? 'border-[#F7931A]/50 bg-[#F7931A]/8 text-[#F7931A]'
+                        ? 'border-[#6366F1]/50 bg-[#6366F1]/8 text-[#6366F1]'
                         : 'border-white/8 bg-white/3 text-[#64748B] hover:border-white/15 hover:text-white'
                     }`}
                   >
@@ -180,7 +180,7 @@ export default function CoverLetterPage() {
               onClick={generate}
               disabled={loading || !resumeText.trim() || balance < 3}
               className="w-full flex items-center justify-center gap-2 py-3 rounded-xl font-bold text-white text-sm transition-all hover:opacity-90 disabled:opacity-50"
-              style={{ background: 'linear-gradient(135deg, #F7931A, #FF6B2B)' }}
+              style={{ background: 'linear-gradient(135deg, #6366F1, #8B5CF6)' }}
             >
               <Sparkles size={15} />
               {loading ? 'Writing...' : 'Generate Cover Letter (3 credits)'}
@@ -206,7 +206,7 @@ export default function CoverLetterPage() {
             <div className="flex-1 p-4">
               {loading ? (
                 <div className="flex items-center justify-center h-full">
-                  <div className="w-6 h-6 border-2 border-[#F7931A] border-t-transparent rounded-full animate-spin" />
+                  <div className="w-6 h-6 border-2 border-[#6366F1] border-t-transparent rounded-full animate-spin" />
                 </div>
               ) : letter ? (
                 <p className="text-sm text-[#CBD5E1] leading-relaxed whitespace-pre-wrap">{letter}</p>

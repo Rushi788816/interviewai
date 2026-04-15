@@ -26,7 +26,7 @@ function ResetPasswordForm() {
         <Link
           href="/forgot-password"
           className="block w-full text-center py-3 rounded-xl text-sm font-semibold text-white transition-opacity hover:opacity-90"
-          style={{ background: "linear-gradient(135deg, #F7931A, #FF6B2B)" }}
+          style={{ background: "linear-gradient(135deg, #6366F1, #8B5CF6)" }}
         >
           Request New Link →
         </Link>
@@ -77,7 +77,7 @@ function ResetPasswordForm() {
         <Link
           href="/login"
           className="block w-full text-center py-3 rounded-xl text-sm font-semibold text-white transition-opacity hover:opacity-90"
-          style={{ background: "linear-gradient(135deg, #F7931A, #FF6B2B)" }}
+          style={{ background: "linear-gradient(135deg, #6366F1, #8B5CF6)" }}
         >
           Sign In →
         </Link>
@@ -96,7 +96,7 @@ function ResetPasswordForm() {
           required
           minLength={8}
           placeholder="At least 8 characters"
-          className="w-full bg-[#0A0F1E] border border-white/10 rounded-xl px-4 py-3 text-white placeholder-[#4B5563] text-sm outline-none focus:border-[#F7931A]/50 focus:ring-1 focus:ring-[#F7931A]/30 transition-all"
+          className="w-full bg-[#0A0F1E] border border-white/10 rounded-xl px-4 py-3 text-white placeholder-[#4B5563] text-sm outline-none focus:border-[#6366F1]/50 focus:ring-1 focus:ring-[#6366F1]/30 transition-all"
         />
       </div>
       <div>
@@ -107,7 +107,7 @@ function ResetPasswordForm() {
           onChange={(e) => setConfirm(e.target.value)}
           required
           placeholder="Repeat your new password"
-          className="w-full bg-[#0A0F1E] border border-white/10 rounded-xl px-4 py-3 text-white placeholder-[#4B5563] text-sm outline-none focus:border-[#F7931A]/50 focus:ring-1 focus:ring-[#F7931A]/30 transition-all"
+          className="w-full bg-[#0A0F1E] border border-white/10 rounded-xl px-4 py-3 text-white placeholder-[#4B5563] text-sm outline-none focus:border-[#6366F1]/50 focus:ring-1 focus:ring-[#6366F1]/30 transition-all"
         />
       </div>
 
@@ -121,7 +121,7 @@ function ResetPasswordForm() {
         type="submit"
         disabled={loading || !password || !confirm}
         className="w-full py-3 rounded-xl font-semibold text-white text-sm transition-all hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed"
-        style={{ background: "linear-gradient(135deg, #F7931A, #FF6B2B)" }}
+        style={{ background: "linear-gradient(135deg, #6366F1, #8B5CF6)" }}
       >
         {loading ? "Updating password…" : "Set New Password →"}
       </button>
@@ -141,7 +141,7 @@ export default function ResetPasswordPage() {
       <div className="absolute inset-0 pointer-events-none overflow-hidden">
         <div
           className="absolute top-1/3 left-1/2 -translate-x-1/2 w-[600px] h-[400px] rounded-full blur-[120px] opacity-20"
-          style={{ background: "radial-gradient(ellipse, #F7931A, transparent 70%)" }}
+          style={{ background: "radial-gradient(ellipse, #6366F1, transparent 70%)" }}
         />
       </div>
 
@@ -150,7 +150,7 @@ export default function ResetPasswordPage() {
           <div className="text-center mb-8">
             <div
               className="inline-flex items-center justify-center w-14 h-14 rounded-2xl mb-4"
-              style={{ background: "linear-gradient(135deg, #F7931A, #FF6B2B)" }}
+              style={{ background: "linear-gradient(135deg, #6366F1, #8B5CF6)" }}
             >
               <span className="text-2xl">🔐</span>
             </div>
@@ -158,7 +158,7 @@ export default function ResetPasswordPage() {
             <p className="text-[#94A3B8] text-sm">Choose a strong password for your account</p>
           </div>
 
-          <Suspense fallback={<div className="flex justify-center py-8"><div className="w-6 h-6 border-2 border-[#F7931A] border-t-transparent rounded-full animate-spin" /></div>}>
+          <Suspense fallback={<div className="flex justify-center py-8"><div className="w-6 h-6 border-2 border-[#6366F1] border-t-transparent rounded-full animate-spin" /></div>}>
             <ResetPasswordForm />
           </Suspense>
         </div>

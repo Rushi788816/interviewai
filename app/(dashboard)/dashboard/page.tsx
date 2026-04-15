@@ -83,24 +83,24 @@ function StatCard({
 function DownloadBanner() {
   return (
     <div
-      className="rounded-2xl border border-[#F7931A]/20 overflow-hidden relative"
-      style={{ background: 'linear-gradient(135deg, rgba(247,147,26,0.06) 0%, rgba(17,24,39,1) 70%)' }}
+      className="rounded-2xl border border-[#6366F1]/20 overflow-hidden relative"
+      style={{ background: 'linear-gradient(135deg, rgba(99,102,241,0.06) 0%, rgba(17,24,39,1) 70%)' }}
     >
       <div
         className="absolute -top-8 -right-8 w-40 h-40 rounded-full blur-3xl pointer-events-none"
-        style={{ background: 'rgba(247,147,26,0.10)' }}
+        style={{ background: 'rgba(99,102,241,0.10)' }}
       />
       <div className="relative p-5 sm:p-6 flex flex-col sm:flex-row sm:items-center gap-4">
         <div
           className="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl flex items-center justify-center flex-shrink-0"
-          style={{ background: 'linear-gradient(135deg, #F7931A, #FF6B2B)', boxShadow: '0 6px 20px rgba(247,147,26,0.3)' }}
+          style={{ background: 'linear-gradient(135deg, #6366F1, #8B5CF6)', boxShadow: '0 6px 20px rgba(99,102,241,0.3)' }}
         >
           <Monitor size={22} className="text-white" />
         </div>
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 mb-1 flex-wrap">
             <h3 className="text-sm sm:text-base font-bold text-white">Download Desktop App</h3>
-            <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-[#F7931A]/15 text-[#F7931A] border border-[#F7931A]/30 uppercase tracking-wide">
+            <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-[#6366F1]/15 text-[#6366F1] border border-[#6366F1]/30 uppercase tracking-wide">
               Windows &amp; macOS
             </span>
           </div>
@@ -114,7 +114,7 @@ function DownloadBanner() {
               { icon: Zap, label: 'Always-on-top overlay' },
             ].map(({ icon: Icon, label }) => (
               <span key={label} className="flex items-center gap-1 text-[11px] text-[#94A3B8]">
-                <Icon size={11} className="text-[#F7931A]" />
+                <Icon size={11} className="text-[#6366F1]" />
                 {label}
               </span>
             ))}
@@ -125,8 +125,8 @@ function DownloadBanner() {
             href="https://github.com/Rushi788816/interviewai/releases/download/v1.0.0/InterviewAI-Setup.exe"
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex items-center justify-center gap-2 px-4 sm:px-5 py-2.5 rounded-xl text-xs sm:text-sm font-bold text-white transition-all hover:scale-[1.03] hover:shadow-[0_0_20px_rgba(247,147,26,0.35)] active:scale-[0.98]"
-            style={{ background: 'linear-gradient(135deg, #F7931A, #FF6B2B)' }}
+            className="inline-flex items-center justify-center gap-2 px-4 sm:px-5 py-2.5 rounded-xl text-xs sm:text-sm font-bold text-white transition-all hover:scale-[1.03] hover:shadow-[0_0_20px_rgba(99,102,241,0.35)] active:scale-[0.98]"
+            style={{ background: 'linear-gradient(135deg, #6366F1, #8B5CF6)' }}
           >
             <Download size={15} />
             Windows (.exe)
@@ -193,7 +193,7 @@ export default function DashboardPage() {
   }
 
   const statCards = [
-    { icon: Mic,         label: 'Total Sessions',     value: stats?.totalSessions ?? 0,    color: '#F7931A', bg: 'rgba(247,147,26,0.12)' },
+    { icon: Mic,         label: 'Total Sessions',     value: stats?.totalSessions ?? 0,    color: '#6366F1', bg: 'rgba(99,102,241,0.12)' },
     { icon: Clock,       label: 'Minutes Practiced',  value: stats?.totalMinutes ?? 0,     color: '#06B6D4', bg: 'rgba(6,182,212,0.12)' },
     { icon: Coins,       label: 'Credits Left',       value: creditsLoading ? '…' : balance, color: '#F59E0B', bg: 'rgba(245,158,11,0.12)' },
     { icon: CalendarDays,label: 'This Week',          value: stats?.sessionsThisWeek ?? 0, color: '#8B5CF6', bg: 'rgba(139,92,246,0.12)' },
@@ -207,9 +207,9 @@ export default function DashboardPage() {
       subtitle: 'Real-time AI answers streamed to your screen',
       badge: 'LIVE',
       features: ['Technical', 'Behavioral', 'Coding', '50+ languages'],
-      gradient: 'linear-gradient(135deg, #F7931A, #FF6B2B)',
-      glow: 'rgba(247,147,26,0.35)',
-      border: 'rgba(247,147,26,0.2)',
+      gradient: 'linear-gradient(135deg, #6366F1, #8B5CF6)',
+      glow: 'rgba(99,102,241,0.35)',
+      border: 'rgba(99,102,241,0.2)',
     },
     {
       href: '/mock-interview',
@@ -276,7 +276,7 @@ export default function DashboardPage() {
           <div>
             <h1 className="text-xl sm:text-2xl font-bold text-white flex items-center gap-2">
               {getGreeting(session?.user?.name)}
-              <TrendingUp size={16} className="text-[#F7931A]" />
+              <TrendingUp size={16} className="text-[#6366F1]" />
             </h1>
             <p className="text-[#64748B] text-xs sm:text-sm mt-0.5">
               {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
@@ -286,7 +286,7 @@ export default function DashboardPage() {
         <Link
           href="/interview"
           className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs sm:text-sm font-bold text-white transition-all hover:opacity-90 hover:scale-[1.02] self-start sm:self-auto"
-          style={{ background: 'linear-gradient(135deg, #F7931A, #FF6B2B)' }}
+          style={{ background: 'linear-gradient(135deg, #6366F1, #8B5CF6)' }}
         >
           <Zap size={14} />
           Start Session
@@ -307,7 +307,7 @@ export default function DashboardPage() {
       {/* ── Quick Actions ── */}
       <div>
         <div className="flex items-center gap-2 mb-3">
-          <Sparkles size={15} className="text-[#F7931A]" />
+          <Sparkles size={15} className="text-[#6366F1]" />
           <h2 className="text-sm font-semibold text-white">Quick Actions</h2>
         </div>
 
@@ -381,7 +381,7 @@ export default function DashboardPage() {
             Recent Sessions
           </h2>
           {sessions.length > 0 && (
-            <Link href="/settings" className="text-xs text-[#F7931A] hover:underline">
+            <Link href="/settings" className="text-xs text-[#6366F1] hover:underline">
               View all →
             </Link>
           )}
@@ -407,7 +407,7 @@ export default function DashboardPage() {
                 <Link
                   href="/interview"
                   className="px-5 py-2.5 rounded-xl font-semibold text-sm text-white text-center"
-                  style={{ background: 'linear-gradient(135deg, #F7931A, #FF6B2B)' }}
+                  style={{ background: 'linear-gradient(135deg, #6366F1, #8B5CF6)' }}
                 >
                   Start Interview
                 </Link>
@@ -450,7 +450,7 @@ export default function DashboardPage() {
                         </td>
                         <td className="px-4 py-3 text-[#94A3B8] text-sm">{Math.round(row.duration / 60)} min</td>
                         <td className="px-4 py-3">
-                          <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-[#F7931A]/10 text-[#F7931A] border border-[#F7931A]/20">
+                          <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-[#6366F1]/10 text-[#6366F1] border border-[#6366F1]/20">
                             {row.mode}
                           </span>
                         </td>
@@ -471,12 +471,12 @@ export default function DashboardPage() {
               <div className="sm:hidden divide-y divide-white/5">
                 {sessions.map((row) => (
                   <div key={row.id} className="px-4 py-3.5 flex items-center gap-3 cursor-pointer hover:bg-white/2 transition-colors" onClick={() => window.location.href = `/sessions/${row.id}`}>
-                    <div className="w-9 h-9 rounded-xl bg-[#F7931A]/10 flex items-center justify-center flex-shrink-0">
-                      <Mic size={15} className="text-[#F7931A]" />
+                    <div className="w-9 h-9 rounded-xl bg-[#6366F1]/10 flex items-center justify-center flex-shrink-0">
+                      <Mic size={15} className="text-[#6366F1]" />
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">
-                        <span className="text-xs px-2 py-0.5 rounded-full bg-[#F7931A]/10 text-[#F7931A] border border-[#F7931A]/20 font-medium">
+                        <span className="text-xs px-2 py-0.5 rounded-full bg-[#6366F1]/10 text-[#6366F1] border border-[#6366F1]/20 font-medium">
                           {row.mode}
                         </span>
                         <span className="text-xs text-[#64748B]">{qaCount(row)} questions</span>

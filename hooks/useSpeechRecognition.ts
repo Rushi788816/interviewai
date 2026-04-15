@@ -62,7 +62,7 @@ export function useSpeechRecognition({
     clearSilenceTimer()
     // Always wait at least 2s — interviewers pause mid-sentence frequently
     const wordCount = text.trim().split(/\s+/).filter(Boolean).length
-    const delay = wordCount <= 3 ? 2500 : wordCount <= 8 ? 2000 : 1800
+    const delay = wordCount <= 3 ? 3500 : wordCount <= 8 ? 3000 : 2500
 
     silenceTimerRef.current = setTimeout(() => {
       const textToSend = finalTranscriptRef.current.trim()
@@ -107,10 +107,15 @@ export function useSpeechRecognition({
       mediaStreamRef.current.getTracks().forEach(t => t.stop())
       mediaStreamRef.current = null
     }
-    if (usingWindowsSRRef.current) {
-      ;(window as any).electronAPI?.stopSpeechRecognition?.()
-      usingWindowsSRRef.current = false
-    }
+    // Always stop Windows SR and clean up IPC listeners so next start is fresh
+    const api = (window as any).electronAPI
+    api?.stopSpeechRecognition?.()
+    api?.removeAllListeners?.('speech:ready')
+    api?.removeAllListeners?.('speech:interim')
+    api?.removeAllListeners?.('speech:final')
+    api?.removeAllListeners?.('speech:error')
+    usingWindowsSRRef.current = false
+    srListenersAttachedRef.current = false  // reset so next toggle re-registers properly
   }, [clearSilenceTimer, clearRestartTimer])
 
   // Records 5-second chunks — longer windows capture full sentences without splits.
@@ -151,12 +156,12 @@ export function useSpeechRecognition({
       })()
 
       if (isSpeech && blob.size > 3000) {
+        // Person is still talking — cancel any pending silence timer so we don't send mid-speech
+        clearSilenceTimer()
         try {
           const ext = mimeType.includes("webm") ? "webm" : "ogg"
           const formData = new FormData()
           formData.append("audio", new File([blob], `chunk.${ext}`, { type: mimeType || "audio/webm" }))
-          // Pass prior transcript as Whisper prompt — it uses this as context to
-          // continue the sentence accurately rather than starting from scratch
           if (finalTranscriptRef.current.trim()) {
             formData.append("prompt", finalTranscriptRef.current.trim())
           }
@@ -166,11 +171,16 @@ export function useSpeechRecognition({
             if (text?.trim()) {
               finalTranscriptRef.current += (finalTranscriptRef.current ? " " : "") + text.trim()
               setTranscript(finalTranscriptRef.current)
-              startSilenceTimer(finalTranscriptRef.current)
+              // Still don't start silence timer yet — wait for a silent chunk to confirm they stopped
             }
           }
         } catch (err: any) {
           console.error("[STT] transcription error:", err?.message)
+        }
+      } else {
+        // No speech in this chunk — person has paused/stopped, now start the silence timer
+        if (finalTranscriptRef.current.trim()) {
+          startSilenceTimer(finalTranscriptRef.current)
         }
       }
 
@@ -269,14 +279,23 @@ export function useSpeechRecognition({
     }
   }, [startGroqFallback, startSilenceTimer])
 
-  // ── Browser path: Web Speech API ──────────────────────────────────────────
+  // Whether we already fell back to Groq (avoid double-fallback)
+  const usingGroqFallbackRef = useRef(false)
+
+  // ── Browser path: Web Speech API with Groq fallback on network error ──────
   const buildAndStartRecognition = useCallback(() => {
     if (typeof window === "undefined") return
+
+    // If already using Groq (e.g. after a network error fallback), don't restart Web Speech
+    if (usingGroqFallbackRef.current) return
 
     const SpeechRecognition =
       (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition
     if (!SpeechRecognition) {
-      setError("Speech recognition not supported. Use Chrome.")
+      // No Web Speech API at all — go straight to Groq Whisper
+      console.warn("[STT] No Web Speech API — using Groq Whisper")
+      usingGroqFallbackRef.current = true
+      void startGroqFallback()
       return
     }
 
@@ -296,6 +315,7 @@ export function useSpeechRecognition({
     rec.onend = () => {
       clearRestartTimer()
       if (!isListeningRef.current) { setIsListening(false); return }
+      if (usingGroqFallbackRef.current) return  // Groq took over, don't restart Web Speech
       restartTimerRef.current = setTimeout(() => {
         if (!isListeningRef.current) return
         buildAndStartRef.current()
@@ -305,7 +325,16 @@ export function useSpeechRecognition({
     rec.onerror = (event: any) => {
       const { error: errCode } = event
       if (errCode === "no-speech" || errCode === "aborted") return
-      console.error("Fatal recognition error:", errCode)
+      console.error("[STT] Web Speech error:", errCode)
+      if ((errCode === "network" || errCode === "service-not-allowed" || errCode === "not-allowed") && inElectron()) {
+        // Google's speech servers unreachable in Electron — fall back to Groq Whisper
+        console.warn("[STT] Network error in Electron — switching to Groq Whisper fallback")
+        recognitionRef.current = null
+        usingGroqFallbackRef.current = true
+        setError(null)
+        if (isListeningRef.current) void startGroqFallback()
+        return
+      }
       setError(`Microphone error: ${errCode}`)
       isListeningRef.current = false
       setIsListening(false)
@@ -333,7 +362,7 @@ export function useSpeechRecognition({
       isListeningRef.current = false
       setIsListening(false)
     }
-  }, [startSilenceTimer, clearRestartTimer])
+  }, [startSilenceTimer, clearRestartTimer, startGroqFallback])
 
   const buildAndStartRef = useRef(buildAndStartRecognition)
   useEffect(() => { buildAndStartRef.current = buildAndStartRecognition }, [buildAndStartRecognition])
@@ -347,11 +376,10 @@ export function useSpeechRecognition({
       setIsListening(false)
       clearSilenceTimer()
       clearRestartTimer()
-      if (inElectron()) {
-        stopElectronRecognition()
-      } else {
-        if (recognitionRef.current) { try { recognitionRef.current.stop() } catch {} }
-      }
+      // Clean up Electron IPC listeners if any were started
+      stopElectronRecognition()
+      usingGroqFallbackRef.current = false
+      if (recognitionRef.current) { try { recognitionRef.current.stop() } catch {} }
     } else {
       const now = Date.now()
       if (now - lastStartRef.current < 500) return
@@ -360,13 +388,11 @@ export function useSpeechRecognition({
       setTranscript("")
       setInterimTranscript("")
       isListeningRef.current = true
-      if (inElectron()) {
-        startElectronRecognition()
-      } else {
-        buildAndStartRef.current()
-      }
+        // Always start with Web Speech API; falls back to Groq on network error
+      usingGroqFallbackRef.current = false
+      buildAndStartRef.current()
     }
-  }, [clearSilenceTimer, clearRestartTimer, stopElectronRecognition, startElectronRecognition])
+  }, [clearSilenceTimer, clearRestartTimer, stopElectronRecognition])
 
   const resetTranscript = useCallback(() => {
     finalTranscriptRef.current = ""
@@ -387,21 +413,18 @@ export function useSpeechRecognition({
       clearSilenceTimer()
       clearRestartTimer()
       if (cycleTimeoutRef.current) clearTimeout(cycleTimeoutRef.current)
-      if (inElectron()) {
-        if (usingWindowsSRRef.current) {
-          ;(window as any).electronAPI?.stopSpeechRecognition?.()
-          ;(window as any).electronAPI?.removeAllListeners?.('speech:ready')
-          ;(window as any).electronAPI?.removeAllListeners?.('speech:interim')
-          ;(window as any).electronAPI?.removeAllListeners?.('speech:final')
-          ;(window as any).electronAPI?.removeAllListeners?.('speech:error')
-          usingWindowsSRRef.current = false
-          srListenersAttachedRef.current = false
-        }
-        if (mediaRecorderRef.current) { try { mediaRecorderRef.current.stop() } catch {} }
-        if (mediaStreamRef.current) { mediaStreamRef.current.getTracks().forEach(t => t.stop()) }
-      } else {
-        if (recognitionRef.current) { try { recognitionRef.current.onend = null; recognitionRef.current.stop() } catch {} }
+      if (recognitionRef.current) { try { recognitionRef.current.onend = null; recognitionRef.current.stop() } catch {} }
+      // Also clean up any Electron IPC listeners that may have been registered
+      const api = (window as any).electronAPI
+      if (api) {
+        api.stopSpeechRecognition?.()
+        api.removeAllListeners?.('speech:ready')
+        api.removeAllListeners?.('speech:interim')
+        api.removeAllListeners?.('speech:final')
+        api.removeAllListeners?.('speech:error')
       }
+      if (mediaRecorderRef.current) { try { mediaRecorderRef.current.stop() } catch {} }
+      if (mediaStreamRef.current) { mediaStreamRef.current.getTracks().forEach(t => t.stop()) }
     }
   }, [clearSilenceTimer, clearRestartTimer])
 

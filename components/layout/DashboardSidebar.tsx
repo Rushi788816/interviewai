@@ -16,6 +16,7 @@ import {
   BookOpen,
   Mail,
   Wand2,
+  ShieldCheck,
 } from "lucide-react"
 
 const nav = [
@@ -26,6 +27,7 @@ const nav = [
   { href: '/resume-builder', label: 'Resume Builder',       icon: FileText },
   { href: '/tailor-resume',  label: 'Tailor Resume',        icon: Wand2 },
   { href: '/cover-letter',   label: 'Cover Letter',         icon: Mail },
+  { href: '/ats-score',      label: 'ATS Score',            icon: ShieldCheck },
   { href: '/credits',        label: 'Buy Credits',          icon: Coins },
   { href: '/settings',       label: 'Settings',             icon: Settings },
 ]
@@ -44,11 +46,8 @@ export default function DashboardSidebar() {
           className="flex items-center gap-2 text-base font-bold"
         >
           <span className="text-xl">🐦</span>
-          <span
-            className="bg-clip-text text-transparent"
-            style={{ backgroundImage: 'linear-gradient(90deg, #F7931A, #FF6B2B)' }}
-          >
-            InterviewAI
+          <span className="text-white">
+            Interview<span style={{ color: '#6366F1' }}>AI</span>
           </span>
         </Link>
       </div>
@@ -63,15 +62,15 @@ export default function DashboardSidebar() {
               href={item.href}
               className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm transition-all relative"
               style={{
-                backgroundColor: active ? 'rgba(247,147,26,0.10)' : 'transparent',
-                color: active ? '#F7931A' : '#94A3B8',
+                backgroundColor: active ? 'rgba(99,102,241,0.10)' : 'transparent',
+                color: active ? '#6366F1' : '#94A3B8',
                 fontWeight: active ? '600' : '400',
               }}
             >
               {active && (
                 <span
                   className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-5 rounded-r-full"
-                  style={{ backgroundColor: '#F7931A' }}
+                  style={{ backgroundColor: '#6366F1' }}
                 />
               )}
               <item.icon size={17} />
@@ -84,9 +83,9 @@ export default function DashboardSidebar() {
       {/* Bottom credits + signout */}
       <div className="border-t border-white/10 p-4 space-y-3">
         {/* Credits pill */}
-        <div className="flex items-center justify-between rounded-xl border border-[#F7931A]/20 bg-[#F7931A]/8 px-3 py-2.5">
+        <div className="flex items-center justify-between rounded-xl border border-[#6366F1]/20 bg-[#6366F1]/8 px-3 py-2.5">
           <div className="flex items-center gap-2">
-            <Coins size={15} className="text-amber-400" />
+            <Coins size={15} className="text-indigo-400" />
             <span className="text-sm text-white font-semibold">
               {isLoading ? '…' : balance}
             </span>
@@ -98,7 +97,7 @@ export default function DashboardSidebar() {
           <Link
             href="/credits"
             className="flex items-center justify-center gap-1.5 w-full rounded-xl py-2.5 text-xs font-bold text-white transition-all hover:opacity-90"
-            style={{ background: 'linear-gradient(135deg, #F7931A, #FF6B2B)' }}
+            style={{ background: 'linear-gradient(135deg, #6366F1, #8B5CF6)' }}
           >
             <Zap size={13} />
             Get More Credits

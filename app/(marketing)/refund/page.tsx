@@ -18,9 +18,9 @@ export default function RefundPage() {
 
         <div className="grid md:grid-cols-2 gap-12 mb-16">
           <div className="space-y-6">
-            <div className="bg-gradient-to-r from-[#F7931A]/10 to-[#FF6B2B]/10 p-8 rounded-2xl border border-[#F7931A]/20">
+            <div className="bg-gradient-to-r from-[#6366F1]/10 to-[#8B5CF6]/10 p-8 rounded-2xl border border-[#6366F1]/20">
               <h2 className="text-2xl font-bold mb-4 flex items-center gap-3">
-                <span className="w-8 h-8 rounded-lg bg-[#F7931A]/30 border-2 border-[#F7931A]/50 flex items-center justify-center text-white text-sm font-bold">✓</span>
+                <span className="w-8 h-8 rounded-lg bg-[#6366F1]/30 border-2 border-[#6366F1]/50 flex items-center justify-center text-white text-sm font-bold">✓</span>
                 When you're eligible
               </h2>
               <ul className="space-y-3 text-[#94A3B8] ml-6">
@@ -48,7 +48,7 @@ export default function RefundPage() {
               <h3 className="text-xl font-bold mb-4">How to request a refund</h3>
               <ol className="space-y-2 text-[#94A3B8] list-decimal list-inside ml-4">
                 <li>Check your <strong>credit balance</strong> in Settings</li>
-                <li>Email <a href="mailto:support@interviewai.app" className="text-[#F7931A] hover:text-[#FF6B2B]">support@interviewai.app</a></li>
+                <li>Email <a href="mailto:support@interviewai.app" className="text-[#6366F1] hover:text-[#8B5CF6]">support@interviewai.app</a></li>
                 <li>Include your <strong>order ID</strong> and <strong>email address</strong></li>
                 <li>Explain reason (optional)</li>
                 <li>Wait 1-2 business days for review</li>
@@ -66,7 +66,7 @@ export default function RefundPage() {
           </div>
         </div>
 
-        <div className="bg-gradient-to-r from-[#F7931A]/5 to-[#FF6B2B]/5 p-10 rounded-3xl border border-[#F7931A]/20">
+        <div className="bg-gradient-to-r from-[#6366F1]/5 to-[#8B5CF6]/5 p-10 rounded-3xl border border-[#6366F1]/20">
           <div className="max-w-2xl mx-auto text-center">
             <h2 className="text-2xl font-bold mb-6">Need Help?</h2>
             <p className="text-[#94A3B8] mb-8 text-lg">
@@ -76,13 +76,13 @@ export default function RefundPage() {
               <a
                 href="mailto:support@interviewai.app"
                 className="flex-1 max-w-md inline-flex items-center justify-center gap-3 px-8 py-4 text-white rounded-2xl font-semibold hover:opacity-90 transition-all"
-                style={{ background: 'linear-gradient(135deg, #F7931A, #FF6B2B)' }}
+                style={{ background: 'linear-gradient(135deg, #6366F1, #8B5CF6)' }}
               >
                 📧 Email Support
               </a>
               <a
                 href="/contact"
-                className="flex-1 max-w-md px-8 py-4 border border-[#94A3B8]/50 rounded-2xl text-[#94A3B8] font-semibold hover:bg-[#111827] hover:border-[#F7931A]/50 hover:text-[#F7931A] transition-all"
+                className="flex-1 max-w-md px-8 py-4 border border-[#94A3B8]/50 rounded-2xl text-[#94A3B8] font-semibold hover:bg-[#111827] hover:border-[#6366F1]/50 hover:text-[#6366F1] transition-all"
               >
                 Contact Form
               </a>

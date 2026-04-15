@@ -41,7 +41,7 @@ export default function LanguageMarquee() {
         Interview in Your Language —{' '}
         <span
           className="bg-clip-text text-transparent"
-          style={{ backgroundImage: 'linear-gradient(90deg, #F7931A, #FF6B2B)' }}
+          style={{ backgroundImage: 'linear-gradient(90deg, #6366F1, #8B5CF6)' }}
         >
           52+ languages
         </span>

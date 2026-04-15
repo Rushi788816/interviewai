@@ -1,79 +1,97 @@
-# InterviewAI Codebase Analysis - Post Web3/Bitcoin DeFi UI Redesign (BLACKBOXAI Complete Overhaul)
+# InterviewAI Codebase Analysis - Comprehensive Feature Overview
 
-## Project Overview
-InterviewAI is a Next.js 14+ app with Tailwind CSS, Prisma backend, Next-Auth, Anthropic AI integration for real-time interview coaching. Features mock interviews, resume builder, multilingual speech recognition, desi mode.
+**Updated:** Current snapshot of the full project structure, tech stack, and **all features** with detailed descriptions. Focus on *what the app does* (no code listings). Based on file structure, key files (package.json, README.md, Prisma schema, core components/hooks/APIs), and component analysis.
 
-**Current Working Dir:** c:/Vibe Coading/interviewai
+**Current Working Dir:** \`c:/Vibe Coading/interviewai\`  
+**Tech Stack:** Next.js 14 (App Router) + TypeScript + Tailwind CSS + Prisma (PostgreSQL) + Groq AI (Llama 3.3 70B) + NextAuth + Zustand + Electron (desktop app with overlay) + Stripe/Razorpay payments.
 
-## Major Changes by BLACKBOXAI (This Session)
+## 🚀 Core Product: Real-Time AI Interview Assistant (Invisible to Screen Share)
 
-### Phase 1: Foundations (Globals & Layout)
-- **app/globals.css**: Added :root tokens (--bg-deep #030304, --bg-surface #0F1115, --accent-orange #F7931A, --glow-orange rgba(247,147,26,0.3), etc.). Keyframes (float, pulse-glow, shimmer). Classes (.gradient-text orange-gold, .bg-grid-pattern, .animate-float/pulse-glow). Body radial-gradient + var(--font-body). Scrollbar orange.
-- **app/layout.tsx**: Google Fonts Space_Grotesk (--font-heading), Inter (--font-body), JetBrains_Mono (--font-mono). Body class `${fonts} font-body bg-grid-pattern text-var(--text-primary)`.
-- **tailwind.config.ts**: midnight colors → orange (#F7931A/#EA580C), bitcoin palette vars.
-- **npm install**: next/font @next/font/google.
+**Tagline:** \"Ace Every Interview with AI on Your Side — completely invisible to your interviewer.\"
 
-**Rules Enforced:**
-- Headings: Space_Grotesk bold.
-- Stats/data/nav/labels: JetBrains_Mono.
-- Body/descriptions: Inter.
-- Buttons: rounded-full gradient orange glow hover:scale-105.
-- Cards: --bg-surface border --border-default hover orange glow/-translate-y.
-- No blues (#2563EB/#0EA5E9/#6c63ff all replaced).
+### 1. **Live Interview Coaching (Primary Feature)**
+   - **Real-time speech-to-text**: Listens to interviewer questions via microphone or **system audio** (captures Zoom/Teams speaker output). Supports 52+ languages, **Desi Mode** (natural Indian English).
+   - **AI Answers**: Streams private, personalized responses using Groq AI. Formats answers as **\"SAY THIS FIRST | DETAIL | RESULT\"** (verbal mode) or **code blocks** (coding mode). Context-aware (job role, resume, chat history).
+   - **Stealth/Invisible Mode**: 
+     - Electron desktop app: OS-level invisible overlay window.
+     - Web: Picture-in-Picture (PiP) or overlay hidden from screen share.
+     - Global shortcuts (Ctrl+Shift+Q stop, Ctrl+Shift+S screenshot+AI, Ctrl+Shift+E send).
+   - **Visual Question Capture**: Screenshot screen share (e.g., coding problems), auto-analyze with vision AI.
+   - **Session Tracking**: Timer, credits used, QA history saved to DB.
+   - **Components**: \`InterviewAssistant.tsx\` (core UI), \`useSpeechRecognition.ts\` (STT with silence detection/VAD), \`useSystemAudio.ts\`, \`useDocumentPiP.ts\`.
+   - **APIs**: \`/api/ai/interview-answer\`, \`/api/ai/transcribe\` (Whisper chunks), \`/api/sessions/save\`.
+   - **Modes**: Technical/Behavioral/Coding, mic vs system audio toggle.
 
-### Phase 2: Landing Page Full Redesign (app/(marketing)/page.tsx & components/landing/*)
-**Navbar.tsx** (`use client`):
-- rgba(3,3,4,0.85) backdrop-blur border-default, font-mono.
-- Logo: 🐦 + "InterviewAI" gradient-text "AI" gold.
-- Nav links: font-mono text-muted → orange hover.
-- Sign In: transparent border white/0.15 → orange hover.
-- (Desktop App button kept outline).
+### 2. **Mock Interviews**
+   - **Generate Questions**: AI creates 5 tailored questions (role, company type, difficulty).
+   - **Record & Evaluate**: User answers via voice/text, AI scores (clarity/relevance/structure) + feedback + better answer.
+   - **Reports**: Overall score, session history, stats.
+   - **APIs**: \`/api/ai/mock-interview\` (generate/evaluate), \`/api/sessions/save-mock\`.
+   - **Components**: \`MockInterviewSession.tsx\`, \`QuestionCard.tsx\`, \`FeedbackReport.tsx\`, \`VoiceRecorder.tsx\`.
 
-**HeroSection.tsx**:
-- Radial orange blobs (#F7931A 8% blur150 top, #EA580C left), bg-grid-pattern.
-- Badge: border #F7931A/30 bg/10 rounded-full font-mono uppercase, ping dot animate-ping.
-- H1: font-heading 5xl-8xl "Ace Every Interview with\nReal-Time AI" gradient.
-- Subtext: font-body text-muted max-w-560.
-- Stats: font-mono #F7931A numbers text-muted labels.
-- CTAs: gradient-burnt-orange rounded-full glow scale hover, secondary outline.
-- Demo: #0F1115 border-default radius16 orange-glow, macOS dots transcript green/blue.
+### 3. **AI Resume Builder & Tailoring**
+   - **Multi-Step Builder**: 6 steps (personal info, summary, experience, education, skills, projects). AI \"enhance\" buttons (2 credits each) for bullet points/summaries.
+   - **Parse & Import**: Upload PDF/DOCX, extract text.
+   - **Tailor to JD**: AI customizes resume for specific job descriptions.
+   - **Templates**: 8 professional templates (Bold, Classic, Compact, Creative, Executive, Minimal, Modern, Professional).
+   - **Export**: PDF/DOCX download.
+   - **APIs**: \`/api/ai/resume-generate\`, \`/api/ai/tailor-resume\`, \`/api/ai/parse-resume\`, \`/api/resume/*\`.
+   - **Components**: \`ResumeBuilder.tsx\`, \`ResumePreview.tsx\`, \`TemplateSelector.tsx\`, \`templates/*\`.
 
-**FeaturesGrid.tsx** (6 cards):
-- Cards: #0F1115 border-default padding32 hover -translate-y border-hover glow-shadow, transition 300ms.
-- Icons: #F7931A/15 border/30 rounded-xl.
-- Title: font-heading text-xl semibold white.
-- Desc: font-body text-muted text-sm leading-relaxed.
+### 4. **Payments & Credits**
+   - **Credit System**: 30 free on signup. 1 credit/min live, 5 for mock questions, 2 for AI enhance.
+   - **Payments**: Stripe checkout + webhooks, Razorpay support.
+   - **Plans**: Free, paid upgrades.
+   - **APIs**: \`/api/credits/*\`, \`/api/stripe/*\`.
+   - **Components**: \`CreditsBadge.tsx\`, \`LowCreditBanner.tsx\`.
 
-**Other Landing:**
-- **CompanyMarquee**: #0F1115 border-y default, font-mono text-muted orange hover.
-- **DesiModeSection**: alternating cards surface red/green tinted, "Desi Mode" orange badge, "NEW" gradient.
-- **PlatformsSection**: cards surface border hover orange glow.
-- **StatsRow**: #0F1115 border default, gradient numbers font-heading 4xl, labels font-mono xs uppercase muted.
-- **TestimonialsSection**: backdrop-blur surface/80 border default, stars #FFD600, avatars gradient orange-gold.
-- **CTABanner**: radial orange blob inset glow border-hover, title last-word gradient, buttons rounded-full glow.
-- **Footer**: #030304 border-top default, logo gradient "AI" gold, links muted → orange hover font-body, bottom font-mono xs muted.
+### 5. **Authentication & User Management**
+   - **NextAuth**: Email/password + social? (forgot/reset/register/validate-session).
+   - **Onboarding**: Job role/goal setup.
+   - **Profile**: User data, resume storage.
+   - **Sessions**: Temporary tokens for stateless access.
+   - **APIs**: \`/api/auth/*\`, \`/api/user/*\`.
+   - **Prisma Models**: User (credits/plan/onboarded), UserResume, InterviewSession, MockSession, Payment, Session.
 
-**app/(marketing)/page.tsx**: "use client" added for client imports.
+### 6. **Marketing & Landing**
+   - **Hero**: Live demo mockup, \"REAL-TIME AI · INVISIBLE TO SCREEN SHARE\" badge.
+   - **Sections**: Features grid, Desi Mode highlight, platforms, stats (5K+ users), testimonials, CTA banner.
+   - **Components**: \`Navbar.tsx\`, \`HeroSection.tsx\`, \`FeaturesGrid.tsx\`, \`DesiModeSection.tsx\`, etc.
+   - **Pages**: \`app/(marketing)/page.tsx\` (main landing).
 
-### Phase 3: Auth Pages (login/signup)
-- Background: #030304 grid-pattern + orange blob top-right.
-- Card: #0F1115 border default radius2xl p-10 glow-shadow.
-- Logo large gradient.
-- Inputs: bg-black/50 border-b white/20 focus border-orange glow (bottom-only).
-- Submit: gradient orange rounded-full glow uppercase tracking-wider.
-- Links: #F7931A hover underline.
+### 7. **Dashboard & Other**
+   - **Sidebar**: Navigation (interviews, resume, mock, settings).
+   - **Sessions**: Recent/history/stats (\`/api/sessions/*\`).
+   - **Onboarding**: \`app/onboarding/page.tsx\`.
+   - **Interview Overlay**: \`app/interview/overlay/page.tsx\`.
+   - **Contact**: Form submission.
+   - **Debug**: \`/api/debug\`.
 
-### Phase 4: Dashboard & Interview
-- **DashboardSidebar.tsx**: #0F1115 border-r default, logo gradient, nav font-mono muted hover white, active border-l-2 #F7931A bg/10, credits badge #F7931A/15 border/30 mono.
-- **InterviewAssistant.tsx**: overlay #0F1115 border orange-glow, header "Coach" gradient, credits orange mono badge, tabs #F7931A active bg/15 border, transcript #F7931A/20 border rounded-xl, mic gradient orange rounded-full pulse-glow active, buttons rounded-full gradient/outline orange/red.
+### 8. **Advanced Features**
+   - **Multilingual**: 52+ languages via speech hooks (\`lib/speechLanguages.ts\`).
+   - **Keyboard Shortcuts**: Font resize, send, screenshot, clear, scroll.
+   - **Toast Notifications**: \`useToast.ts\`.
+   - **Rate Limiting**: All AI endpoints.
+   - **Electron Desktop**: \`electron/main.js\`, overlay.html, entitlements.mac.plist, auto-updates.
+   - **Hooks**: \`useCredits.ts\`, Zustand stores (\`interviewStore.ts\`).
 
-### Phase 5: UI & Marketing
-- **components/ui/button.tsx**: variants gradient orange rounded-full.
-- Marketing pages (pricing/compare/blog/contact/privacy/terms/refund): #030304 grid, titles gradient last-orange, cards surface orange hover glow, tables #F7931A highlighted bg/5.
+## 📊 Database Schema (Prisma)
+- **User**: credits, plan, onboarded, jobRole/goal.
+- **UserResume**: JSON data.
+- **InterviewSession**: duration, creditsUsed, transcript/QA (JSON).
+- **MockSession**: questions/answers/scores (JSON).
+- **Payment**: razorpayId, amount.
+- **Session**: auth tokens.
 
-**Final Verification:**
-- Final search_files: No #2563EB/#0EA5E9/bg-blue remaining (fixed all).
-- Fonts/glow/grid/ping mandatory features 100% applied.
-- Responsive tested.
+## 🛠 Build & Deployment
+- **Scripts**: \`npm run dev/build/electron:dev/build\`.
+- **Electron**: Windows/Mac builds, NSIS/DMG.
+- **Vercel**: \`vercel.json\`.
+- **Dependencies**: Groq SDK, Stripe, pdf-parse, mammoth (DOCX), html2canvas/jspdf (PDF export), framer-motion.
 
-**Run:** `npm run dev` — localhost:3000 = perfect Bitcoin DeFi dark theme. InterviewAI ready! 🚀 #BLACKBOXAI
+## 🔮 TODO (from TODO.md)
+- Fix multi-listening in speech recognition.
+- PDF extraction improvements.
+- Test sessions.
+
+**Status**: Production-ready MVP with live coaching, mocks, resumes. Dark theme (Bitcoin/DeFi orange). Run \`npm run dev\` for web, \`npm run electron:dev\` for desktop. 🚀

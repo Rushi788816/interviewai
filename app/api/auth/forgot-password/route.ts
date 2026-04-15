@@ -52,11 +52,11 @@ export async function POST(req: NextRequest) {
         subject: 'Reset your InterviewAI password',
         html: `
           <div style="font-family:sans-serif;max-width:480px;margin:0 auto">
-            <h2 style="color:#F7931A">Reset your password</h2>
+            <h2 style="color:#6366F1">Reset your password</h2>
             <p>You requested a password reset for your InterviewAI account.</p>
             <p>Click the button below to set a new password. This link expires in <strong>1 hour</strong>.</p>
             <a href="${resetUrl}"
-               style="display:inline-block;margin:24px 0;padding:14px 28px;background:linear-gradient(135deg,#F7931A,#FF6B2B);color:white;text-decoration:none;border-radius:12px;font-weight:bold">
+               style="display:inline-block;margin:24px 0;padding:14px 28px;background:linear-gradient(135deg,#6366F1,#8B5CF6);color:white;text-decoration:none;border-radius:12px;font-weight:bold">
               Reset Password →
             </a>
             <p style="color:#888;font-size:13px">If you didn't request this, you can safely ignore this email.</p>

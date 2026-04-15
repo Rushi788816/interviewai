@@ -40,7 +40,7 @@ export default function ForgotPasswordPage() {
       <div className="absolute inset-0 pointer-events-none overflow-hidden">
         <div
           className="absolute top-1/3 left-1/2 -translate-x-1/2 w-[600px] h-[400px] rounded-full blur-[120px] opacity-20"
-          style={{ background: "radial-gradient(ellipse, #F7931A, transparent 70%)" }}
+          style={{ background: "radial-gradient(ellipse, #6366F1, transparent 70%)" }}
         />
       </div>
 
@@ -50,7 +50,7 @@ export default function ForgotPasswordPage() {
           {/* Logo */}
           <div className="text-center mb-8">
             <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl mb-4"
-              style={{ background: "linear-gradient(135deg, #F7931A, #FF6B2B)" }}>
+              style={{ background: "linear-gradient(135deg, #6366F1, #8B5CF6)" }}>
               <span className="text-2xl">🔑</span>
             </div>
             <h1 className="text-2xl font-bold text-white mb-2">Reset your password</h1>
@@ -72,7 +72,7 @@ export default function ForgotPasswordPage() {
                 Didn&apos;t get it? Check your spam folder or{" "}
                 <button
                   onClick={() => { setSent(false); setEmail("") }}
-                  className="text-[#F7931A] hover:underline"
+                  className="text-[#6366F1] hover:underline"
                 >
                   try again
                 </button>
@@ -80,7 +80,7 @@ export default function ForgotPasswordPage() {
               <Link
                 href="/login"
                 className="block w-full text-center py-3 rounded-xl text-sm font-semibold text-white transition-opacity hover:opacity-90 mt-4"
-                style={{ background: "linear-gradient(135deg, #F7931A, #FF6B2B)" }}
+                style={{ background: "linear-gradient(135deg, #6366F1, #8B5CF6)" }}
               >
                 Back to Sign In
               </Link>
@@ -97,7 +97,7 @@ export default function ForgotPasswordPage() {
                   onChange={(e) => setEmail(e.target.value)}
                   required
                   placeholder="you@example.com"
-                  className="w-full bg-[#0A0F1E] border border-white/10 rounded-xl px-4 py-3 text-white placeholder-[#4B5563] text-sm outline-none focus:border-[#F7931A]/50 focus:ring-1 focus:ring-[#F7931A]/30 transition-all"
+                  className="w-full bg-[#0A0F1E] border border-white/10 rounded-xl px-4 py-3 text-white placeholder-[#4B5563] text-sm outline-none focus:border-[#6366F1]/50 focus:ring-1 focus:ring-[#6366F1]/30 transition-all"
                 />
               </div>
 
@@ -111,7 +111,7 @@ export default function ForgotPasswordPage() {
                 type="submit"
                 disabled={loading || !email.trim()}
                 className="w-full py-3 rounded-xl font-semibold text-white text-sm transition-all hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed"
-                style={{ background: "linear-gradient(135deg, #F7931A, #FF6B2B)" }}
+                style={{ background: "linear-gradient(135deg, #6366F1, #8B5CF6)" }}
               >
                 {loading ? "Sending reset link…" : "Send Reset Link →"}
               </button>
